@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, watch } from "vue";
+import { onMounted, onUnmounted, ref, watch } from "vue";
 import {
-  NLayout, NLayoutHeader, NLayoutContent, NLayoutSider,
-  NCard, NInput, NButton, NSpace, NProgress, NAlert, NTag,
-  NText, NIcon, NDivider, NScrollbar, useMessage, NDrawer, NDrawerContent,
-  NInputGroup,
+  NLayout, NLayoutHeader, NLayoutContent,
+  NCard, NInput, NButton, NSpace, NProgress,
+  NText, NIcon, NScrollbar, useMessage,
+  NDrawer, NDrawerContent, NInputGroup,
 } from "naive-ui";
 import {
   PlayOutline, DownloadOutline, CopyOutline,
-  SettingsSharp, RefreshOutline, VideocamOutline,
+  SettingsSharp, VideocamOutline,
 } from "@vicons/ionicons5";
 import { useAppStore } from "./stores/app";
 
 const store = useAppStore();
 const message = useMessage();
-const showSettings = $ref(false);
+const showSettings = ref(false);
 
 onMounted(() => store.init());
 onUnmounted(() => store.cleanup());
@@ -31,16 +31,16 @@ async function copyMarkdown() {
   if (!store.result) return;
   const { writeText } = await import("@tauri-apps/plugin-clipboard-manager");
   await writeText(store.result.markdown);
-  message.success("已复制到剪贴板");
+  message.success("Copied to clipboard");
 }
 
 function stageLabel(stage: string) {
   const map: Record<string, string> = {
-    download: "下载中",
-    ffmpeg: "转换中",
-    asr: "识别中",
-    ai: "AI分析中",
-    done: "完成",
+    download: "Downloading",
+    ffmpeg: "Converting",
+    asr: "Transcribing",
+    ai: "AI Analyzing",
+    done: "Done",
   };
   return map[stage] || stage;
 }
@@ -55,12 +55,10 @@ function renderMarkdown(text: string) {
     .replace(/`(.+?)`/g, '<code>$1</code>')
     .replace(/^- (.+)$/gm, '<li>$1</li>')
     .replace(/^(\d+)\. (.+)$/gm, '<li>$2</li>')
-    .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
     .replace(/^---$/gm, '<hr>')
     .replace(/\n\n/g, '</p><p>')
     .replace(/\n/g, '<br>');
   html = '<p>' + html + '</p>';
-  html = html.replace(/<li>/g, '</p><li>').replace(/<\/li>/g, '</li><p>');
   return html;
 }
 </script>
@@ -76,7 +74,7 @@ function renderMarkdown(text: string) {
       </div>
       <n-button text @click="showSettings = true">
         <template #icon><n-icon><SettingsSharp /></n-icon></template>
-        设置
+        Settings
       </n-button>
     </n-layout-header>
 
@@ -84,7 +82,7 @@ function renderMarkdown(text: string) {
       <!-- URL Input -->
       <n-card style="width: 100%; max-width: 800px;" size="small">
         <n-space vertical style="width: 100%;">
-          <n-text>输入 B站视频链接</n-text>
+          <n-text>Bilibili Video URL</n-text>
           <n-input-group>
             <n-input
               v-model:value="store.url"
@@ -100,7 +98,7 @@ function renderMarkdown(text: string) {
               :disabled="!store.url.trim()"
             >
               <template #icon><n-icon><PlayOutline /></n-icon></template>
-              开始提取
+              Start
             </n-button>
           </n-input-group>
         </n-space>
@@ -110,7 +108,7 @@ function renderMarkdown(text: string) {
       <n-card v-if="store.processing || store.progress" style="width: 100%; max-width: 800px;" size="small">
         <n-space vertical style="width: 100%;">
           <n-space justify="space-between">
-            <n-text>{{ store.progress ? stageLabel(store.progress.stage) : "处理中..." }}</n-text>
+            <n-text>{{ store.progress ? stageLabel(store.progress.stage) : "Processing..." }}</n-text>
             <n-text depth="3">{{ store.progress ? Math.round(store.progress.progress * 100) : 0 }}%</n-text>
           </n-space>
           <n-progress
@@ -132,11 +130,11 @@ function renderMarkdown(text: string) {
             <n-space>
               <n-button size="small" @click="copyMarkdown">
                 <template #icon><n-icon><CopyOutline /></n-icon></template>
-                复制
+                Copy
               </n-button>
               <n-button size="small" @click="store.exportToFile()">
                 <template #icon><n-icon><DownloadOutline /></n-icon></template>
-                导出 MD
+                Export MD
               </n-button>
             </n-space>
           </n-space>
@@ -149,7 +147,7 @@ function renderMarkdown(text: string) {
       <!-- Empty state -->
       <n-card v-if="!store.result && !store.processing" style="width: 100%; max-width: 800px; text-align: center; padding: 60px 0;">
         <n-text depth="3" style="font-size: 14px;">
-          输入B站视频链接，自动下载音频 → 语音识别 → AI观点提炼 → 生成 Markdown 文档
+          Enter a Bilibili video URL, auto download audio - ASR transcription - AI insight extraction - Markdown output
         </n-text>
       </n-card>
     </n-layout-content>
@@ -157,14 +155,14 @@ function renderMarkdown(text: string) {
 
   <!-- Settings Drawer -->
   <n-drawer v-model:show="showSettings" width="400">
-    <n-drawer-content title="设置" closable>
+    <n-drawer-content title="Settings" closable>
       <n-space vertical style="gap: 16px;">
         <div>
-          <n-text depth="3" style="font-size: 12px; margin-bottom: 4px;">HTTP 代理</n-text>
+          <n-text depth="3" style="font-size: 12px; margin-bottom: 4px;">HTTP Proxy</n-text>
           <n-input v-model:value="store.proxy" placeholder="http://127.0.0.1:7897" size="small" />
         </div>
         <div>
-          <n-text depth="3" style="font-size: 12px; margin-bottom: 4px;">AI API 地址</n-text>
+          <n-text depth="3" style="font-size: 12px; margin-bottom: 4px;">AI API URL</n-text>
           <n-input v-model:value="store.aiApiUrl" placeholder="https://api.openai.com/v1/chat/completions" size="small" />
         </div>
         <div>
@@ -172,11 +170,11 @@ function renderMarkdown(text: string) {
           <n-input v-model:value="store.aiApiKey" type="password" placeholder="sk-..." size="small" show-password-on="click" />
         </div>
         <div>
-          <n-text depth="3" style="font-size: 12px; margin-bottom: 4px;">AI 模型</n-text>
+          <n-text depth="3" style="font-size: 12px; margin-bottom: 4px;">AI Model</n-text>
           <n-input v-model:value="store.aiModel" placeholder="gpt-4o-mini" size="small" />
         </div>
         <div>
-          <n-text depth="3" style="font-size: 12px; margin-bottom: 4px;">AI 提示词</n-text>
+          <n-text depth="3" style="font-size: 12px; margin-bottom: 4px;">AI Prompt</n-text>
           <n-input v-model:value="store.aiPrompt" type="textarea" :rows="4" size="small" />
         </div>
       </n-space>
