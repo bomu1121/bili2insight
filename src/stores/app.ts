@@ -1,10 +1,11 @@
 import { defineStore } from "pinia";
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 import type { PipelineResult, PipelineProgress, VideoInfo } from "../utils/types";
 import { runPipeline, saveResultToFile, previewVideo, fetchModels } from "../utils/invoke";
 import { listen } from "@tauri-apps/api/event";
 
 export interface Provider { name: string; url: string; models: string[]; }
+export interface PromptTemplate { name: string; prompt: string; builtin: boolean; }
 
 const PROVIDERS: Provider[] = [
   { name: "DeepSeek", url: "https://api.deepseek.com", models: ["deepseek-chat", "deepseek-reasoner"] },
@@ -12,52 +13,108 @@ const PROVIDERS: Provider[] = [
   { name: "Custom", url: "", models: [] },
 ];
 
-const DEFAULT_PROMPT = [
-  "\u4f60\u662f\u4e00\u4f4d\u6df1\u5ea6\u5185\u5bb9\u7f16\u8f91\uff0c\u4e13\u95e8\u5c06\u53e3\u8bed\u5316\u7684\u89c6\u9891\u6587\u6848\u63d0\u70bc\u4e3a\u6709\u601d\u8003\u6df1\u5ea6\u3001\u6709\u903b\u8f91\u5f52\u7c7b\u7684\u7ed3\u6784\u5316\u7b14\u8bb0\u3002\u4f60\u4e0d\u505a\u7b80\u5355\u7684\u9010\u53e5\u8f6c\u5199\uff0c\u800c\u662f\u7406\u89e3\u89c6\u9891\u5728\u8ba8\u8bba\u54ea\u4e9b\u6838\u5fc3\u8bae\u9898\uff0c\u7136\u540e\u628a\u5206\u6563\u5728\u5168\u6587\u4e2d\u7684\u76f8\u5173\u73b0\u8c61\u3001\u4e8b\u5b9e\u3001\u4f8b\u8bc1\u548c\u5224\u65ad\u6574\u5408\u5230\u4e00\u8d77\uff0c\u5f62\u6210\u6709\u673a\u7684\u201c\u89c2\u70b9\u5757\u201d\u3002",
+const PROMPT_GUANDIAN = [
+  "你是深度内容编辑，专门将口语化的视频文案提炼为有思考深度、有逻辑归类的结构化笔记。不做简单逐句改写，而是理解视频在讨论哪些核心议题，然后把分散在全文中的相关现象、事实、例证和判断整合到一起，形成有机的观点块。",
   "",
-  "## \u56fa\u5b9a\u8f93\u51fa\u683c\u5f0f",
-  "\u63a5\u5230\u89c6\u9891\u6587\u6848\u540e\uff0c\u4e25\u683c\u6309\u4ee5\u4e0b\u7ed3\u6784\u8f93\u51fa\uff1a",
+  "【总体概要】",
+  "（3-5句话概括：视频讲了什么主题、作者的核心态度/立场是什么、得出了什么关键结论。）",
   "",
-  "\u3010\u603b\u4f53\u6982\u8981\u3011",
-  "\uff083-5\u53e5\u8bdd\u6982\u62ec\uff1a\u89c6\u9891\u8bb2\u4e86\u4ec0\u4e48\u4e3b\u9898\u3001\u4f5c\u8005\u7684\u6838\u5fc3\u6001\u5ea6/\u7acb\u573a\u662f\u4ec0\u4e48\u3001\u5f97\u51fa\u4e86\u4ec0\u4e48\u5173\u952e\u7ed3\u8bba\u3002\uff09",
+  "【核心观点与支撑】",
+  "### 观点块N：[用一句话提炼这个观点的核心主张]",
+  "- 现象/背景：跟这个观点相关的具体事件、数据、行业动向、个人经历等客观信息",
+  "- 作者的判断：作者针对上述现象明确表达的主观看法、评价、立场或态度",
+  "- 补充例证：作者用来进一步支撑自己判断的案例、对比、数据等",
   "",
-  "\u3010\u6838\u5fc3\u89c2\u70b9\u4e0e\u652f\u6491\u3011",
-  "### \u89c2\u70b9\u5757N\uff1a[\u7528\u4e00\u53e5\u8bdd\u63d0\u70bc\u8fd9\u4e2a\u89c2\u70b9\u7684\u6838\u5fc3\u4e3b\u5f20]",
-  "- \u73b0\u8c61/\u80cc\u666f\uff1a\u8ddf\u8fd9\u4e2a\u89c2\u70b9\u76f8\u5173\u7684\u5177\u4f53\u4e8b\u4ef6\u3001\u6570\u636e\u3001\u884c\u4e1a\u52a8\u5411\u3001\u4e2a\u4eba\u7ecf\u5386\u7b49\u5ba2\u89c2\u4fe1\u606f",
-  "- \u4f5c\u8005\u7684\u5224\u65ad\uff1a\u4f5c\u8005\u9488\u5bf9\u4e0a\u8ff0\u73b0\u8c61\u660e\u786e\u8868\u8fbe\u7684\u4e3b\u89c2\u770b\u6cd5\u3001\u8bc4\u4ef7\u3001\u7acb\u573a\u6216\u6001\u5ea6",
-  "- \u8865\u5145\u4f8b\u8bc1\uff1a\u4f5c\u8005\u7528\u6765\u8fdb\u4e00\u6b65\u652f\u6491\u81ea\u5df1\u5224\u65ad\u7684\u6848\u4f8b\u3001\u5bf9\u6bd4\u3001\u6570\u636e\u7b49",
+  "3-6个观点块，按论证逻辑排序，非时间顺序",
   "",
-  "3-6\u4e2a\u89c2\u70b9\u5757\uff0c\u6309\u8bba\u8bc1\u903b\u8f91\u6392\u5e8f\uff0c\u975e\u65f6\u95f4\u987a\u5e8f",
-  "",
-  "\u3010\u60c5\u7eea\u57fa\u8c03\u4e0e\u5f26\u5916\u4e4b\u97f3\u3011",
-  "1-2\u53e5\u8bdd\u70b9\u51fa\u660e\u663e\u60c5\u7eea\u8272\u5f69\u3001\u672a\u660e\u8bf4\u7684\u6f5c\u53f0\u8bcd\u6216\u53cd\u590d\u6d41\u9732\u7684\u77db\u76fe\u5fc3\u6001\u3002\u53ef\u7701\u7565\u3002",
-  "",
-  "## \u63d0\u70bc\u65b9\u6cd5\u8bba\uff08\u5185\u5316\u6267\u884c\uff0c\u4e0d\u5728\u8f93\u51fa\u4e2d\u4f53\u73b0\uff09",
-  "1. \u5f52\u7c7b\u4f18\u5148\uff1a\u5148\u5212\u51fa3-6\u4e2a\u6838\u5fc3\u8bae\u9898\uff0c\u628a\u539f\u6587\u4e2d\u5c5e\u4e8e\u540c\u4e00\u8bae\u9898\u7684\u5185\u5bb9\u5f52\u62e2\u3002",
-  "2. \u89c2\u70b9\u4e0e\u4e8b\u5b9e\u6346\u7ed1\uff1a\u6bcf\u6761\u89c2\u70b9\u5757\u5fc5\u987b\u662f\u5224\u65ad+\u652f\u6491\u7684\u5b8c\u6574\u7ec4\u5408\u3002",
-  "3. \u53bb\u566a\u4e0d\u964d\u7ef4\uff1a\u5220\u9664\u53e3\u8bed\u586b\u5145\u8bcd\u3001\u91cd\u590d\u5f3a\u8c03\u3001\u65e0\u5173\u5c94\u5f00\u8bdd\u9898\uff0c\u4fdd\u7559\u6240\u6709\u6709\u4ef7\u503c\u4fe1\u606f\u3002",
-  "4. \u4e25\u683c\u5fe0\u4e8e\u539f\u610f\uff1a\u6240\u6709\u5f52\u7c7b\u548c\u6574\u5408\u90fd\u5fc5\u987b\u5728\u539f\u6587\u4e2d\u6709\u76f4\u63a5\u4f9d\u636e\u3002",
-  "5. \u8bed\u8a00\u4e00\u81f4\uff1a\u8f93\u51fa\u8bed\u8a00\u4e0e\u539f\u6587\u4fdd\u6301\u4e00\u81f4\u3002",
-  "",
-  "## \u884c\u4e3a\u8fb9\u754c",
-  "- \u53ea\u8f93\u51fa\u4e0a\u8ff0\u7ed3\u6784\uff0c\u4e0d\u6dfb\u52a0\u5f00\u573a\u767d\u3001\u89e3\u91ca\u6216\u989d\u5916\u5efa\u8bae\u3002",
-  "- \u5982\u679c\u7528\u6237\u53d1\u9001\u7684\u5185\u5bb9\u660e\u663e\u4e0d\u662f\u89c6\u9891\u6587\u6848\uff0c\u56de\u590d\uff1a\u201c\u8bf7\u63d0\u4f9b\u4e00\u6bb5\u89c6\u9891\u6587\u6848\uff0c\u6211\u6765\u5e2e\u4f60\u63d0\u70bc\u89c2\u70b9\u548c\u4e8b\u5b9e\u3002\u201d"
+  "【情绪基调与弦外之音】",
+  "1-2句话点出明显情绪色彩、未明说的潜台词或反复流露的矛盾心态。可省略。",
 ].join("\n");
 
-const STORAGE_KEY = "bili2insight-settings"; const SETTINGS_VERSION = 2;
+const PROMPT_TECH = [
+  "你是技术文档工程师，专门将口语化的技术教程、编程教学、工具演示类视频文案，提炼为结构严谨、可直接用于学习和实操的结构化技术笔记。",
+  "提炼目标不是概括，而是还原——让一个没有看过原视频的开发者/学习者，仅凭你的提炼就能理解核心概念并完成关键操作。",
+  "",
+  "【视频目标】",
+  "（用一句话说清楚：这个视频最终要教会观众什么？解决什么问题？达成什么效果？）",
+  "",
+  "【前置条件】",
+  "- 需要的软件/工具/环境及版本号",
+  "- 需要的前置知识（如果有）",
+  "- 其他依赖或准备工作",
+  "（如果没有明确提及，写无特殊前置，不要编造）",
+  "",
+  "【核心概念】（如果有的话）",
+  "对于视频中涉及的关键技术概念、术语、原理，用简明扼要的方式逐个解释。如果视频纯粹是操作演示可不写。",
+  "",
+  "【操作步骤】",
+  "按视频的实际操作顺序，每一步包含：步骤名称、具体操作、关键配置/参数/代码、预期结果、易错点。",
+  "（步骤数量不限，忠实于视频实际操作流程。如果视频演示了多个方案或分支路径，分别整理。）",
+  "",
+  "【关键技术细节】",
+  "将在视频各处散布但至关重要的技术信息集中列出：配置项/参数的具体值、版本兼容性说明、性能数据或对比数据、快捷键、命令行、文件路径。",
+  "",
+  "【常见坑与解决方案】",
+  "把视频中提到的所有容易出错的地方、报错信息及对应的解决方法集中整理。如果没有写未提及。",
+  "",
+  "【最终效果 / 成果验证】",
+  "（操作完成后得到的结果是什么？如何验证是否成功？）",
+  "",
+  "【延伸与参考】（如果有的话）",
+  "视频中提到的进一步学习方向、相关资源链接、参考文档。",
+  "",
+  "提炼原则：结构化还原优先；技术信息零损耗；口语转技术书面语；区分作者观点和技术事实；不添加原文没有的技术信息。",
+  "只输出上述结构，不添加开场白、评价或闲聊。",
+].join("\n");
+
+const PROMPT_TRACE = [
+  "你是专业的视频文案信息提取与溯源助手。从用户提供的视频文字稿中提取有用信息，并为每一条信息标注清晰的信源，让读者能够直接核对原文。",
+  "",
+  "有用信息定义：关键事实、数据、统计数字、日期、金额、比例；明确的观点、结论、判断、预测；重要的名称（人名、地名、机构名、产品名、专有名词）；操作步骤、方法、建议、注意事项。",
+  "",
+  "信源要求：每条信息标注时间戳（如果原文稿有时间戳）或原文定位（如无时间戳）。原文引用用双引号包裹，1-2句关键原句。",
+  "",
+  "输出格式：按类型分块（事实数据、观点结论、操作步骤等），每条单独编号。如果原文稿较长、信息密集，可先给出不超过200字的核心信息摘要。",
+  "",
+  "特别注意：文稿中没有明确信息就说经分析未发现符合要求的有用信息，不编造。文稿语义模糊可在信源后加注存疑并说明原因。直接输出结果，不打招呼不结束语。",
+].join("\n");
+
+const BUILTIN_TEMPLATES: PromptTemplate[] = [
+  { name: "观点提炼", prompt: PROMPT_GUANDIAN, builtin: true },
+  { name: "技术文案提炼", prompt: PROMPT_TECH, builtin: true },
+  { name: "信息溯源", prompt: PROMPT_TRACE, builtin: true },
+];
+
+const STORAGE_KEY = "bili2insight-settings"; const SETTINGS_VERSION = 3;
+
 function loadSaved(): Record<string,any>|null { try { const r=localStorage.getItem(STORAGE_KEY); return r?JSON.parse(r):null; } catch(_){return null;} }
 function saveToDisk(d:Record<string,any>) { try{localStorage.setItem(STORAGE_KEY,JSON.stringify(d));}catch(_){} }
 
 export const useAppStore = defineStore("app", () => {
   const saved = loadSaved();
+  const ver = saved?.version === SETTINGS_VERSION ? saved : null;
 
   const url = ref("");
-  const proxy = ref(saved?.proxy ?? "http://127.0.0.1:7897");
-  const aiApiUrl = ref(saved?.aiApiUrl ?? PROVIDERS[0].url);
-  const aiApiKey = ref(saved?.aiApiKey ?? "");
-  const aiModel = ref(saved?.aiModel ?? PROVIDERS[0].models[0]);
-  const aiPrompt = ref((saved?.version === SETTINGS_VERSION && saved?.aiPrompt) ? saved.aiPrompt : DEFAULT_PROMPT);
-  const selectedProvider = ref(saved?.selectedProvider ?? 0);
+  const proxy = ref(ver?.proxy ?? "http://127.0.0.1:7897");
+  const aiApiUrl = ref(ver?.aiApiUrl ?? PROVIDERS[0].url);
+  const aiApiKey = ref(ver?.aiApiKey ?? "");
+  const aiModel = ref(ver?.aiModel ?? PROVIDERS[0].models[0]);
+  const selectedProvider = ref(ver?.selectedProvider ?? 0);
+  const customModels = ref<string[]>(ver?.customModels ?? []);
+  const selectedTemplateIndex = ref(ver?.selectedTemplateIndex ?? 0);
+  const customTemplates = ref<PromptTemplate[]>(ver?.customTemplates ?? []);
+  const editingTemplateIdx = ref(ver?.selectedTemplateIndex ?? 0);
+
+  // Build templates: builtin + custom
+  const allTemplates = computed(() => [...BUILTIN_TEMPLATES, ...customTemplates.value]);
+
+  // aiPrompt derived from selected template
+  const aiPrompt = computed(() => {
+    const idx = selectedTemplateIndex.value;
+    if (idx < BUILTIN_TEMPLATES.length) return BUILTIN_TEMPLATES[idx].prompt;
+    const ci = idx - BUILTIN_TEMPLATES.length;
+    return customTemplates.value[ci]?.prompt ?? "";
+  });
 
   const processing = ref(false);
   const progress = ref<PipelineProgress | null>(null);
@@ -66,15 +123,25 @@ export const useAppStore = defineStore("app", () => {
 
   const preview = ref<VideoInfo | null>(null);
   const previewLoading = ref(false);
-  const customModels = ref<string[]>([]);
   let previewTimer: ReturnType<typeof setTimeout> | null = null;
   let unlisten: (() => void) | null = null;
 
-  watch([proxy, aiApiUrl, aiApiKey, aiModel, aiPrompt, selectedProvider], () => {
-    saveToDisk({ version: SETTINGS_VERSION, proxy: proxy.value, aiApiUrl: aiApiUrl.value, aiApiKey: aiApiKey.value, aiModel: aiModel.value, aiPrompt: aiPrompt.value, selectedProvider: selectedProvider.value });
+  function persistSettings() {
+    saveToDisk({
+      version: SETTINGS_VERSION,
+      proxy: proxy.value, aiApiUrl: aiApiUrl.value, aiApiKey: aiApiKey.value,
+      aiModel: aiModel.value, selectedProvider: selectedProvider.value,
+      customModels: customModels.value,
+      selectedTemplateIndex: selectedTemplateIndex.value,
+      customTemplates: customTemplates.value,
+    });
+  }
+
+  watch([proxy, aiApiUrl, aiApiKey, aiModel, selectedProvider, selectedTemplateIndex, customTemplates], () => {
+    persistSettings();
   }, { deep: false });
 
-  function switchProvider(idx: number) { selectedProvider.value = idx; const p = PROVIDERS[idx]; aiApiUrl.value = p.url; if (p.models.length>0) aiModel.value = p.models[0]; }
+  function switchProvider(idx: number) { selectedProvider.value = idx; const p = PROVIDERS[idx]; aiApiUrl.value = p.url; if (p.models.length>0 && customModels.value.length===0) aiModel.value = p.models[0]; }
   async function init() { unlisten = await listen<PipelineProgress>("pipeline-progress", (ev) => { progress.value = ev.payload; }); }
   function cleanup() { if (unlisten) { unlisten(); unlisten = null; } }
 
@@ -97,8 +164,41 @@ export const useAppStore = defineStore("app", () => {
 
   async function fetchModelList() {
     if (!aiApiKey.value.trim()) { error.value = "Please enter API key first"; return; }
-    try { const models = await fetchModels(aiApiUrl.value, aiApiKey.value.trim()); if (models.length>0) { customModels.value = models; aiModel.value = models[0]; } }
+    try { const models = await fetchModels(aiApiUrl.value, aiApiKey.value.trim()); if (models.length>0) { customModels.value = models; aiModel.value = models[0]; persistSettings(); } }
     catch (e: any) { const msg = String(e); error.value = msg.includes("401") ? "Invalid API key" : "Fetch failed: "+msg; }
+  }
+
+  function selectTemplate(idx: number) { selectedTemplateIndex.value = idx; editingTemplateIdx.value = idx; }
+  function addCustomTemplate() {
+    const name = "Custom "+(customTemplates.value.length+1);
+    customTemplates.value = [...customTemplates.value, { name, prompt: "请分析以下视频文案...", builtin: false }];
+    selectedTemplateIndex.value = BUILTIN_TEMPLATES.length + customTemplates.value.length - 1;
+    editingTemplateIdx.value = selectedTemplateIndex.value;
+  }
+  function deleteCustomTemplate(idx: number) {
+    const ci = idx - BUILTIN_TEMPLATES.length;
+    if (ci < 0 || ci >= customTemplates.value.length) return;
+    customTemplates.value = customTemplates.value.filter((_, i) => i !== ci);
+    if (selectedTemplateIndex.value >= idx) {
+      selectedTemplateIndex.value = Math.max(0, selectedTemplateIndex.value - 1);
+      editingTemplateIdx.value = selectedTemplateIndex.value;
+    }
+  }
+  function updateTemplatePrompt(idx: number, prompt: string) {
+    if (idx < BUILTIN_TEMPLATES.length) return; // builtin prompts are immutable
+    const ci = idx - BUILTIN_TEMPLATES.length;
+    if (ci < 0 || ci >= customTemplates.value.length) return;
+    const updated = [...customTemplates.value];
+    updated[ci] = { ...updated[ci], prompt };
+    customTemplates.value = updated;
+  }
+  function updateTemplateName(idx: number, name: string) {
+    if (idx < BUILTIN_TEMPLATES.length) return;
+    const ci = idx - BUILTIN_TEMPLATES.length;
+    if (ci < 0 || ci >= customTemplates.value.length) return;
+    const updated = [...customTemplates.value];
+    updated[ci] = { ...updated[ci], name };
+    customTemplates.value = updated;
   }
 
   async function exportToFile() {
@@ -107,5 +207,5 @@ export const useAppStore = defineStore("app", () => {
     catch (e: any) { error.value = String(e); }
   }
 
-  return { url, proxy, aiApiUrl, aiApiKey, aiModel, aiPrompt, selectedProvider, processing, progress, result, error, preview, previewLoading, PROVIDERS, customModels, init, cleanup, startPipeline, exportToFile, switchProvider, fetchModelList };
+  return { url, proxy, aiApiUrl, aiApiKey, aiModel, aiPrompt, selectedProvider, processing, progress, result, error, preview, previewLoading, PROVIDERS, customModels, BUILTIN_TEMPLATES, allTemplates, selectedTemplateIndex, editingTemplateIdx, customTemplates, init, cleanup, startPipeline, exportToFile, switchProvider, fetchModelList, selectTemplate, addCustomTemplate, deleteCustomTemplate, updateTemplatePrompt, updateTemplateName, persistSettings };
 });

@@ -10,34 +10,47 @@ const showSettings = ref(false), showLog = ref(false);
 onMounted(() => store.init()); onUnmounted(() => store.cleanup());
 function handleStart() { store.startPipeline(); }
 watch(() => store.error, (val) => { if (val) message.error(val); });
-async function copyText(text: string, label: string) { try { await writeText(text); message.success(label+" copied"); } catch (e: any) { message.error("Copy failed: "+String(e)); } }
-const stageLabel = (s:string) => ({download:"Downloading",ffmpeg:"Converting",asr:"Transcribing",ai:"AI Analyzing",done:"Done"})[s]||s;
+async function copyText(text: string, label: string) { try { await writeText(text); message.success(label+" 已复制"); } catch (e: any) { message.error("复制失败: "+String(e)); } }
+const stageLabel = (s:string) => ({download:"下载中",ffmpeg:"转换格式",asr:"语音识别",ai:"AI 分析",done:"完成",refine:"AI 校对"})[s]||s;
 function renderMarkdown(text: string) { let h=text.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/`(.+?)`/g,'<code>$1</code>').replace(/^- (.+)$/gm,'<li>$1</li>').replace(/^(\d+)\. (.+)$/gm,'<li>$2</li>').replace(/^---$/gm,'<hr>').replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>'); return'<p>'+h+'</p>'; }
 const fmtDur = (sec:number) => { const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60; return h>0?`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; };
 const aiContent = computed(() => { if (!store.result) return ''; const md = store.result.markdown; const aiIdx = md.indexOf('## AI Insights') !== -1 ? md.indexOf('## AI Insights') : md.indexOf('## AI'); if (aiIdx === -1) return md; let section = md.substring(aiIdx + (md.indexOf('## AI Insights') !== -1 ? 15 : 5)); section = section.replace(/^### (Summary|Key Points|Tags)\s*\n?/gm, ''); const transcriptIdx = section.indexOf('## Full Transcript'); if (transcriptIdx !== -1) section = section.substring(0, transcriptIdx); const sepIdx = section.indexOf('---'); if (sepIdx !== -1) section = section.substring(0, sepIdx); return section.trim(); });
+const tplPrompt = computed({
+  get: () => {
+    const idx = store.selectedTemplateIndex;
+    if (idx < store.BUILTIN_TEMPLATES.length) return store.BUILTIN_TEMPLATES[idx].prompt;
+    const ci = idx - store.BUILTIN_TEMPLATES.length;
+    return store.customTemplates[ci]?.prompt ?? "";
+  },
+  set: (val: string) => {
+    const idx = store.selectedTemplateIndex;
+    if (idx < store.BUILTIN_TEMPLATES.length) return;
+    store.updateTemplatePrompt(idx, val);
+  }
+});
 </script>
 
 <template>
   <div class="app-root">
     <header class="app-header">
       <div class="header-left"><n-icon size="24" color="#00aeec"><VideocamOutline /></n-icon><n-text strong style="font-size:18px;">Bili2Insight</n-text></div>
-      <n-button text @click="showSettings=true"><template #icon><n-icon><SettingsSharp /></n-icon></template>Settings</n-button>
+      <n-button text @click="showSettings=true"><template #icon><n-icon><SettingsSharp /></n-icon></template>设置</n-button>
     </header>
 
     <main class="app-main">
       <div class="input-row">
-        <n-input v-model:value="store.url" placeholder="https://www.bilibili.com/video/BV..." :disabled="store.processing" clearable @keyup.enter="handleStart" />
-        <n-button type="primary" @click="handleStart" :loading="store.processing" :disabled="!store.url.trim() || store.previewLoading || !store.preview"><template #icon><n-icon><PlayOutline /></n-icon></template>Start</n-button>
+        <n-input v-model:value="store.url" placeholder="粘贴 Bilibili 视频链接..." :disabled="store.processing" clearable @keyup.enter="handleStart" />
+        <n-button type="primary" @click="handleStart" :loading="store.processing" :disabled="!store.url.trim() || store.previewLoading || !store.preview"><template #icon><n-icon><PlayOutline /></n-icon></template>开始</n-button>
       </div>
 
       <div v-if="store.preview" class="preview-card">
         <img v-if="store.preview.cover" :src="store.preview.cover" referrerpolicy="no-referrer" class="preview-img" />
         <div class="preview-info"><n-text strong style="font-size:14px;">{{ store.preview.title }}</n-text><n-text depth="3" style="font-size:12px;">{{ store.preview.uploader }} &middot; {{ fmtDur(store.preview.duration) }}</n-text></div>
       </div>
-      <div v-if="store.previewLoading" class="progress-row"><n-text depth="3" style="font-size:13px;">Detecting video...</n-text></div>
+      <div v-if="store.previewLoading" class="progress-row"><n-text depth="3" style="font-size:13px;">检测视频中...</n-text></div>
 
       <div v-if="store.processing" class="progress-row">
-        <n-space justify="space-between"><n-text>{{ store.progress ? stageLabel(store.progress.stage) : "Processing..." }}</n-text><n-text depth="3">{{ store.progress ? Math.round(store.progress.progress*100) : 0 }}%</n-text></n-space>
+        <n-space justify="space-between"><n-text>{{ store.progress ? stageLabel(store.progress.stage) : "处理中..." }}</n-text><n-text depth="3">{{ store.progress ? Math.round(store.progress.progress*100) : 0 }}%</n-text></n-space>
         <n-progress type="line" :percentage="store.progress?Math.round(store.progress.progress*100):0" :indicator-placement="'inside'" :height="24" :border-radius="4" />
         <n-text depth="3" v-if="store.progress?.message" style="font-size:13px;">{{ store.progress.message }}</n-text>
       </div>
@@ -46,9 +59,9 @@ const aiContent = computed(() => { if (!store.result) return ''; const md = stor
         <div class="result-topbar">
           <n-text strong class="result-title">{{ store.result.video_info.title }}</n-text>
           <n-space :size="8">
-            <n-button size="small" @click="copyText(`【${store.result.video_info.title}】\n${store.url}\n\n${aiContent}`, `Report`)"><template #icon><n-icon><CopyOutline /></n-icon></template>Copy</n-button>
-            <n-button size="small" @click="showLog=true"><template #icon><n-icon><DocumentTextOutline /></n-icon></template>Log</n-button>
-            <n-button size="small" @click="store.exportToFile()"><template #icon><n-icon><DownloadOutline /></n-icon></template>Export</n-button>
+            <n-button size="small" @click="copyText(`【${store.result.video_info.title}】\n${store.url}\n\n${aiContent}`, '报告')"><template #icon><n-icon><CopyOutline /></n-icon></template>复制</n-button>
+            <n-button size="small" @click="showLog=true"><template #icon><n-icon><DocumentTextOutline /></n-icon></template>日志</n-button>
+            <n-button size="small" @click="store.exportToFile()"><template #icon><n-icon><DownloadOutline /></n-icon></template>导出</n-button>
           </n-space>
         </div>
         <div class="result-scroll">
@@ -63,21 +76,52 @@ const aiContent = computed(() => { if (!store.result) return ''; const md = stor
 
       <div v-if="!store.url.trim() && !store.result && !store.processing" class="empty-state">
         <div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5"><path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg></div>
-        <n-text depth="2" style="font-size:16px;font-weight:500;margin-top:12px;">Paste a Bilibili video URL</n-text>
-        <n-text depth="3" style="font-size:13px;margin-top:4px;">Auto download audio - ASR transcription - AI insight - Markdown output</n-text>
+        <n-text depth="2" style="font-size:16px;font-weight:500;margin-top:12px;">粘贴 Bilibili 视频链接</n-text>
+        <n-text depth="3" style="font-size:13px;margin-top:4px;">自动下载音频 &middot; 语音转文字 &middot; AI 提炼 &middot; Markdown 输出</n-text>
       </div>
     </main>
 
-    <n-drawer v-model:show="showSettings" width="400"><n-drawer-content title="Settings" closable><n-space vertical style="gap:16px;"><div><n-text depth="3" style="font-size:12px;">HTTP Proxy</n-text><n-input v-model:value="store.proxy" placeholder="http://127.0.0.1:7897" size="small" /></div><div><n-text depth="3" style="font-size:12px;">AI Provider</n-text><n-select v-model:value="store.selectedProvider" :options="store.PROVIDERS.map((p:any,i:number)=>({label:p.name,value:i}))" size="small" @update:value="(i:number)=>store.switchProvider(i)" /></div><div><n-text depth="3" style="font-size:12px;">API URL</n-text><n-input v-model:value="store.aiApiUrl" size="small" /></div><div><n-text depth="3" style="font-size:12px;">API Key</n-text><n-input v-model:value="store.aiApiKey" type="password" placeholder="sk-..." size="small" show-password-on="click" /></div><div v-if="store.customModels.length>0||store.PROVIDERS[store.selectedProvider].models.length>0"><n-text depth="3" style="font-size:12px;">Model</n-text><n-select v-model:value="store.aiModel" :options="(store.customModels.length>0?store.customModels:store.PROVIDERS[store.selectedProvider].models).map((m:string)=>({label:m,value:m}))" size="small" /></div><div v-else><n-text depth="3" style="font-size:12px;">Model</n-text><n-input v-model:value="store.aiModel" size="small" /></div><n-button size="tiny" @click="store.fetchModelList()">Test Connection &amp; Fetch Models</n-button><div><n-text depth="3" style="font-size:12px;">AI Prompt</n-text><n-input v-model:value="store.aiPrompt" type="textarea" :rows="4" size="small" /></div></n-space></n-drawer-content></n-drawer>
-
-    <n-drawer v-model:show="showLog" width="620"><n-drawer-content title="Pipeline Log" closable>
-      <div class="log-console" v-if="store.result">
-        <div class="log-block"><div class="log-tag info">VIDEO INFO</div><pre class="log-text">{{ JSON.stringify(store.result.video_info, null, 2) }}</pre></div>
-        <div class="log-block"><div class="log-tag warn">RAW TRANSCRIPT</div><pre class="log-text">{{ store.result.raw_transcript }}</pre></div><div class="log-block"><div class="log-tag success">REFINED TRANSCRIPT</div><pre class="log-text">{{ store.result.transcript }}</pre></div>
-        <div class="log-block"><div class="log-tag">AI REQUEST</div><pre class="log-text">{{ store.result.ai_request }}</pre></div><div class="log-block"><div class="log-tag success">AI RAW RESPONSE</div><pre class="log-text">{{ store.result.ai_raw_response }}</pre></div><div class="log-block"><div class="log-tag success">AI INSIGHTS</div><pre class="log-text">{{ JSON.stringify(store.result.insights, null, 2) }}</pre></div>
-        <div class="log-block"><div class="log-tag">FULL MARKDOWN</div><pre class="log-text">{{ store.result.markdown }}</pre></div>
+    <n-drawer v-model:show="showSettings" width="440"><n-drawer-content title="设置" closable><n-space vertical style="gap:16px;">
+      <div><n-text depth="3" style="font-size:12px;">HTTP 代理</n-text><n-input v-model:value="store.proxy" placeholder="http://127.0.0.1:7897" size="small" /></div>
+      <div><n-text depth="3" style="font-size:12px;">AI 提供商</n-text><n-select v-model:value="store.selectedProvider" :options="store.PROVIDERS.map((p:any,i:number)=>({label:p.name,value:i}))" size="small" @update:value="(i:number)=>store.switchProvider(i)" /></div>
+      <div><n-text depth="3" style="font-size:12px;">API 地址</n-text><n-input v-model:value="store.aiApiUrl" size="small" /></div>
+      <div>
+        <n-text depth="3" style="font-size:12px;">API 密钥</n-text>
+        <n-space :size="6" style="margin-top:4px;flex-wrap:nowrap;">
+          <n-input v-model:value="store.aiApiKey" type="password" placeholder="sk-..." size="small" show-password-on="click" style="flex:1;min-width:0;" />
+          <n-button size="small" @click="store.fetchModelList()" style="flex-shrink:0;white-space:nowrap;">测试连接 &amp; 拉取模型</n-button>
+        </n-space>
       </div>
-      <n-text depth="3" v-else>No pipeline data yet.</n-text>
+      <div v-if="store.customModels.length>0||store.PROVIDERS[store.selectedProvider].models.length>0">
+        <n-text depth="3" style="font-size:12px;">模型</n-text><n-select v-model:value="store.aiModel" :options="(store.customModels.length>0?store.customModels:store.PROVIDERS[store.selectedProvider].models).map((m:string)=>({label:m,value:m}))" size="small" />
+      </div>
+      <div v-else><n-text depth="3" style="font-size:12px;">模型</n-text><n-input v-model:value="store.aiModel" size="small" /></div>
+      <div>
+        <n-space justify="space-between" align="center"><n-text depth="3" style="font-size:12px;">提示词模版</n-text><n-button size="tiny" @click="store.addCustomTemplate()">+ 新增</n-button></n-space>
+        <n-space style="margin-top:4px;flex-wrap:wrap;" :size="4">
+          <n-button v-for="(t, i) in store.allTemplates" :key="i" :type="store.selectedTemplateIndex===i ? 'primary' : 'default'" size="tiny" @click="store.selectTemplate(i)" :title="t.name">{{ t.name }}
+            <template v-if="i >= store.BUILTIN_TEMPLATES.length" #icon><n-icon size="14" style="cursor:pointer;margin-left:4px;" @click.stop="store.deleteCustomTemplate(i)"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></n-icon></template>
+          </n-button>
+        </n-space>
+      </div>
+      <div v-if="store.selectedTemplateIndex >= store.BUILTIN_TEMPLATES.length">
+        <n-text depth="3" style="font-size:12px;">模版名称</n-text>
+        <n-input :value="store.allTemplates[store.selectedTemplateIndex]?.name||''" @update:value="(v:string)=>store.updateTemplateName(store.selectedTemplateIndex, v)" size="small" style="margin-top:4px;" />
+      </div>
+      <div>
+        <n-text depth="3" style="font-size:12px;">提示词内容{{ store.selectedTemplateIndex < store.BUILTIN_TEMPLATES.length ? ' (内置模版不可编辑)' : '' }}</n-text>
+        <n-input v-model:value="tplPrompt" type="textarea" :rows="6" size="small" style="margin-top:4px;" :disabled="store.selectedTemplateIndex < store.BUILTIN_TEMPLATES.length" />
+      </div>
+    </n-space></n-drawer-content></n-drawer>
+
+    <n-drawer v-model:show="showLog" width="620"><n-drawer-content title="流水线日志" closable>
+      <div class="log-console" v-if="store.result">
+        <div class="log-block"><div class="log-tag info">视频信息</div><pre class="log-text">{{ JSON.stringify(store.result.video_info, null, 2) }}</pre></div>
+        <div class="log-block"><div class="log-tag warn">原始转录</div><pre class="log-text">{{ store.result.raw_transcript }}</pre></div><div class="log-block"><div class="log-tag success">校对后文稿</div><pre class="log-text">{{ store.result.transcript }}</pre></div>
+        <div class="log-block"><div class="log-tag">AI 请求</div><pre class="log-text">{{ store.result.ai_request }}</pre></div><div class="log-block"><div class="log-tag success">AI 原始响应</div><pre class="log-text">{{ store.result.ai_raw_response }}</pre></div><div class="log-block"><div class="log-tag success">AI 提炼结果</div><pre class="log-text">{{ JSON.stringify(store.result.insights, null, 2) }}</pre></div>
+        <div class="log-block"><div class="log-tag">完整 Markdown</div><pre class="log-text">{{ store.result.markdown }}</pre></div>
+      </div>
+      <n-text depth="3" v-else>暂无流水线数据。</n-text>
     </n-drawer-content></n-drawer>
   </div>
 </template>
