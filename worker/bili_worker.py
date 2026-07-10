@@ -72,7 +72,7 @@ class BiliWorker:
         resp = self.client.get(url); data = resp.json()
         if data.get("code") != 0: raise RuntimeError(f"Video info error: {data.get('message')}")
         vdata = data["data"]
-        info = {"bvid": vdata["bvid"], "aid": vdata["aid"], "cid": vdata["cid"], "title": vdata["title"], "description": vdata["desc"], "duration": vdata["duration"], "cover": vdata["pic"], "uploader": vdata["owner"]["name"], "uploader_uid": vdata["owner"]["mid"], "pubdate": vdata["pubdate"], "pages": [{"page": p["page"], "part": p["part"], "cid": p["cid"], "duration": p["duration"]} for p in vdata.get("pages", [])]}
+        info = {"bvid": vdata["bvid"], "aid": vdata["aid"], "cid": vdata["cid"], "title": vdata["title"], "description": vdata["desc"], "duration": vdata["duration"], "cover": vdata["pic"].replace("http://", "https://"), "uploader": vdata["owner"]["name"], "uploader_uid": vdata["owner"]["mid"], "pubdate": vdata["pubdate"], "pages": [{"page": p["page"], "part": p["part"], "cid": p["cid"], "duration": p["duration"]} for p in vdata.get("pages", [])]}
         emit("progress", {"stage": "video_info", "message": f"Got: {info['title']}"})
         return info
 
