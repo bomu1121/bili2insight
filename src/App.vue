@@ -73,7 +73,7 @@ const fmtDur = (sec:number) => { const h=Math.floor(sec/3600),m=Math.floor((sec%
 .preview-img{width:120px;height:68px;object-fit:cover;border-radius:4px}
 .preview-info{display:flex;flex-direction:column;gap:4px;min-width:0}
 .progress-row{width:100%;max-width:780px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;background:#fff;border-radius:6px;padding:14px 20px;border:1px solid #e8e8e8}
-.result-area{width:100%;max-width:780px;flex:1;min-height:0;display:flex;flex-direction:column;background:#fff;border-radius:6px;border:1px solid #e8e8e8}
+.result-area{width:100%;max-width:780px;flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;background:#fff;border-radius:6px;border:1px solid #e8e8e8}
 .result-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px 0;flex-shrink:0}
 .result-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .result-tabs{flex:1;min-height:0;display:flex;flex-direction:column}.result-tabs .n-tabs-nav{padding:0 20px}.result-tabs .n-tabs-pane-wrapper{flex:1;min-height:0;overflow:hidden}
