@@ -29,7 +29,7 @@ const fmtDur = (sec:number) => { const h=Math.floor(sec/3600),m=Math.floor((sec%
       </div>
 
       <div v-if="store.preview" class="preview-card">
-        <img v-if="store.preview.cover" :src="store.preview.cover" class="preview-img" />
+        <img v-if="store.preview.cover" :src="store.preview.cover" referrerpolicy="no-referrer" class="preview-img" />
         <div class="preview-info"><n-text strong style="font-size:14px;">{{ store.preview.title }}</n-text><n-text depth="3" style="font-size:12px;">{{ store.preview.uploader }} &middot; {{ fmtDur(store.preview.duration) }}</n-text></div>
       </div>
       <div v-if="store.previewLoading" class="progress-row"><n-text depth="3" style="font-size:13px;">Detecting video...</n-text></div>
