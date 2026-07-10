@@ -13,19 +13,7 @@ async function copyText(text: string, label: string) { try { const { writeText }
 const stageLabel = (s:string) => ({download:"Downloading",ffmpeg:"Converting",asr:"Transcribing",ai:"AI Analyzing",done:"Done"})[s]||s;
 function renderMarkdown(text: string) { let h=text.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/`(.+?)`/g,'<code>$1</code>').replace(/^- (.+)$/gm,'<li>$1</li>').replace(/^(\d+)\. (.+)$/gm,'<li>$2</li>').replace(/^---$/gm,'<hr>').replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>'); return'<p>'+h+'</p>'; }
 const fmtDur = (sec:number) => { const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60; return h>0?`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; };
-const aiContent = computed(() => {
-  if (!store.result) return '';
-  const md = store.result.markdown;
-  // Extract AI insights section
-  const aiIdx = md.indexOf('## AI Insights') !== -1 ? md.indexOf('## AI Insights') : md.indexOf('## AI');
-  if (aiIdx === -1) return md;
-  let section = md.substring(aiIdx);
-  const transcriptIdx = section.indexOf('## Full Transcript');
-  if (transcriptIdx !== -1) section = section.substring(0, transcriptIdx);
-  const sepIdx = section.indexOf('---');
-  if (sepIdx !== -1) section = section.substring(0, sepIdx);
-  return section.trim();
-});
+const aiContent = computed(() => { if (!store.result) return ''; const md = store.result.markdown; const aiIdx = md.indexOf('## AI Insights') !== -1 ? md.indexOf('## AI Insights') : md.indexOf('## AI'); if (aiIdx === -1) return md; let section = md.substring(aiIdx + (md.indexOf('## AI Insights') !== -1 ? 15 : 5)); section = section.replace(/^### (Summary|Key Points|Tags)\s*\n?/gm, ''); const transcriptIdx = section.indexOf('## Full Transcript'); if (transcriptIdx !== -1) section = section.substring(0, transcriptIdx); const sepIdx = section.indexOf('---'); if (sepIdx !== -1) section = section.substring(0, sepIdx); return section.trim(); });
 </script>
 
 <template>
