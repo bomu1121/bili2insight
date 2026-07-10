@@ -66,7 +66,7 @@ const fmtDur = (sec:number) => { const h=Math.floor(sec/3600),m=Math.floor((sec%
 .app-root{height:100vh;display:grid;grid-template-rows:56px 1fr}
 .app-header{display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:#fff;border-bottom:1px solid #e8e8e8;z-index:1}
 .header-left{display:flex;align-items:center;gap:8px}
-.app-main{overflow:hidden auto;display:flex;flex-direction:column;align-items:center;padding:24px;gap:16px}
+.app-main{overflow:hidden;display:flex;flex-direction:column;align-items:center;padding:24px;gap:16px}
 .input-row{width:100%;max-width:780px;display:flex;gap:8px;flex-shrink:0}
 .input-row .n-input{flex:1;min-width:0}
 .preview-card{width:100%;max-width:780px;flex-shrink:0;display:flex;gap:12px;align-items:center;background:#fff;border-radius:6px;padding:12px 16px;border:1px solid #e0ecff}
