@@ -25,7 +25,7 @@ const fmtDur = (sec:number) => { const h=Math.floor(sec/3600),m=Math.floor((sec%
     <main class="app-main">
       <div class="input-row">
         <n-input v-model:value="store.url" placeholder="https://www.bilibili.com/video/BV..." :disabled="store.processing" clearable @keyup.enter="handleStart" />
-        <n-button type="primary" @click="handleStart" :loading="store.processing" :disabled="!store.url.trim()"><template #icon><n-icon><PlayOutline /></n-icon></template>Start</n-button>
+        <n-button type="primary" @click="handleStart" :loading="store.processing" :disabled="!store.url.trim() || store.previewLoading || !store.preview"><template #icon><n-icon><PlayOutline /></n-icon></template>Start</n-button>
       </div>
 
       <div v-if="store.preview" class="preview-card">
