@@ -74,7 +74,7 @@ function fmtDur(sec:number){const h=Math.floor(sec/3600),m=Math.floor((sec%3600)
         </n-tabs>
       </div>
 
-      <div v-if="!store.result && !store.processing" class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5"><path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg></div><n-text depth="2" style="font-size:16px;font-weight:500;margin-top:12px;">Paste a Bilibili video URL</n-text><n-text depth="3" style="font-size:13px;margin-top:4px;">The app will download audio, transcribe with ASR, extract insights with AI, and generate a Markdown report.</n-text></div>
+      <div v-if="!store.result && !store.processing" class="empty-state" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5"><path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg></div><n-text depth="2" style="font-size:16px;font-weight:500;margin-top:12px;">Paste a Bilibili video URL</n-text><n-text depth="3" style="font-size:13px;margin-top:4px;">The app will download audio, transcribe with ASR, extract insights with AI, and generate a Markdown report.</n-text></div>
     </n-layout-content>
 
     <n-drawer v-model:show="showSettings" width="400">
@@ -111,6 +111,6 @@ function fmtDur(sec:number){const h=Math.floor(sec/3600),m=Math.floor((sec%3600)
 .transcript-text{margin:0;white-space:pre-wrap;line-height:1.8;font-size:14px;color:#333;font-family:inherit}
 .insights-block{padding:4px 0}.insight-section{margin-bottom:18px}.insight-label{font-size:12px;font-weight:600;color:#999;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}.insight-section p{line-height:1.7;color:#333}.insight-section ol{margin:0;padding-left:20px}.insight-section ol li{line-height:1.7;margin:3px 0}.tag-row{display:flex;flex-wrap:wrap;gap:6px}
 .info-table{width:100%;border-collapse:collapse;font-size:13px}.info-table td{padding:7px 0;vertical-align:top}.info-table td:first-child{color:#999;width:90px;white-space:nowrap}.info-table code{font-size:12px;background:#f5f5f5;padding:1px 6px;border-radius:3px}.desc-cell{line-height:1.6;color:#555}
-.empty-state{margin-top:80px;text-align:center}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
 .md-preview{line-height:1.8;color:#333}.md-preview h1{font-size:21px;margin:14px 0 10px;color:#111}.md-preview h2{font-size:17px;margin:12px 0 8px;color:#222}.md-preview h3{font-size:14px;margin:10px 0 6px;color:#333}.md-preview p{margin:5px 0}.md-preview strong{color:#00aeec}.md-preview code{background:#f0f0f0;padding:2px 6px;border-radius:3px;font-size:13px}.md-preview li{margin-left:22px}.md-preview hr{border:none;border-top:1px solid #eee;margin:14px 0}
 </style>
