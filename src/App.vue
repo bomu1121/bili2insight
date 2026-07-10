@@ -4,33 +4,31 @@ import {
   NLayout, NLayoutHeader, NLayoutContent,
   NCard, NInput, NButton, NSpace, NProgress,
   NText, NIcon, NScrollbar, createDiscreteApi,
-  NDrawer, NDrawerContent,
+  NDrawer, NDrawerContent, NTabs, NTabPane, NTag,
 } from "naive-ui";
 import {
   PlayOutline, DownloadOutline, CopyOutline,
-  SettingsSharp, VideocamOutline,
+  SettingsSharp, VideocamOutline, DocumentTextOutline,
+  BulbOutline, InformationCircleOutline,
 } from "@vicons/ionicons5";
 import { useAppStore } from "./stores/app";
 
 const { message } = createDiscreteApi(["message"]);
 const store = useAppStore();
 const showSettings = ref(false);
+const resultTab = ref("markdown");
 
 onMounted(() => store.init());
 onUnmounted(() => store.cleanup());
-
 function handleStart() { store.startPipeline(); }
 
-watch(() => store.error, (val) => {
-  if (val) message.error(val);
-});
+watch(() => store.error, (val) => { if (val) message.error(val); });
 
-async function copyMarkdown() {
-  if (!store.result) return;
+async function copyText(text: string, label: string) {
   try {
     const { writeText } = await import("@tauri-apps/plugin-clipboard-manager");
-    await writeText(store.result.markdown);
-    message.success("Copied to clipboard");
+    await writeText(text);
+    message.success(`${label} copied`);
   } catch (e: any) {
     message.error("Copy failed: " + String(e));
   }
@@ -55,6 +53,11 @@ function renderMarkdown(text: string) {
     .replace(/\n/g, '<br>');
   return '<p>' + h + '</p>';
 }
+
+function formatDuration(sec: number) {
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  return h > 0 ? `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}` : `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
 </script>
 
 <template>
@@ -65,12 +68,12 @@ function renderMarkdown(text: string) {
         <n-text strong style="font-size: 18px;">Bili2Insight</n-text>
       </div>
       <n-button text @click="showSettings = true">
-        <template #icon><n-icon><SettingsSharp /></n-icon></template>
-        Settings
+        <template #icon><n-icon><SettingsSharp /></n-icon></template>Settings
       </n-button>
     </n-layout-header>
 
     <n-layout-content style="padding: 24px; display: flex; flex-direction: column; gap: 16px; align-items: center;">
+      <!-- URL Input -->
       <n-card style="width: 100%; max-width: 800px;" size="small">
         <n-space vertical style="width: 100%;">
           <n-text>Bilibili Video URL</n-text>
@@ -83,6 +86,7 @@ function renderMarkdown(text: string) {
         </n-space>
       </n-card>
 
+      <!-- Progress -->
       <n-card v-if="store.processing || store.progress" style="width: 100%; max-width: 800px;" size="small">
         <n-space vertical style="width: 100%;">
           <n-space justify="space-between">
@@ -94,21 +98,95 @@ function renderMarkdown(text: string) {
         </n-space>
       </n-card>
 
-      <n-card v-if="store.result" size="small" style="width: 100%; max-width: 800px; flex: 1; overflow: hidden;">
+      <!-- Result with Tabs -->
+      <n-card v-if="store.result" size="small" style="width: 100%; max-width: 800px; flex: 1; overflow: hidden; display: flex; flex-direction: column;">
         <template #header>
           <n-space justify="space-between" align="center">
             <n-text strong>{{ store.result.video_info.title }}</n-text>
-            <n-space>
-              <n-button size="small" @click="copyMarkdown"><template #icon><n-icon><CopyOutline /></n-icon></template>Copy</n-button>
-              <n-button size="small" @click="store.exportToFile()"><template #icon><n-icon><DownloadOutline /></n-icon></template>Export MD</n-button>
-            </n-space>
+            <n-button size="small" @click="store.exportToFile()">
+              <template #icon><n-icon><DownloadOutline /></n-icon></template>Export MD
+            </n-button>
           </n-space>
         </template>
-        <n-scrollbar style="max-height: calc(100vh - 380px);">
-          <div class="md-preview" v-html="renderMarkdown(store.result.markdown)" />
-        </n-scrollbar>
+        <n-tabs v-model:value="resultTab" type="line" style="flex: 1; display: flex; flex-direction: column;" :tabs-padding="0">
+          <!-- Tab 1: Markdown -->
+          <n-tab-pane name="markdown" tab="Markdown">
+            <template #tab>
+              <n-space :size="4" align="center"><n-icon size="16"><DocumentTextOutline /></n-icon><span>Markdown</span></n-space>
+            </template>
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
+              <n-button size="tiny" @click="copyText(store.result.markdown, 'Markdown')">
+                <template #icon><n-icon><CopyOutline /></n-icon></template>Copy
+              </n-button>
+            </div>
+            <n-scrollbar style="max-height: calc(100vh - 440px);">
+              <div class="md-preview" v-html="renderMarkdown(store.result.markdown)" />
+            </n-scrollbar>
+          </n-tab-pane>
+
+          <!-- Tab 2: Transcript -->
+          <n-tab-pane name="transcript" tab="Transcript">
+            <template #tab>
+              <n-space :size="4" align="center"><n-icon size="16"><DocumentTextOutline /></n-icon><span>Transcript</span></n-space>
+            </template>
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
+              <n-button size="tiny" @click="copyText(store.result.transcript, 'Transcript')">
+                <template #icon><n-icon><CopyOutline /></n-icon></template>Copy
+              </n-button>
+            </div>
+            <n-scrollbar style="max-height: calc(100vh - 440px);">
+              <n-text style="white-space: pre-wrap; line-height: 1.8; font-size: 14px;">{{ store.result.transcript }}</n-text>
+            </n-scrollbar>
+          </n-tab-pane>
+
+          <!-- Tab 3: AI Insights -->
+          <n-tab-pane name="insights" tab="Insights">
+            <template #tab>
+              <n-space :size="4" align="center"><n-icon size="16"><BulbOutline /></n-icon><span>Insights</span></n-space>
+            </template>
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
+              <n-button size="tiny" @click="copyText(JSON.stringify(store.result.insights, null, 2), 'Insights')">
+                <template #icon><n-icon><CopyOutline /></n-icon></template>Copy JSON
+              </n-button>
+            </div>
+            <n-scrollbar style="max-height: calc(100vh - 440px);">
+              <div style="padding: 8px 0;">
+                <n-text depth="2" style="font-size: 13px; font-weight: 600;">Summary</n-text>
+                <n-text style="display: block; margin: 4px 0 16px; line-height: 1.7;">{{ store.result.insights.summary }}</n-text>
+                <n-text depth="2" style="font-size: 13px; font-weight: 600;">Key Points</n-text>
+                <ul style="margin: 4px 0 16px; padding-left: 20px;">
+                  <li v-for="(pt, i) in store.result.insights.key_points" :key="i" style="line-height: 1.7; margin: 2px 0;">{{ pt }}</li>
+                </ul>
+                <n-text depth="2" style="font-size: 13px; font-weight: 600;">Tags</n-text>
+                <div style="margin-top: 6px;">
+                  <n-tag v-for="(t, i) in store.result.insights.tags" :key="i" size="small" style="margin-right: 6px; margin-bottom: 4px;">{{ t }}</n-tag>
+                </div>
+              </div>
+            </n-scrollbar>
+          </n-tab-pane>
+
+          <!-- Tab 4: Video Info -->
+          <n-tab-pane name="info" tab="Info">
+            <template #tab>
+              <n-space :size="4" align="center"><n-icon size="16"><InformationCircleOutline /></n-icon><span>Info</span></n-space>
+            </template>
+            <n-scrollbar style="max-height: calc(100vh - 440px);">
+              <div style="padding: 4px 0;">
+                <table style="width: 100%; font-size: 13px; line-height: 2;">
+                  <tr><td style="color: #999; width: 100px;">BV</td><td><code>{{ store.result.video_info.bvid }}</code></td></tr>
+                  <tr><td style="color: #999;">Title</td><td>{{ store.result.video_info.title }}</td></tr>
+                  <tr><td style="color: #999;">Uploader</td><td>{{ store.result.video_info.uploader }} (UID: {{ store.result.video_info.uploader_uid }})</td></tr>
+                  <tr><td style="color: #999;">Duration</td><td>{{ formatDuration(store.result.video_info.duration) }}</td></tr>
+                  <tr><td style="color: #999;">Published</td><td>{{ new Date(store.result.video_info.pubdate * 1000).toLocaleString() }}</td></tr>
+                  <tr v-if="store.result.video_info.description"><td style="color: #999;">Description</td><td style="line-height: 1.6; padding: 4px 0;">{{ store.result.video_info.description }}</td></tr>
+                </table>
+              </div>
+            </n-scrollbar>
+          </n-tab-pane>
+        </n-tabs>
       </n-card>
 
+      <!-- Empty state -->
       <n-card v-if="!store.result && !store.processing" style="width: 100%; max-width: 800px; text-align: center; padding: 60px 0;">
         <n-text depth="3" style="font-size: 14px;">Enter a Bilibili video URL, auto download audio - ASR transcription - AI insight extraction - Markdown output</n-text>
       </n-card>
