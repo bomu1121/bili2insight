@@ -78,7 +78,7 @@ export const useAppStore = defineStore("app", () => {
     try {
       const models = await fetchModels(aiApiUrl.value, aiApiKey.value);
       if (models.length > 0) { customModels.value = models; aiModel.value = models[0]; }
-    } catch (e: any) { error.value = 'Fetch failed: ' + String(e); }
+    } catch (e: any) { const msg = String(e); error.value = msg.includes('401') ? 'Invalid API key - please check your key' : 'Fetch failed: ' + msg; }
   }
   async function exportToFile() {
     if (!result.value) return;

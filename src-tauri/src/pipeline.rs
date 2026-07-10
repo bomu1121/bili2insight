@@ -1,4 +1,4 @@
-﻿use crate::VideoInfo;
+use crate::VideoInfo;
 use crate::InsightResult;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -78,7 +78,7 @@ pub async fn extract_insights(api_url: &str, api_key: &str, model: &str, prompt:
     let client = reqwest::Client::new();
     let user_content = format!("Video title: {}\n\nTranscript:\n{}", title, transcript);
     let mut req = client.post(api_url).json(&serde_json::json!({"model": model, "messages": [{"role": "system", "content": prompt}, {"role": "user", "content": user_content}], "temperature": 0.3}));
-    if !api_key.is_empty() { req = req.header("Authorization", format!("Bearer {}", api_key)); }
+    let api_key = api_key.trim(); if !api_key.is_empty() { req = req.header("Authorization", format!("Bearer {}", api_key)); }
     let resp = req.send().await?;
     if !resp.status().is_success() { let s = resp.status(); let t = resp.text().await.unwrap_or_default(); return Err(anyhow::anyhow!("AI API error {}: {}", s, t)); }
     let json: Value = resp.json().await?;
@@ -107,7 +107,7 @@ pub async fn fetch_models(api_url: &str, api_key: &str) -> Result<Vec<String>, a
     let models_url = format!("{}/models", base);
     let client = reqwest::Client::new();
     let mut req = client.get(&models_url);
-    if !api_key.is_empty() { req = req.header("Authorization", format!("Bearer {}", api_key)); }
+    let api_key = api_key.trim(); if !api_key.is_empty() { req = req.header("Authorization", format!("Bearer {}", api_key)); }
     let resp = req.send().await?;
     if !resp.status().is_success() {
         let s = resp.status(); let t = resp.text().await.unwrap_or_default();
