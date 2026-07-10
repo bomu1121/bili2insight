@@ -1,8 +1,8 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch } from "vue";
 import {
   NLayout, NLayoutHeader, NLayoutContent,
-  NCard, NInput, NButton, NSpace, NProgress,
+  NInput, NButton, NSpace, NProgress,
   NText, NIcon, NScrollbar, createDiscreteApi,
   NDrawer, NDrawerContent, NTabs, NTabPane, NTag,
 } from "naive-ui";
@@ -29,9 +29,7 @@ async function copyText(text: string, label: string) {
     const { writeText } = await import("@tauri-apps/plugin-clipboard-manager");
     await writeText(text);
     message.success(`${label} copied`);
-  } catch (e: any) {
-    message.error("Copy failed: " + String(e));
-  }
+  } catch (e: any) { message.error("Copy failed: " + String(e)); }
 }
 
 function stageLabel(s: string) {
@@ -54,7 +52,7 @@ function renderMarkdown(text: string) {
   return '<p>' + h + '</p>';
 }
 
-function formatDuration(sec: number) {
+function fmtDur(sec: number) {
   const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
   return h > 0 ? `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}` : `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
@@ -72,150 +70,176 @@ function formatDuration(sec: number) {
       </n-button>
     </n-layout-header>
 
-    <n-layout-content style="padding: 24px; display: flex; flex-direction: column; gap: 16px; align-items: center;">
-      <!-- URL Input -->
-      <n-card style="width: 100%; max-width: 800px;" size="small">
-        <n-space vertical style="width: 100%;">
-          <n-text>Bilibili Video URL</n-text>
-          <div style="display: flex; gap: 8px;">
-            <n-input v-model:value="store.url" placeholder="https://www.bilibili.com/video/BV..." :disabled="store.processing" clearable style="flex: 1;" @keyup.enter="handleStart" />
-            <n-button type="primary" @click="handleStart" :loading="store.processing" :disabled="!store.url.trim()">
-              <template #icon><n-icon><PlayOutline /></n-icon></template>Start
-            </n-button>
-          </div>
-        </n-space>
-      </n-card>
+    <n-layout-content class="main-content">
+      <!-- URL + Button row -->
+      <div class="input-row">
+        <n-input
+          v-model:value="store.url"
+          placeholder="https://www.bilibili.com/video/BV..."
+          :disabled="store.processing" clearable
+          @keyup.enter="handleStart"
+        />
+        <n-button type="primary" @click="handleStart" :loading="store.processing" :disabled="!store.url.trim()">
+          <template #icon><n-icon><PlayOutline /></n-icon></template>Start
+        </n-button>
+      </div>
 
-      <!-- Progress -->
-      <n-card v-if="store.processing || store.progress" style="width: 100%; max-width: 800px;" size="small">
-        <n-space vertical style="width: 100%;">
-          <n-space justify="space-between">
-            <n-text>{{ store.progress ? stageLabel(store.progress.stage) : "Processing..." }}</n-text>
-            <n-text depth="3">{{ store.progress ? Math.round(store.progress.progress * 100) : 0 }}%</n-text>
-          </n-space>
-          <n-progress type="line" :percentage="store.progress ? Math.round(store.progress.progress * 100) : 0" :indicator-placement="'inside'" :height="24" :border-radius="4" />
-          <n-text depth="3" v-if="store.progress?.message">{{ store.progress.message }}</n-text>
+      <!-- Progress bar -->
+      <div v-if="store.processing || store.progress" class="progress-row">
+        <n-space justify="space-between">
+          <n-text>{{ store.progress ? stageLabel(store.progress.stage) : "Processing..." }}</n-text>
+          <n-text depth="3">{{ store.progress ? Math.round(store.progress.progress * 100) : 0 }}%</n-text>
         </n-space>
-      </n-card>
+        <n-progress type="line" :percentage="store.progress ? Math.round(store.progress.progress * 100) : 0" :indicator-placement="'inside'" :height="24" :border-radius="4" />
+        <n-text depth="3" v-if="store.progress?.message" style="font-size: 13px;">{{ store.progress.message }}</n-text>
+      </div>
 
-      <!-- Result with Tabs -->
-      <n-card v-if="store.result" size="small" style="width: 100%; max-width: 800px; flex: 1; overflow: hidden; display: flex; flex-direction: column;">
-        <template #header>
-          <n-space justify="space-between" align="center">
-            <n-text strong>{{ store.result.video_info.title }}</n-text>
-            <n-button size="small" @click="store.exportToFile()">
-              <template #icon><n-icon><DownloadOutline /></n-icon></template>Export MD
-            </n-button>
-          </n-space>
-        </template>
-        <n-tabs v-model:value="resultTab" type="line" style="flex: 1; display: flex; flex-direction: column;" :tabs-padding="0">
-          <!-- Tab 1: Markdown -->
+      <!-- Result tabs -->
+      <div v-if="store.result" class="result-area">
+        <div class="result-header">
+          <n-text strong style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ store.result.video_info.title }}</n-text>
+          <n-button size="small" @click="store.exportToFile()">
+            <template #icon><n-icon><DownloadOutline /></n-icon></template>Export MD
+          </n-button>
+        </div>
+        <n-tabs v-model:value="resultTab" type="line" class="result-tabs">
           <n-tab-pane name="markdown" tab="Markdown">
-            <template #tab>
-              <n-space :size="4" align="center"><n-icon size="16"><DocumentTextOutline /></n-icon><span>Markdown</span></n-space>
-            </template>
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
-              <n-button size="tiny" @click="copyText(store.result.markdown, 'Markdown')">
-                <template #icon><n-icon><CopyOutline /></n-icon></template>Copy
-              </n-button>
+            <template #tab><n-space :size="4" align="center"><n-icon size="15"><DocumentTextOutline /></n-icon><span>Markdown</span></n-space></template>
+            <div class="tab-toolbar">
+              <n-button size="tiny" quaternary @click="copyText(store.result.markdown, 'Markdown')"><template #icon><n-icon><CopyOutline /></n-icon></template>Copy</n-button>
             </div>
-            <n-scrollbar style="max-height: calc(100vh - 440px);">
-              <div class="md-preview" v-html="renderMarkdown(store.result.markdown)" />
-            </n-scrollbar>
+            <n-scrollbar class="tab-scroll"><div class="md-preview" v-html="renderMarkdown(store.result.markdown)" /></n-scrollbar>
           </n-tab-pane>
 
-          <!-- Tab 2: Transcript -->
           <n-tab-pane name="transcript" tab="Transcript">
-            <template #tab>
-              <n-space :size="4" align="center"><n-icon size="16"><DocumentTextOutline /></n-icon><span>Transcript</span></n-space>
-            </template>
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
-              <n-button size="tiny" @click="copyText(store.result.transcript, 'Transcript')">
-                <template #icon><n-icon><CopyOutline /></n-icon></template>Copy
-              </n-button>
+            <template #tab><n-space :size="4" align="center"><n-icon size="15"><DocumentTextOutline /></n-icon><span>Transcript</span></n-space></template>
+            <div class="tab-toolbar">
+              <n-button size="tiny" quaternary @click="copyText(store.result.transcript, 'Transcript')"><template #icon><n-icon><CopyOutline /></n-icon></template>Copy</n-button>
             </div>
-            <n-scrollbar style="max-height: calc(100vh - 440px);">
-              <n-text style="white-space: pre-wrap; line-height: 1.8; font-size: 14px;">{{ store.result.transcript }}</n-text>
-            </n-scrollbar>
+            <n-scrollbar class="tab-scroll"><pre class="transcript-text">{{ store.result.transcript }}</pre></n-scrollbar>
           </n-tab-pane>
 
-          <!-- Tab 3: AI Insights -->
           <n-tab-pane name="insights" tab="Insights">
-            <template #tab>
-              <n-space :size="4" align="center"><n-icon size="16"><BulbOutline /></n-icon><span>Insights</span></n-space>
-            </template>
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
-              <n-button size="tiny" @click="copyText(JSON.stringify(store.result.insights, null, 2), 'Insights')">
-                <template #icon><n-icon><CopyOutline /></n-icon></template>Copy JSON
-              </n-button>
+            <template #tab><n-space :size="4" align="center"><n-icon size="15"><BulbOutline /></n-icon><span>Insights</span></n-space></template>
+            <div class="tab-toolbar">
+              <n-button size="tiny" quaternary @click="copyText(JSON.stringify(store.result.insights, null, 2), 'Insights')"><template #icon><n-icon><CopyOutline /></n-icon></template>Copy JSON</n-button>
             </div>
-            <n-scrollbar style="max-height: calc(100vh - 440px);">
-              <div style="padding: 8px 0;">
-                <n-text depth="2" style="font-size: 13px; font-weight: 600;">Summary</n-text>
-                <n-text style="display: block; margin: 4px 0 16px; line-height: 1.7;">{{ store.result.insights.summary }}</n-text>
-                <n-text depth="2" style="font-size: 13px; font-weight: 600;">Key Points</n-text>
-                <ul style="margin: 4px 0 16px; padding-left: 20px;">
-                  <li v-for="(pt, i) in store.result.insights.key_points" :key="i" style="line-height: 1.7; margin: 2px 0;">{{ pt }}</li>
-                </ul>
-                <n-text depth="2" style="font-size: 13px; font-weight: 600;">Tags</n-text>
-                <div style="margin-top: 6px;">
-                  <n-tag v-for="(t, i) in store.result.insights.tags" :key="i" size="small" style="margin-right: 6px; margin-bottom: 4px;">{{ t }}</n-tag>
-                </div>
+            <n-scrollbar class="tab-scroll">
+              <div class="insights-block">
+                <div class="insight-section"><span class="insight-label">Summary</span><p>{{ store.result.insights.summary }}</p></div>
+                <div class="insight-section"><span class="insight-label">Key Points</span><ol><li v-for="(pt, i) in store.result.insights.key_points" :key="i">{{ pt }}</li></ol></div>
+                <div class="insight-section"><span class="insight-label">Tags</span><div class="tag-row"><n-tag v-for="(t, i) in store.result.insights.tags" :key="i" size="small">{{ t }}</n-tag></div></div>
               </div>
             </n-scrollbar>
           </n-tab-pane>
 
-          <!-- Tab 4: Video Info -->
           <n-tab-pane name="info" tab="Info">
-            <template #tab>
-              <n-space :size="4" align="center"><n-icon size="16"><InformationCircleOutline /></n-icon><span>Info</span></n-space>
-            </template>
-            <n-scrollbar style="max-height: calc(100vh - 440px);">
-              <div style="padding: 4px 0;">
-                <table style="width: 100%; font-size: 13px; line-height: 2;">
-                  <tr><td style="color: #999; width: 100px;">BV</td><td><code>{{ store.result.video_info.bvid }}</code></td></tr>
-                  <tr><td style="color: #999;">Title</td><td>{{ store.result.video_info.title }}</td></tr>
-                  <tr><td style="color: #999;">Uploader</td><td>{{ store.result.video_info.uploader }} (UID: {{ store.result.video_info.uploader_uid }})</td></tr>
-                  <tr><td style="color: #999;">Duration</td><td>{{ formatDuration(store.result.video_info.duration) }}</td></tr>
-                  <tr><td style="color: #999;">Published</td><td>{{ new Date(store.result.video_info.pubdate * 1000).toLocaleString() }}</td></tr>
-                  <tr v-if="store.result.video_info.description"><td style="color: #999;">Description</td><td style="line-height: 1.6; padding: 4px 0;">{{ store.result.video_info.description }}</td></tr>
-                </table>
-              </div>
+            <template #tab><n-space :size="4" align="center"><n-icon size="15"><InformationCircleOutline /></n-icon><span>Info</span></n-space></template>
+            <n-scrollbar class="tab-scroll">
+              <table class="info-table">
+                <tr><td>BV</td><td><code>{{ store.result.video_info.bvid }}</code></td></tr>
+                <tr><td>Title</td><td>{{ store.result.video_info.title }}</td></tr>
+                <tr><td>Uploader</td><td>{{ store.result.video_info.uploader }} (UID: {{ store.result.video_info.uploader_uid }})</td></tr>
+                <tr><td>Duration</td><td>{{ fmtDur(store.result.video_info.duration) }}</td></tr>
+                <tr><td>Published</td><td>{{ new Date(store.result.video_info.pubdate * 1000).toLocaleString() }}</td></tr>
+                <tr v-if="store.result.video_info.description"><td>Description</td><td class="desc-cell">{{ store.result.video_info.description }}</td></tr>
+              </table>
             </n-scrollbar>
           </n-tab-pane>
         </n-tabs>
-      </n-card>
+      </div>
 
-      <!-- Empty state -->
-      <n-card v-if="!store.result && !store.processing" style="width: 100%; max-width: 800px; text-align: center; padding: 60px 0;">
-        <n-text depth="3" style="font-size: 14px;">Enter a Bilibili video URL, auto download audio - ASR transcription - AI insight extraction - Markdown output</n-text>
-      </n-card>
+      <!-- Empty -->
+      <div v-if="!store.result && !store.processing" class="empty-state">
+        <n-text depth="3">Enter a Bilibili video URL, auto download audio 鈫?ASR transcription 鈫?AI insight extraction 鈫?Markdown output</n-text>
+      </div>
     </n-layout-content>
-  </n-layout>
 
-  <n-drawer v-model:show="showSettings" width="400">
-    <n-drawer-content title="Settings" closable>
-      <n-space vertical style="gap: 16px;">
-        <div><n-text depth="3" style="font-size: 12px;">HTTP Proxy</n-text><n-input v-model:value="store.proxy" placeholder="http://127.0.0.1:7897" size="small" /></div>
-        <div><n-text depth="3" style="font-size: 12px;">AI API URL</n-text><n-input v-model:value="store.aiApiUrl" placeholder="https://api.openai.com/v1/chat/completions" size="small" /></div>
-        <div><n-text depth="3" style="font-size: 12px;">AI API Key</n-text><n-input v-model:value="store.aiApiKey" type="password" placeholder="sk-..." size="small" show-password-on="click" /></div>
-        <div><n-text depth="3" style="font-size: 12px;">AI Model</n-text><n-input v-model:value="store.aiModel" placeholder="gpt-4o-mini" size="small" /></div>
-        <div><n-text depth="3" style="font-size: 12px;">AI Prompt</n-text><n-input v-model:value="store.aiPrompt" type="textarea" :rows="4" size="small" /></div>
-      </n-space>
-    </n-drawer-content>
-  </n-drawer>
+    <n-drawer v-model:show="showSettings" width="400">
+      <n-drawer-content title="Settings" closable>
+        <n-space vertical style="gap: 16px;">
+          <div><n-text depth="3" style="font-size: 12px;">HTTP Proxy</n-text><n-input v-model:value="store.proxy" placeholder="http://127.0.0.1:7897" size="small" /></div>
+          <div><n-text depth="3" style="font-size: 12px;">AI API URL</n-text><n-input v-model:value="store.aiApiUrl" placeholder="https://api.openai.com/v1/chat/completions" size="small" /></div>
+          <div><n-text depth="3" style="font-size: 12px;">AI API Key</n-text><n-input v-model:value="store.aiApiKey" type="password" placeholder="sk-..." size="small" show-password-on="click" /></div>
+          <div><n-text depth="3" style="font-size: 12px;">AI Model</n-text><n-input v-model:value="store.aiModel" placeholder="gpt-4o-mini" size="small" /></div>
+          <div><n-text depth="3" style="font-size: 12px;">AI Prompt</n-text><n-input v-model:value="store.aiPrompt" type="textarea" :rows="4" size="small" /></div>
+        </n-space>
+      </n-drawer-content>
+    </n-drawer>
+  </n-layout>
 </template>
 
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; background: #f5f5f5; }
+
+.main-content {
+  padding: 24px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+  align-items: center !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+}
+
+.input-row {
+  width: 100%; max-width: 780px; display: flex; gap: 8px; flex-shrink: 0;
+}
+.progress-row {
+  width: 100%; max-width: 780px; flex-shrink: 0; display: flex; flex-direction: column; gap: 8px;
+  background: #fff; border-radius: 6px; padding: 14px 20px;
+  border: 1px solid #e8e8e8;
+}
+
+.result-area {
+  width: 100%; max-width: 780px; flex: 1; min-height: 0;
+  display: flex; flex-direction: column;
+  background: #fff; border-radius: 6px; border: 1px solid #e8e8e8;
+}
+.result-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 20px 0; flex-shrink: 0;
+}
+.result-tabs {
+  flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 20px;
+}
+.result-tabs :deep(.n-tabs-pane-wrapper) { flex: 1; min-height: 0; overflow: hidden; }
+.result-tabs :deep(.n-tab-pane) { height: 100%; display: flex; flex-direction: column; }
+
+.tab-toolbar { display: flex; justify-content: flex-end; padding: 6px 0 0; flex-shrink: 0; }
+.tab-scroll { flex: 1; min-height: 0; }
+.tab-scroll :deep(.n-scrollbar-container) { padding-right: 8px; }
+
+.transcript-text {
+  margin: 0; white-space: pre-wrap; line-height: 1.8; font-size: 14px; color: #333;
+  font-family: inherit;
+}
+
+.insights-block { padding: 4px 0; }
+.insight-section { margin-bottom: 18px; }
+.insight-label { font-size: 12px; font-weight: 600; color: #999; display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+.insight-section p { line-height: 1.7; color: #333; }
+.insight-section ol { margin: 0; padding-left: 20px; }
+.insight-section ol li { line-height: 1.7; margin: 3px 0; }
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.info-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.info-table td { padding: 7px 0; vertical-align: top; }
+.info-table td:first-child { color: #999; width: 90px; white-space: nowrap; }
+.info-table code { font-size: 12px; background: #f5f5f5; padding: 1px 6px; border-radius: 3px; }
+.desc-cell { line-height: 1.6; color: #555; }
+
+.empty-state { margin-top: 80px; text-align: center; }
+
 .md-preview { line-height: 1.8; color: #333; }
-.md-preview h1 { font-size: 22px; margin: 16px 0 12px; color: #111; }
-.md-preview h2 { font-size: 18px; margin: 14px 0 10px; color: #222; }
-.md-preview h3 { font-size: 15px; margin: 12px 0 8px; color: #333; }
-.md-preview p { margin: 6px 0; }
+.md-preview h1 { font-size: 21px; margin: 14px 0 10px; color: #111; }
+.md-preview h2 { font-size: 17px; margin: 12px 0 8px; color: #222; }
+.md-preview h3 { font-size: 14px; margin: 10px 0 6px; color: #333; }
+.md-preview p { margin: 5px 0; }
 .md-preview strong { color: #00aeec; }
 .md-preview code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 13px; }
-.md-preview li { margin-left: 24px; }
-.md-preview hr { border: none; border-top: 1px solid #eee; margin: 16px 0; }
+.md-preview li { margin-left: 22px; }
+.md-preview hr { border: none; border-top: 1px solid #eee; margin: 14px 0; }
 </style>
+
