@@ -1,8 +1,7 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-B站视频信息获取与音频下载 Worker.
-供 Tauri 前端通过 shell 调用。输出 JSON lines 到 stdout：
-  {"type":"progress","stage":"...","message":"..."}
+B绔欒棰戜俊鎭幏鍙栦笌闊抽涓嬭浇 Worker.
+渚?Tauri 鍓嶇閫氳繃 shell 璋冪敤銆傝緭鍑?JSON lines 鍒?stdout锛?  {"type":"progress","stage":"...","message":"..."}
   {"type":"result","video_info":{...},"audio_path":"..."}
   {"type":"error","message":"..."}
 """
@@ -15,6 +14,7 @@ if sys.stderr is not None:
     sys.stderr.reconfigure(encoding="utf-8")
 
 import json, re, time, argparse, hashlib, urllib.parse
+import logging
 from functools import reduce
 from pathlib import Path
 
@@ -39,7 +39,7 @@ class BiliWorker:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.proxy = proxy
 
-        # httpx client with B站 headers
+        # httpx client with B绔?headers
         limits = httpx.Limits(max_connections=10, max_keepalive_connections=10)
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
@@ -58,16 +58,16 @@ class BiliWorker:
         self.sub_key = ""
 
     def fetch_wbi_keys(self):
-        """Get WBI signing keys from B站 nav API."""
-        emit("progress", {"stage": "wbi_keys", "message": "获取WBI签名密钥..."})
+        """Get WBI signing keys from B绔?nav API."""
+        emit("progress", {"stage": "wbi_keys", "message": "鑾峰彇WBI绛惧悕瀵嗛挜..."})
         try:
             resp = self.client.get("https://api.bilibili.com/x/web-interface/nav")
             data = resp.json()["data"]
             self.img_key = data["wbi_img"]["img_url"].split("/")[-1].split(".")[0]
             self.sub_key = data["wbi_img"]["sub_url"].split("/")[-1].split(".")[0]
-            emit("progress", {"stage": "wbi_keys", "message": "WBI密钥获取成功"})
+            emit("progress", {"stage": "wbi_keys", "message": "WBI瀵嗛挜鑾峰彇鎴愬姛"})
         except Exception as e:
-            emit("error", {"message": f"获取WBI密钥失败: {e}"})
+            emit("error", {"message": f"鑾峰彇WBI瀵嗛挜澶辫触: {e}"})
             raise
 
     def sign_wbi(self, params: dict) -> str:
@@ -91,7 +91,7 @@ class BiliWorker:
         m = re.search(r"/(?:av|AV)(\d+)", self.url)
         if m:
             return self.aid_to_bvid(int(m.group(1)))
-        raise ValueError(f"无法从URL解析视频ID: {self.url}")
+        raise ValueError(f"鏃犳硶浠嶶RL瑙ｆ瀽瑙嗛ID: {self.url}")
 
     @staticmethod
     def aid_to_bvid(aid: int) -> str:
@@ -107,14 +107,14 @@ class BiliWorker:
         return "BV1" + "".join(bvid)
 
     def get_video_info(self, bvid: str) -> dict:
-        """Get video metadata from B站 API."""
-        emit("progress", {"stage": "video_info", "message": "获取视频信息..."})
+        """Get video metadata from B绔?API."""
+        emit("progress", {"stage": "video_info", "message": "鑾峰彇瑙嗛淇℃伅..."})
         params = {"bvid": bvid}
         url = f"https://api.bilibili.com/x/web-interface/wbi/view?{self.sign_wbi(params)}"
         resp = self.client.get(url)
         data = resp.json()
         if data.get("code") != 0:
-            raise RuntimeError(f"获取视频信息失败: {data.get('message', '未知错误')}")
+            raise RuntimeError(f"鑾峰彇瑙嗛淇℃伅澶辫触: {data.get('message', '鏈煡閿欒')}")
         vdata = data["data"]
         info = {
             "bvid": vdata["bvid"],
@@ -129,12 +129,12 @@ class BiliWorker:
             "pubdate": vdata["pubdate"],
             "pages": [{"page": p["page"], "part": p["part"], "cid": p["cid"], "duration": p["duration"]} for p in vdata.get("pages", [])],
         }
-        emit("progress", {"stage": "video_info", "message": f"视频信息获取成功: {info['title']}"})
+        emit("progress", {"stage": "video_info", "message": f"瑙嗛淇℃伅鑾峰彇鎴愬姛: {info['title']}"})
         return info
 
     def get_play_url(self, bvid: str, cid: int) -> dict:
         """Get DASH play URL with audio stream."""
-        emit("progress", {"stage": "play_url", "message": "获取播放地址..."})
+        emit("progress", {"stage": "play_url", "message": "鑾峰彇鎾斁鍦板潃..."})
         params = {
             "bvid": bvid,
             "cid": cid,
@@ -147,7 +147,7 @@ class BiliWorker:
         resp = self.client.get(url)
         data = resp.json()
         if data.get("code") != 0:
-            raise RuntimeError(f"获取播放地址失败: {data.get('message', '未知错误')}")
+            raise RuntimeError(f"鑾峰彇鎾斁鍦板潃澶辫触: {data.get('message', '鏈煡閿欒')}")
         dash = data["data"]["dash"]
 
         # Find best audio stream
@@ -157,17 +157,17 @@ class BiliWorker:
             reverse=True
         )
         if not audio_streams:
-            raise RuntimeError("未找到音频流")
+            raise RuntimeError("鏈壘鍒伴煶棰戞祦")
         audio = audio_streams[0]
         audio_url = audio.get("baseUrl") or audio.get("base_url") or audio.get("url", "")
         if not audio_url:
-            raise RuntimeError("音频URL为空")
+            raise RuntimeError("闊抽URL涓虹┖")
         return {"audio_url": audio_url, "bandwidth": audio.get("bandwidth", 0)}
 
     def download_audio(self, audio_url: str, filename: str) -> Path:
         """Download audio m4a file."""
         output_path = self.output_dir / f"{filename}.m4a"
-        emit("progress", {"stage": "download", "message": f"开始下载音频..."})
+        emit("progress", {"stage": "download", "message": f"寮€濮嬩笅杞介煶棰?.."})
 
         headers = {"Referer": "https://www.bilibili.com/"}
         with self.client.stream("GET", audio_url, headers=headers) as resp:
@@ -180,10 +180,10 @@ class BiliWorker:
                     downloaded += len(chunk)
                     if total > 0 and downloaded % (512 * 1024) < 8192:
                         pct = int(downloaded / total * 100)
-                        emit("progress", {"stage": "download", "message": f"下载中... {pct}%"})
+                        emit("progress", {"stage": "download", "message": f"涓嬭浇涓?.. {pct}%"})
 
         size_mb = output_path.stat().st_size / 1024 / 1024
-        emit("progress", {"stage": "download", "message": f"音频下载完成 ({size_mb:.1f}MB)"})
+        emit("progress", {"stage": "download", "message": f"闊抽涓嬭浇瀹屾垚 ({size_mb:.1f}MB)"})
         return output_path
 
     def run(self) -> dict:
@@ -202,10 +202,10 @@ class BiliWorker:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="B站视频信息获取与音频下载")
-    parser.add_argument("--url", required=True, help="B站视频URL")
-    parser.add_argument("--output-dir", default="./downloads", help="输出目录")
-    parser.add_argument("--proxy", default=None, help="HTTP代理地址 (如 http://127.0.0.1:7897)")
+    parser = argparse.ArgumentParser(description="B绔欒棰戜俊鎭幏鍙栦笌闊抽涓嬭浇")
+    parser.add_argument("--url", required=True, help="B绔欒棰慤RL")
+    parser.add_argument("--output-dir", default="./downloads", help="杈撳嚭鐩綍")
+    parser.add_argument("--proxy", default=None, help="HTTP浠ｇ悊鍦板潃 (濡?http://127.0.0.1:7897)")
     args = parser.parse_args()
 
     try:
@@ -219,3 +219,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
