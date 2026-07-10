@@ -46,7 +46,7 @@ const aiContent = computed(() => { if (!store.result) return ''; const md = stor
         <div class="result-topbar">
           <n-text strong class="result-title">{{ store.result.video_info.title }}</n-text>
           <n-space :size="8">
-            <n-button size="small" @click="copyText(store.result.markdown, 'Report')"><template #icon><n-icon><CopyOutline /></n-icon></template>Copy</n-button>
+            <n-button size="small" @click="copyText(`【${store.result.video_info.title}】\n${store.url}\n\n${aiContent}`, `Report`)"><template #icon><n-icon><CopyOutline /></n-icon></template>Copy</n-button>
             <n-button size="small" @click="showLog=true"><template #icon><n-icon><DocumentTextOutline /></n-icon></template>Log</n-button>
             <n-button size="small" @click="store.exportToFile()"><template #icon><n-icon><DownloadOutline /></n-icon></template>Export</n-button>
           </n-space>
