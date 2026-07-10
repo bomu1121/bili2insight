@@ -3,8 +3,8 @@ import { onMounted, onUnmounted, ref, watch } from "vue";
 import {
   NLayout, NLayoutHeader, NLayoutContent,
   NCard, NInput, NButton, NSpace, NProgress,
-  NText, NIcon, NScrollbar, useMessage,
-  NDrawer, NDrawerContent, NMessageProvider,
+  NText, NIcon, NScrollbar, createDiscreteApi,
+  NDrawer, NDrawerContent,
 } from "naive-ui";
 import {
   PlayOutline, DownloadOutline, CopyOutline,
@@ -12,8 +12,8 @@ import {
 } from "@vicons/ionicons5";
 import { useAppStore } from "./stores/app";
 
+const { message } = createDiscreteApi(["message"]);
 const store = useAppStore();
-const message = useMessage();
 const showSettings = ref(false);
 
 onMounted(() => store.init());
@@ -58,123 +58,74 @@ function renderMarkdown(text: string) {
 </script>
 
 <template>
-  <n-message-provider>
-    <n-layout style="height: 100vh; background: #f5f5f5;">
-      <n-layout-header bordered style="height: 56px; padding: 0 20px; display: flex; align-items: center; justify-content: space-between; background: #fff;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <n-icon size="24" color="#00aeec"><VideocamOutline /></n-icon>
-          <n-text strong style="font-size: 18px;">Bili2Insight</n-text>
-        </div>
-        <n-button text @click="showSettings = true">
-          <template #icon><n-icon><SettingsSharp /></n-icon></template>
-          Settings
-        </n-button>
-      </n-layout-header>
+  <n-layout style="height: 100vh; background: #f5f5f5;">
+    <n-layout-header bordered style="height: 56px; padding: 0 20px; display: flex; align-items: center; justify-content: space-between; background: #fff;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <n-icon size="24" color="#00aeec"><VideocamOutline /></n-icon>
+        <n-text strong style="font-size: 18px;">Bili2Insight</n-text>
+      </div>
+      <n-button text @click="showSettings = true">
+        <template #icon><n-icon><SettingsSharp /></n-icon></template>
+        Settings
+      </n-button>
+    </n-layout-header>
 
-      <n-layout-content style="padding: 24px; display: flex; flex-direction: column; gap: 16px; align-items: center;">
-        <!-- URL Input -->
-        <n-card style="width: 100%; max-width: 800px;" size="small">
-          <n-space vertical style="width: 100%;">
-            <n-text>Bilibili Video URL</n-text>
-            <div style="display: flex; gap: 8px;">
-              <n-input
-                v-model:value="store.url"
-                placeholder="https://www.bilibili.com/video/BV..."
-                :disabled="store.processing"
-                clearable
-                style="flex: 1;"
-                @keyup.enter="handleStart"
-              />
-              <n-button
-                type="primary"
-                @click="handleStart"
-                :loading="store.processing"
-                :disabled="!store.url.trim()"
-              >
-                <template #icon><n-icon><PlayOutline /></n-icon></template>
-                Start
-              </n-button>
-            </div>
-          </n-space>
-        </n-card>
-
-        <!-- Progress -->
-        <n-card v-if="store.processing || store.progress" style="width: 100%; max-width: 800px;" size="small">
-          <n-space vertical style="width: 100%;">
-            <n-space justify="space-between">
-              <n-text>{{ store.progress ? stageLabel(store.progress.stage) : "Processing..." }}</n-text>
-              <n-text depth="3">{{ store.progress ? Math.round(store.progress.progress * 100) : 0 }}%</n-text>
-            </n-space>
-            <n-progress
-              type="line"
-              :percentage="store.progress ? Math.round(store.progress.progress * 100) : 0"
-              :indicator-placement="'inside'"
-              :height="24"
-              :border-radius="4"
-            />
-            <n-text depth="3" v-if="store.progress?.message">{{ store.progress.message }}</n-text>
-          </n-space>
-        </n-card>
-
-        <!-- Result -->
-        <n-card v-if="store.result" size="small" style="width: 100%; max-width: 800px; flex: 1; overflow: hidden;">
-          <template #header>
-            <n-space justify="space-between" align="center">
-              <n-text strong>{{ store.result.video_info.title }}</n-text>
-              <n-space>
-                <n-button size="small" @click="copyMarkdown">
-                  <template #icon><n-icon><CopyOutline /></n-icon></template>
-                  Copy
-                </n-button>
-                <n-button size="small" @click="store.exportToFile()">
-                  <template #icon><n-icon><DownloadOutline /></n-icon></template>
-                  Export MD
-                </n-button>
-              </n-space>
-            </n-space>
-          </template>
-          <n-scrollbar style="max-height: calc(100vh - 380px);">
-            <div class="md-preview" v-html="renderMarkdown(store.result.markdown)" />
-          </n-scrollbar>
-        </n-card>
-
-        <!-- Empty -->
-        <n-card v-if="!store.result && !store.processing" style="width: 100%; max-width: 800px; text-align: center; padding: 60px 0;">
-          <n-text depth="3" style="font-size: 14px;">
-            Enter a Bilibili video URL, auto download audio - ASR transcription - AI insight extraction - Markdown output
-          </n-text>
-        </n-card>
-      </n-layout-content>
-    </n-layout>
-
-    <!-- Settings Drawer -->
-    <n-drawer v-model:show="showSettings" width="400">
-      <n-drawer-content title="Settings" closable>
-        <n-space vertical style="gap: 16px;">
-          <div>
-            <n-text depth="3" style="font-size: 12px; margin-bottom: 4px;">HTTP Proxy</n-text>
-            <n-input v-model:value="store.proxy" placeholder="http://127.0.0.1:7897" size="small" />
-          </div>
-          <div>
-            <n-text depth="3" style="font-size: 12px; margin-bottom: 4px;">AI API URL</n-text>
-            <n-input v-model:value="store.aiApiUrl" placeholder="https://api.openai.com/v1/chat/completions" size="small" />
-          </div>
-          <div>
-            <n-text depth="3" style="font-size: 12px; margin-bottom: 4px;">AI API Key</n-text>
-            <n-input v-model:value="store.aiApiKey" type="password" placeholder="sk-..." size="small" show-password-on="click" />
-          </div>
-          <div>
-            <n-text depth="3" style="font-size: 12px; margin-bottom: 4px;">AI Model</n-text>
-            <n-input v-model:value="store.aiModel" placeholder="gpt-4o-mini" size="small" />
-          </div>
-          <div>
-            <n-text depth="3" style="font-size: 12px; margin-bottom: 4px;">AI Prompt</n-text>
-            <n-input v-model:value="store.aiPrompt" type="textarea" :rows="4" size="small" />
+    <n-layout-content style="padding: 24px; display: flex; flex-direction: column; gap: 16px; align-items: center;">
+      <n-card style="width: 100%; max-width: 800px;" size="small">
+        <n-space vertical style="width: 100%;">
+          <n-text>Bilibili Video URL</n-text>
+          <div style="display: flex; gap: 8px;">
+            <n-input v-model:value="store.url" placeholder="https://www.bilibili.com/video/BV..." :disabled="store.processing" clearable style="flex: 1;" @keyup.enter="handleStart" />
+            <n-button type="primary" @click="handleStart" :loading="store.processing" :disabled="!store.url.trim()">
+              <template #icon><n-icon><PlayOutline /></n-icon></template>Start
+            </n-button>
           </div>
         </n-space>
-      </n-drawer-content>
-    </n-drawer>
-  </n-message-provider>
+      </n-card>
+
+      <n-card v-if="store.processing || store.progress" style="width: 100%; max-width: 800px;" size="small">
+        <n-space vertical style="width: 100%;">
+          <n-space justify="space-between">
+            <n-text>{{ store.progress ? stageLabel(store.progress.stage) : "Processing..." }}</n-text>
+            <n-text depth="3">{{ store.progress ? Math.round(store.progress.progress * 100) : 0 }}%</n-text>
+          </n-space>
+          <n-progress type="line" :percentage="store.progress ? Math.round(store.progress.progress * 100) : 0" :indicator-placement="'inside'" :height="24" :border-radius="4" />
+          <n-text depth="3" v-if="store.progress?.message">{{ store.progress.message }}</n-text>
+        </n-space>
+      </n-card>
+
+      <n-card v-if="store.result" size="small" style="width: 100%; max-width: 800px; flex: 1; overflow: hidden;">
+        <template #header>
+          <n-space justify="space-between" align="center">
+            <n-text strong>{{ store.result.video_info.title }}</n-text>
+            <n-space>
+              <n-button size="small" @click="copyMarkdown"><template #icon><n-icon><CopyOutline /></n-icon></template>Copy</n-button>
+              <n-button size="small" @click="store.exportToFile()"><template #icon><n-icon><DownloadOutline /></n-icon></template>Export MD</n-button>
+            </n-space>
+          </n-space>
+        </template>
+        <n-scrollbar style="max-height: calc(100vh - 380px);">
+          <div class="md-preview" v-html="renderMarkdown(store.result.markdown)" />
+        </n-scrollbar>
+      </n-card>
+
+      <n-card v-if="!store.result && !store.processing" style="width: 100%; max-width: 800px; text-align: center; padding: 60px 0;">
+        <n-text depth="3" style="font-size: 14px;">Enter a Bilibili video URL, auto download audio - ASR transcription - AI insight extraction - Markdown output</n-text>
+      </n-card>
+    </n-layout-content>
+  </n-layout>
+
+  <n-drawer v-model:show="showSettings" width="400">
+    <n-drawer-content title="Settings" closable>
+      <n-space vertical style="gap: 16px;">
+        <div><n-text depth="3" style="font-size: 12px;">HTTP Proxy</n-text><n-input v-model:value="store.proxy" placeholder="http://127.0.0.1:7897" size="small" /></div>
+        <div><n-text depth="3" style="font-size: 12px;">AI API URL</n-text><n-input v-model:value="store.aiApiUrl" placeholder="https://api.openai.com/v1/chat/completions" size="small" /></div>
+        <div><n-text depth="3" style="font-size: 12px;">AI API Key</n-text><n-input v-model:value="store.aiApiKey" type="password" placeholder="sk-..." size="small" show-password-on="click" /></div>
+        <div><n-text depth="3" style="font-size: 12px;">AI Model</n-text><n-input v-model:value="store.aiModel" placeholder="gpt-4o-mini" size="small" /></div>
+        <div><n-text depth="3" style="font-size: 12px;">AI Prompt</n-text><n-input v-model:value="store.aiPrompt" type="textarea" :rows="4" size="small" /></div>
+      </n-space>
+    </n-drawer-content>
+  </n-drawer>
 </template>
 
 <style>

@@ -13,7 +13,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "Bili2Insight - B站视频观点提�?,
+        "title": "Bili2Insight",
         "width": 1200,
         "height": 800,
         "minWidth": 900,
@@ -36,33 +36,5 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
-  },
-  "plugins": {
-    "dialog": {},
-    "fs": {
-      "scope": {
-        "allow": [
-          "$APPDATA/**",
-          "$DOWNLOAD/**",
-          "$DESKTOP/**",
-          "$TEMP/**"
-        ]
-      }
-    },
-    "shell": {
-      "scope": [
-        {
-          "name": "python",
-          "cmd": "python",
-          "args": true
-        },
-        {
-          "name": "ffmpeg",
-          "cmd": "ffmpeg",
-          "args": true
-        }
-      ]
-    },
-    "clipboard-manager": {}
   }
 }
