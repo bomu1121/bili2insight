@@ -34,7 +34,7 @@ const fmtDur = (sec:number) => { const h=Math.floor(sec/3600),m=Math.floor((sec%
       </div>
       <div v-if="store.previewLoading" class="progress-row"><n-text depth="3" style="font-size:13px;">Detecting video...</n-text></div>
 
-      <div v-if="store.processing || store.progress" class="progress-row">
+      <div v-if="store.processing" class="progress-row">
         <n-space justify="space-between"><n-text>{{ store.progress ? stageLabel(store.progress.stage) : "Processing..." }}</n-text><n-text depth="3">{{ store.progress ? Math.round(store.progress.progress*100) : 0 }}%</n-text></n-space>
         <n-progress type="line" :percentage="store.progress?Math.round(store.progress.progress*100):0" :indicator-placement="'inside'" :height="24" :border-radius="4" />
         <n-text depth="3" v-if="store.progress?.message" style="font-size:13px;">{{ store.progress.message }}</n-text>
@@ -50,7 +50,7 @@ const fmtDur = (sec:number) => { const h=Math.floor(sec/3600),m=Math.floor((sec%
         </n-tabs>
       </div>
 
-      <div v-if="!store.result && !store.processing" class="empty-state">
+      <div v-if="!store.url.trim() && !store.result && !store.processing" class="empty-state">
         <div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5"><path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg></div>
         <n-text depth="2" style="font-size:16px;font-weight:500;margin-top:12px;">Paste a Bilibili video URL</n-text>
         <n-text depth="3" style="font-size:13px;margin-top:4px;">Auto download audio - ASR transcription - AI insight - Markdown output</n-text>
