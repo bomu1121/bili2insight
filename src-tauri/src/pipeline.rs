@@ -1,31 +1,26 @@
 use crate::VideoInfo;
 use crate::InsightResult;
-use std::path::{Path, PathBuf};
-use std::process::Command;
-#[cfg(target_os = "windows")]
-use std::os::windows::process::CommandExt;
+use std::path::Path;
+use tauri::{AppHandle, Manager};
+use tauri_plugin_shell::ShellExt;
 use serde_json::Value;
 
-#[cfg(target_os = "windows")]
-const CREATE_NO_WINDOW: u32 = 0x08000000;
-
 pub async fn download_bili_audio(
-    url: &str, output_dir: &Path, preview_only: bool, proxy: Option<&str>,
+    app: &AppHandle, url: &str, output_dir: &Path, preview_only: bool, proxy: Option<&str>,
     progress: impl Fn(&str, f64, &str) + Send + 'static,
 ) -> Result<VideoInfo, anyhow::Error> {
-    let worker_path = find_worker("worker/bili_worker.py")?;
-    let mut cmd = Command::new("python");
-    cmd.arg(&worker_path).arg("--url").arg(url).arg("--output-dir").arg(output_dir.to_string_lossy().as_ref());
-    if preview_only { cmd.arg("--preview-only"); }
-    if let Some(p) = proxy { cmd.arg("--proxy").arg(p); }
-    #[cfg(target_os = "windows")] { cmd.creation_flags(CREATE_NO_WINDOW); }
-    let output = cmd.output()?;
-    if !output.status.success() {
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(anyhow::anyhow!("Worker failed (exit {}): stdout={}, stderr={}", output.status.code().unwrap_or(-1), stdout, stderr));
+    let mut cmd = app.shell().sidecar("bili_worker")
+        .map_err(|e| anyhow::anyhow!("bili_worker sidecar not found: {}", e))?;
+    cmd = cmd.args(["--url", url, "--output-dir", output_dir.to_str().unwrap_or(".")]);
+    if preview_only { cmd = cmd.arg("--preview-only"); }
+    if let Some(p) = proxy { cmd = cmd.args(["--proxy", p]); }
+    let out = cmd.output().await.map_err(|e| anyhow::anyhow!("bili_worker failed: {}", e))?;
+    if !out.status.success() {
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        return Err(anyhow::anyhow!("bili_worker failed: stdout={}, stderr={}", stdout, stderr));
     }
-    let stdout = String::from_utf8(output.stdout)?;
+    let stdout = String::from_utf8(out.stdout)?;
     let mut video_info: Option<VideoInfo> = None;
     for line in stdout.lines() {
         if let Ok(val) = serde_json::from_str::<Value>(line) {
@@ -44,25 +39,50 @@ pub async fn download_bili_audio(
     video_info.ok_or_else(|| anyhow::anyhow!("No video info in worker output"))
 }
 
-pub async fn extract_audio_wav(audio_path: &str, output_dir: &Path) -> Result<String, anyhow::Error> {
-    let wav_path = output_dir.join(format!("{}.wav", Path::new(audio_path).file_stem().unwrap_or_default().to_string_lossy()));
-    let mut cmd = Command::new("ffmpeg");
-    cmd.args(["-y", "-i", audio_path, "-ar", "16000", "-ac", "1", "-sample_fmt", "s16", wav_path.to_string_lossy().as_ref()]);
-    #[cfg(target_os = "windows")] { cmd.creation_flags(CREATE_NO_WINDOW); }
-    let output = cmd.output()?;
-    if !output.status.success() { let stderr = String::from_utf8_lossy(&output.stderr); return Err(anyhow::anyhow!("FFmpeg failed: {}", stderr)); }
+pub async fn extract_audio_wav(
+    app: &AppHandle, audio_path: &str, output_dir: &Path
+) -> Result<String, anyhow::Error> {
+    let stem = Path::new(audio_path).file_stem().unwrap_or_default().to_string_lossy();
+    let wav_path = output_dir.join(format!("{}.wav", stem));
+    let cmd = app.shell().sidecar("ffmpeg")
+        .map_err(|e| anyhow::anyhow!("ffmpeg sidecar not found: {}", e))?;
+    let out = cmd.args(["-y", "-i", audio_path, "-ar", "16000", "-ac", "1", "-sample_fmt", "s16", wav_path.to_str().unwrap_or("")])
+        .output().await.map_err(|e| anyhow::anyhow!("FFmpeg failed: {}", e))?;
+    if !out.status.success() {
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        return Err(anyhow::anyhow!("FFmpeg failed: {}", stderr));
+    }
     Ok(wav_path.to_string_lossy().to_string())
 }
 
-pub async fn run_asr(wav_path: &str, resource_dir: &str, progress: impl Fn(&str, f64, &str) + Send + 'static) -> Result<String, anyhow::Error> {
-    let worker_path = find_worker("worker/asr_worker.py")?;
-    let models_dir = find_models_dir(resource_dir)?;
-    let mut cmd = Command::new("python");
-    cmd.arg(&worker_path).arg("--wav").arg(wav_path).arg("--model").arg("paraformer").arg("--models-dir").arg(models_dir.to_string_lossy().as_ref());
-    #[cfg(target_os = "windows")] { cmd.creation_flags(CREATE_NO_WINDOW); }
-    let output = cmd.output()?;
-    if !output.status.success() { let stderr = String::from_utf8_lossy(&output.stderr); return Err(anyhow::anyhow!("ASR failed: {}", stderr)); }
-    let stdout = String::from_utf8(output.stdout)?;
+pub async fn run_asr(
+    app: &AppHandle, wav_path: &str, progress: impl Fn(&str, f64, &str) + Send + 'static,
+) -> Result<String, anyhow::Error> {
+    let models_root = {
+        let resource_dir = app.path().resource_dir()
+            .map_err(|e| anyhow::anyhow!("resource_dir error: {}", e))?;
+        let path = resource_dir.join("models");
+        if path.exists() {
+            path
+        } else {
+            // dev mode fallback: look in src-tauri/resources/
+            let dev_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("resources").join("models");
+            if dev_path.exists() { dev_path } else { path }
+        }
+    };
+    if !models_root.exists() {
+        return Err(anyhow::anyhow!("ASR model directory not found: {}", models_root.display()));
+    }
+    let mut cmd = app.shell().sidecar("asr_worker")
+        .map_err(|e| anyhow::anyhow!("asr_worker sidecar not found: {}", e))?;
+    cmd = cmd.args(["--wav", wav_path, "--model", "paraformer", "--models-dir", models_root.to_str().unwrap_or("")]);
+    let out = cmd.output().await.map_err(|e| anyhow::anyhow!("ASR failed: {}", e))?;
+    if !out.status.success() {
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        return Err(anyhow::anyhow!("ASR failed: {}", stderr));
+    }
+    let stdout = String::from_utf8(out.stdout)?;
     let mut full_text = String::new();
     for line in stdout.lines() {
         if let Ok(val) = serde_json::from_str::<Value>(line) {
@@ -77,8 +97,6 @@ pub async fn run_asr(wav_path: &str, resource_dir: &str, progress: impl Fn(&str,
     if full_text.is_empty() { return Err(anyhow::anyhow!("No transcription result")); }
     Ok(full_text)
 }
-
-
 
 pub async fn refine_transcript(api_url: &str, api_key: &str, model: &str, transcript: &str) -> Result<String, anyhow::Error> {
     let api_url = if api_url.contains("/chat/completions") { api_url.to_string() } else if api_url.ends_with("/") { format!("{}v1/chat/completions", api_url) } else { format!("{}/v1/chat/completions", api_url) };
@@ -105,7 +123,8 @@ pub async fn extract_insights(api_url: &str, api_key: &str, model: &str, prompt:
     let json: Value = resp.json().await?;
     let content = json["choices"][0]["message"]["content"].as_str().unwrap_or("").trim();
     let content = if content.starts_with("```json") { content.strip_prefix("```json").and_then(|s| s.strip_suffix("```")).unwrap_or(content).trim() } else if content.starts_with("```") { content.strip_prefix("```").and_then(|s| s.strip_suffix("```")).unwrap_or(content).trim() } else { content };
-    let raw = content.to_string(); Ok((serde_json::from_str::<InsightResult>(content).unwrap_or_else(|_| {
+    let raw = content.to_string();
+    Ok((serde_json::from_str::<InsightResult>(content).unwrap_or_else(|_| {
         serde_json::from_str::<Value>(content).map(|v| InsightResult { summary: v["summary"].as_str().unwrap_or("").to_string(), key_points: v["key_points"].as_array().map(|a| a.iter().filter_map(|i| i.as_str().map(|s| s.to_string())).collect()).unwrap_or_default(), tags: v["tags"].as_array().map(|a| a.iter().filter_map(|i| i.as_str().map(|s| s.to_string())).collect()).unwrap_or_default() }).unwrap_or(InsightResult { summary: content.to_string(), key_points: vec![], tags: vec![] })
     }), raw))
 }
@@ -122,17 +141,4 @@ pub async fn fetch_models(api_url: &str, api_key: &str) -> Result<Vec<String>, a
     let models: Vec<String> = json["data"].as_array().map(|a| a.iter().filter_map(|m| m["id"].as_str().map(|s| s.to_string())).collect()).unwrap_or_default();
     if models.is_empty() { return Err(anyhow::anyhow!("No models found")); }
     Ok(models)
-}
-
-fn find_models_dir(resource_dir: &str) -> Result<PathBuf, anyhow::Error> {
-    let candidates: Vec<PathBuf> = vec![Path::new(resource_dir).join("models"), PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("models"), PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent().map(|p| p.join("models")).unwrap_or_default(), PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..").join("models"), PathBuf::from("../models")];
-    for c in &candidates { if c.join("paraformer-large").exists() || c.join("sense-voice-small").exists() { return Ok(c.clone()); } }
-    Err(anyhow::anyhow!("Models directory not found. Searched: {:?}", candidates))
-}
-
-fn find_worker(rel_path: &str) -> Result<String, anyhow::Error> {
-    let exe_dir = std::env::current_exe().ok().and_then(|p| p.parent().map(|p| p.to_path_buf())).unwrap_or_default();
-    let candidates = vec![exe_dir.join(rel_path), PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent().map(|p| p.join(rel_path)).unwrap_or_default(), PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..").join(rel_path)];
-    for c in &candidates { if c.exists() { return Ok(c.to_string_lossy().to_string()); } }
-    Err(anyhow::anyhow!("Worker not found: {}. Searched: {:?}", rel_path, candidates))
 }

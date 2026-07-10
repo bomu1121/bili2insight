@@ -10,3 +10,10 @@ output/
 src-tauri/models/
 .DS_Store
 
+
+src-tauri/binaries/
+src-tauri/resources/
+worker/build/
+worker/dist/
+*.spec
+

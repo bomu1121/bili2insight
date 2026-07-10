@@ -91,7 +91,7 @@ export const useAppStore = defineStore("app", () => {
     preview.value = null; previewLoading.value = false;
     if (!val.trim() || !val.includes("bilibili.com")) return;
     previewLoading.value = true;
-    previewTimer = setTimeout(async () => { try { preview.value = await previewVideo(val, proxy.value||undefined); } catch (_){} finally { previewLoading.value = false; } }, 600);
+    previewTimer = setTimeout(async () => { try { preview.value = await previewVideo(val, proxy.value||undefined); } catch (e: any) { console.error("preview error:", e); error.value = String(e); } finally { previewLoading.value = false; } }, 600);
   }
   watch(url, (val) => { detectUrl(val); });
 

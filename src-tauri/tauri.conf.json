@@ -35,6 +35,14 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
+    ],
+    "externalBin": [
+      "binaries/bili_worker",
+      "binaries/asr_worker",
+      "binaries/ffmpeg"
+    ],
+    "resources": [
+      "resources/models/paraformer-large/*"
     ]
   }
 }

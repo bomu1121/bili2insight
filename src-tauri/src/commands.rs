@@ -12,33 +12,33 @@ fn emit_progress(app: &AppHandle, stage: &str, progress: f64, message: &str) {
 #[tauri::command]
 pub async fn preview_video(app: AppHandle, url: String, proxy: Option<String>) -> Result<VideoInfo, String> {
     emit_progress(&app, "preview", 0.0, "Detecting video...");
-    let result = pipeline::download_bili_audio(&url, &PathBuf::from("."), true, proxy.as_deref(),
-        move |s, p, m| { let _ = app.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string() }); },
+    let app_pv = app.clone();
+    let result = pipeline::download_bili_audio(&app, &url, &PathBuf::from("."), true, proxy.as_deref(),
+        move |s, p, m| { let _ = app_pv.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string() }); },
     ).await.map_err(|e| format!("Preview failed: {}", e))?;
     Ok(result)
 }
 
 #[tauri::command]
 pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai_api_url: Option<String>, ai_api_key: Option<String>, ai_model: Option<String>, ai_prompt: Option<String>) -> Result<crate::PipelineResult, String> {
-    let resource_dir = app.path().resource_dir().map_err(|e| e.to_string())?;
     let output_dir = app.path().app_data_dir().map_err(|e| e.to_string())?.join("tasks");
     std::fs::create_dir_all(&output_dir).map_err(|e| e.to_string())?;
 
     emit_progress(&app, "download", 0.05, "Getting video info and downloading audio...");
     let app_dl = app.clone();
-    let video_info = pipeline::download_bili_audio(&url, &output_dir, false, proxy.as_deref(),
+    let video_info = pipeline::download_bili_audio(&app, &url, &output_dir, false, proxy.as_deref(),
         move |s, p, m| { let _ = app_dl.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string() }); },
     ).await.map_err(|e| format!("Download failed: {}", e))?;
     emit_progress(&app, "download", 0.25, "Download complete");
 
     let audio_path = output_dir.join(format!("{}.m4a", video_info.bvid));
     emit_progress(&app, "ffmpeg", 0.30, "Converting audio format...");
-    let wav_path = pipeline::extract_audio_wav(&audio_path.to_string_lossy(), &output_dir).await.map_err(|e| format!("FFmpeg error: {}", e))?;
+    let wav_path = pipeline::extract_audio_wav(&app, &audio_path.to_string_lossy(), &output_dir).await.map_err(|e| format!("FFmpeg error: {}", e))?;
     emit_progress(&app, "ffmpeg", 0.40, "Audio conversion complete");
 
     emit_progress(&app, "asr", 0.45, "Running speech recognition...");
     let app_asr = app.clone();
-    let transcript = pipeline::run_asr(&wav_path, &resource_dir.to_string_lossy(),
+    let transcript = pipeline::run_asr(&app, &wav_path,
         move |s, p, m| { let _ = app_asr.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string() }); },
     ).await.map_err(|e| format!("ASR failed: {}", e))?;
     emit_progress(&app, "asr", 0.75, "Speech recognition complete");
