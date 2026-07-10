@@ -1,4 +1,4 @@
-node_modules/
+﻿node_modules/
 target/
 dist/
 *.pyc
@@ -7,4 +7,6 @@ __pycache__/
 downloads/
 output/
 *.exe
+src-tauri/models/
 .DS_Store
+
