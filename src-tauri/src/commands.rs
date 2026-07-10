@@ -44,10 +44,10 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
     emit_progress(&app, "asr", 0.75, "Speech recognition complete");
 
     emit_progress(&app, "ai", 0.80, "Extracting insights with AI...");
-    let ai_url = ai_api_url.unwrap_or_else(|| "https://api.deepseek.com/v1/chat/completions".to_string());
+    let ai_url = ai_api_url.unwrap_or_else(|| "https://api.deepseek.com".to_string());
     let ai_key = ai_api_key.unwrap_or_default();
     let model = ai_model.unwrap_or_else(|| "deepseek-chat".to_string());
-    let prompt = ai_prompt.unwrap_or_else(|| "Please analyze the following video transcript, extract core insights (3-5 key points), and provide 3-5 tags. Output as JSON only: {\"summary\": \"...\", \"key_points\": [\"...\"], \"tags\": [\"...\"]}. Return JSON only, no extra text.".to_string());
+    let prompt = ai_prompt.unwrap_or_else(|| "You are a deep content editor who transforms conversational video transcripts into structured, insightful notes...".to_string());
     let insights = pipeline::extract_insights(&ai_url, &ai_key, &model, &prompt, &transcript, &video_info.title).await.map_err(|e| format!("AI analysis failed: {}", e))?;
     emit_progress(&app, "ai", 0.95, "AI insights ready");
 
