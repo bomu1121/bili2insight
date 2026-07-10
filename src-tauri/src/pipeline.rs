@@ -20,7 +20,11 @@ pub async fn download_bili_audio(
     if let Some(p) = proxy { cmd.arg("--proxy").arg(p); }
     #[cfg(target_os = "windows")] { cmd.creation_flags(CREATE_NO_WINDOW); }
     let output = cmd.output()?;
-    if !output.status.success() { let stderr = String::from_utf8_lossy(&output.stderr); return Err(anyhow::anyhow!("Worker failed: {}", stderr)); }
+    if !output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(anyhow::anyhow!("Worker failed (exit {}): stdout={}, stderr={}", output.status.code().unwrap_or(-1), stdout, stderr));
+    }
     let stdout = String::from_utf8(output.stdout)?;
     let mut video_info: Option<VideoInfo> = None;
     for line in stdout.lines() {
@@ -75,10 +79,11 @@ pub async fn run_asr(wav_path: &str, resource_dir: &str, progress: impl Fn(&str,
 }
 
 pub async fn extract_insights(api_url: &str, api_key: &str, model: &str, prompt: &str, transcript: &str, title: &str) -> Result<InsightResult, anyhow::Error> {
+    let api_url = if api_url.contains("/chat/completions") { api_url.to_string() } else if api_url.ends_with("/") { format!("{}v1/chat/completions", api_url) } else { format!("{}/v1/chat/completions", api_url) };
     let client = reqwest::Client::new();
     let user_content = format!("Video title: {}\n\nTranscript:\n{}", title, transcript);
-    let mut req = client.post(api_url).json(&serde_json::json!({"model": model, "messages": [{"role": "system", "content": prompt}, {"role": "user", "content": user_content}], "temperature": 0.3}));
-    let api_key = api_key.trim(); if !api_key.is_empty() { req = req.header("Authorization", format!("Bearer {}", api_key)); }
+    let mut req = client.post(&api_url).json(&serde_json::json!({"model": model, "messages": [{"role": "system", "content": prompt}, {"role": "user", "content": user_content}], "temperature": 0.3}));
+    if !api_key.is_empty() { req = req.header("Authorization", format!("Bearer {}", api_key)); }
     let resp = req.send().await?;
     if !resp.status().is_success() { let s = resp.status(); let t = resp.text().await.unwrap_or_default(); return Err(anyhow::anyhow!("AI API error {}: {}", s, t)); }
     let json: Value = resp.json().await?;
@@ -87,6 +92,20 @@ pub async fn extract_insights(api_url: &str, api_key: &str, model: &str, prompt:
     Ok(serde_json::from_str::<InsightResult>(content).unwrap_or_else(|_| {
         serde_json::from_str::<Value>(content).map(|v| InsightResult { summary: v["summary"].as_str().unwrap_or("").to_string(), key_points: v["key_points"].as_array().map(|a| a.iter().filter_map(|i| i.as_str().map(|s| s.to_string())).collect()).unwrap_or_default(), tags: v["tags"].as_array().map(|a| a.iter().filter_map(|i| i.as_str().map(|s| s.to_string())).collect()).unwrap_or_default() }).unwrap_or(InsightResult { summary: content.to_string(), key_points: vec![], tags: vec![] })
     }))
+}
+
+pub async fn fetch_models(api_url: &str, api_key: &str) -> Result<Vec<String>, anyhow::Error> {
+    let base = api_url.trim_end_matches("/chat/completions").trim_end_matches('/');
+    let models_url = format!("{}/models", base);
+    let client = reqwest::Client::new();
+    let mut req = client.get(&models_url);
+    if !api_key.is_empty() { req = req.header("Authorization", format!("Bearer {}", api_key)); }
+    let resp = req.send().await?;
+    if !resp.status().is_success() { let s = resp.status(); let t = resp.text().await.unwrap_or_default(); return Err(anyhow::anyhow!("API error {}: {}", s, t)); }
+    let json: Value = resp.json().await?;
+    let models: Vec<String> = json["data"].as_array().map(|a| a.iter().filter_map(|m| m["id"].as_str().map(|s| s.to_string())).collect()).unwrap_or_default();
+    if models.is_empty() { return Err(anyhow::anyhow!("No models found")); }
+    Ok(models)
 }
 
 fn find_models_dir(resource_dir: &str) -> Result<PathBuf, anyhow::Error> {
@@ -100,23 +119,4 @@ fn find_worker(rel_path: &str) -> Result<String, anyhow::Error> {
     let candidates = vec![exe_dir.join(rel_path), PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent().map(|p| p.join(rel_path)).unwrap_or_default(), PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..").join(rel_path)];
     for c in &candidates { if c.exists() { return Ok(c.to_string_lossy().to_string()); } }
     Err(anyhow::anyhow!("Worker not found: {}. Searched: {:?}", rel_path, candidates))
-}
-
-pub async fn fetch_models(api_url: &str, api_key: &str) -> Result<Vec<String>, anyhow::Error> {
-    let base = api_url.trim_end_matches("/chat/completions").trim_end_matches('/');
-    let models_url = format!("{}/models", base);
-    let client = reqwest::Client::new();
-    let mut req = client.get(&models_url);
-    let api_key = api_key.trim(); if !api_key.is_empty() { req = req.header("Authorization", format!("Bearer {}", api_key)); }
-    let resp = req.send().await?;
-    if !resp.status().is_success() {
-        let s = resp.status(); let t = resp.text().await.unwrap_or_default();
-        return Err(anyhow::anyhow!("API error {}: {}", s, t));
-    }
-    let json: serde_json::Value = resp.json().await?;
-    let models: Vec<String> = json["data"].as_array()
-        .map(|a| a.iter().filter_map(|m| m["id"].as_str().map(|s| s.to_string())).collect())
-        .unwrap_or_default();
-    if models.is_empty() { return Err(anyhow::anyhow!("No models found")); }
-    Ok(models)
 }
