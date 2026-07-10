@@ -84,7 +84,7 @@ function fmtDur(sec:number){const h=Math.floor(sec/3600),m=Math.floor((sec%3600)
           <div><n-text depth="3" style="font-size:12px;">AI Provider</n-text><n-select v-model:value="store.selectedProvider" :options="store.PROVIDERS.map((p:any,i:number)=>({label:p.name,value:i}))" size="small" @update:value="(i:number)=>store.switchProvider(i)" /></div>
           <div><n-text depth="3" style="font-size:12px;">API URL</n-text><n-input v-model:value="store.aiApiUrl" size="small" /></div>
           <div><n-text depth="3" style="font-size:12px;">API Key</n-text><n-input v-model:value="store.aiApiKey" type="password" placeholder="sk-..." size="small" show-password-on="click" /></div>
-          <div v-if="store.PROVIDERS[store.selectedProvider].models.length > 0"><n-text depth="3" style="font-size:12px;">Model</n-text><n-select v-model:value="store.aiModel" :options="store.PROVIDERS[store.selectedProvider].models.map((m:string)=>({label:m,value:m}))" size="small" /></div>
+          <div v-if="store.customModels.length > 0 || store.PROVIDERS[store.selectedProvider].models.length > 0"><n-text depth="3" style="font-size:12px;">Model</n-text><n-select v-model:value="store.aiModel" :options="(store.customModels.length > 0 ? store.customModels : store.PROVIDERS[store.selectedProvider].models).map((m:string)=>({label:m,value:m}))" size="small" /></div>
           <div v-else><n-text depth="3" style="font-size:12px;">Model</n-text><n-input v-model:value="store.aiModel" size="small" /></div>
           <n-button size="tiny" @click="store.fetchModelList()">Test Connection &amp; Fetch Models</n-button>
           <div><n-text depth="3" style="font-size:12px;">AI Prompt</n-text><n-input v-model:value="store.aiPrompt" type="textarea" :rows="4" size="small" /></div>
