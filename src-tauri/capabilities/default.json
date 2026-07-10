@@ -1,0 +1,32 @@
+{
+  "identifier": "default",
+  "description": "Default capability for the main window",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "dialog:default",
+    "dialog:allow-save",
+    "fs:default",
+    "fs:allow-read-text-file",
+    "fs:allow-write-text-file",
+    "shell:default",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        { "name": "python", "cmd": "python", "args": true },
+        { "name": "ffmpeg", "cmd": "ffmpeg", "args": true }
+      ]
+    },
+    {
+      "identifier": "shell:allow-spawn",
+      "allow": [
+        { "name": "python", "cmd": "python", "args": true },
+        { "name": "ffmpeg", "cmd": "ffmpeg", "args": true }
+      ]
+    },
+    "process:default",
+    "clipboard-manager:default",
+    "clipboard-manager:allow-write-text",
+    "core:event:default"
+  ]
+}

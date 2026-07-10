@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "identifier": "com.bomu.bili2insight",
   "build": {
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "cmd /c npx vite --port 1420 --strictPort",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist"
@@ -13,7 +13,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "Bili2Insight - B站视频观点提炼",
+        "title": "Bili2Insight - B站视频观点提�?,
         "width": 1200,
         "height": 800,
         "minWidth": 900,
