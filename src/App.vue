@@ -33,7 +33,7 @@ function fmtDur(sec:number){const h=Math.floor(sec/3600),m=Math.floor((sec%3600)
 
     <n-layout-content class="main-content">
       <div class="input-row">
-        <n-input v-model:value="store.url" placeholder="https://www.bilibili.com/video/BV..." :disabled="store.processing" clearable @keyup.enter="handleStart" />
+        <n-input v-model:value="store.url" style="flex:1;width:0;" placeholder="https://www.bilibili.com/video/BV..." :disabled="store.processing" clearable @keyup.enter="handleStart" />
         <n-button type="primary" @click="handleStart" :loading="store.processing" :disabled="!store.url.trim()"><template #icon><n-icon><PlayOutline /></n-icon></template>Start</n-button>
       </div>
 
@@ -74,7 +74,7 @@ function fmtDur(sec:number){const h=Math.floor(sec/3600),m=Math.floor((sec%3600)
         </n-tabs>
       </div>
 
-      <div v-if="!store.result && !store.processing" class="empty-state"><n-text depth="3">Enter a Bilibili video URL to get started</n-text></div>
+      <div v-if="!store.result && !store.processing" class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5"><path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg></div><n-text depth="2" style="font-size:16px;font-weight:500;margin-top:12px;">Paste a Bilibili video URL</n-text><n-text depth="3" style="font-size:13px;margin-top:4px;">The app will download audio, transcribe with ASR, extract insights with AI, and generate a Markdown report.</n-text></div>
     </n-layout-content>
 
     <n-drawer v-model:show="showSettings" width="400">
