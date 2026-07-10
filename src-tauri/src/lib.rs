@@ -30,6 +30,7 @@ pub struct InsightResult {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct PipelineResult {
+    pub raw_transcript: String,
     pub video_info: VideoInfo,
     pub transcript: String,
     pub insights: InsightResult,

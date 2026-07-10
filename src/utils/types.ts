@@ -16,6 +16,7 @@ export interface InsightResult {
 }
 
 export interface PipelineResult {
+  raw_transcript: string;
   video_info: VideoInfo;
   transcript: string;
   insights: InsightResult;

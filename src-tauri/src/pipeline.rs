@@ -78,6 +78,22 @@ pub async fn run_asr(wav_path: &str, resource_dir: &str, progress: impl Fn(&str,
     Ok(full_text)
 }
 
+
+
+pub async fn refine_transcript(api_url: &str, api_key: &str, model: &str, transcript: &str) -> Result<String, anyhow::Error> {
+    let api_url = if api_url.contains("/chat/completions") { api_url.to_string() } else if api_url.ends_with("/") { format!("{}v1/chat/completions", api_url) } else { format!("{}/v1/chat/completions", api_url) };
+    let client = reqwest::Client::new();
+    let prompt = "Please correct any speech recognition errors in the following transcript. Fix misrecognized words, add proper punctuation, and correct formatting. Keep the original meaning and style. Output only the corrected transcript, no explanations.";
+    let mut req = client.post(&api_url).json(&serde_json::json!({"model": model, "messages": [{"role": "system", "content": prompt}, {"role": "user", "content": transcript}], "temperature": 0.2}));
+    if !api_key.is_empty() { req = req.header("Authorization", format!("Bearer {}", api_key)); }
+    let resp = req.send().await?;
+    if !resp.status().is_success() { let s = resp.status(); let t = resp.text().await.unwrap_or_default(); return Err(anyhow::anyhow!("Refine API error {}: {}", s, t)); }
+    let json: Value = resp.json().await?;
+    let content = json["choices"][0]["message"]["content"].as_str().unwrap_or("").trim().to_string();
+    if content.is_empty() { return Err(anyhow::anyhow!("Empty refine response")); }
+    Ok(content)
+}
+
 pub async fn extract_insights(api_url: &str, api_key: &str, model: &str, prompt: &str, transcript: &str, title: &str) -> Result<InsightResult, anyhow::Error> {
     let api_url = if api_url.contains("/chat/completions") { api_url.to_string() } else if api_url.ends_with("/") { format!("{}v1/chat/completions", api_url) } else { format!("{}/v1/chat/completions", api_url) };
     let client = reqwest::Client::new();
