@@ -1,4 +1,4 @@
-use crate::PipelineProgress;
+﻿use crate::PipelineProgress;
 use crate::pipeline;
 use crate::export;
 use tauri::{AppHandle, Emitter, Manager};
@@ -26,7 +26,7 @@ pub async fn run_pipeline(
     let output_dir = app.path().app_data_dir().map_err(|e| e.to_string())?.join("tasks");
     std::fs::create_dir_all(&output_dir).map_err(|e| e.to_string())?;
 
-    // Stage 1: Download B站 audio via Python worker
+    // Stage 1: Download B绔?audio via Python worker
     emit_progress(&app, "download", 0.05, "Getting video info and downloading audio...");
     let app_dl = app.clone();
     let (video_info, audio_path) = pipeline::download_bili_audio(
@@ -63,9 +63,9 @@ pub async fn run_pipeline(
 
     // Stage 4: AI insight extraction
     emit_progress(&app, "ai", 0.80, "Extracting insights with AI...");
-    let ai_url = ai_api_url.unwrap_or_else(|| "https://api.openai.com/v1/chat/completions".to_string());
+    let ai_url = ai_api_url.unwrap_or_else(|| "https://api.deepseek.com/v1/chat/completions".to_string());
     let ai_key = ai_api_key.unwrap_or_default();
-    let model = ai_model.unwrap_or_else(|| "gpt-4o-mini".to_string());
+    let model = ai_model.unwrap_or_else(|| "deepseek-chat".to_string());
     let prompt = ai_prompt.unwrap_or_else(|| {
         r#"Please analyze the following video transcript, extract key insights (3-5 points), and provide 3-5 tags. Output as JSON: {"summary": "...", "key_points": [...], "tags": [...]}. Only return JSON."#.to_string()
     });
@@ -122,3 +122,4 @@ pub async fn save_result_to_file(
     }
     Ok(())
 }
+
