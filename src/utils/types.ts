@@ -21,6 +21,8 @@ export interface PipelineResult {
   transcript: string;
   insights: InsightResult;
   markdown: string;
+  ai_request: string;
+  ai_raw_response: string;
 }
 
 export interface PipelineProgress {

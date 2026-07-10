@@ -73,7 +73,7 @@ const aiContent = computed(() => { if (!store.result) return ''; const md = stor
       <div class="log-console" v-if="store.result">
         <div class="log-block"><div class="log-tag info">VIDEO INFO</div><pre class="log-text">{{ JSON.stringify(store.result.video_info, null, 2) }}</pre></div>
         <div class="log-block"><div class="log-tag warn">RAW TRANSCRIPT</div><pre class="log-text">{{ store.result.raw_transcript }}</pre></div><div class="log-block"><div class="log-tag success">REFINED TRANSCRIPT</div><pre class="log-text">{{ store.result.transcript }}</pre></div>
-        <div class="log-block"><div class="log-tag success">AI INSIGHTS</div><pre class="log-text">{{ JSON.stringify(store.result.insights, null, 2) }}</pre></div>
+        <div class="log-block"><div class="log-tag">AI REQUEST</div><pre class="log-text">{{ store.result.ai_request }}</pre></div><div class="log-block"><div class="log-tag success">AI RAW RESPONSE</div><pre class="log-text">{{ store.result.ai_raw_response }}</pre></div><div class="log-block"><div class="log-tag success">AI INSIGHTS</div><pre class="log-text">{{ JSON.stringify(store.result.insights, null, 2) }}</pre></div>
         <div class="log-block"><div class="log-tag">FULL MARKDOWN</div><pre class="log-text">{{ store.result.markdown }}</pre></div>
       </div>
       <n-text depth="3" v-else>No pipeline data yet.</n-text>

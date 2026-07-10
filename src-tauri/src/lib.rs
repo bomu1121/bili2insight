@@ -35,6 +35,8 @@ pub struct PipelineResult {
     pub transcript: String,
     pub insights: InsightResult,
     pub markdown: String,
+    pub ai_request: String,
+    pub ai_raw_response: String,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

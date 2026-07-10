@@ -94,7 +94,7 @@ pub async fn refine_transcript(api_url: &str, api_key: &str, model: &str, transc
     Ok(content)
 }
 
-pub async fn extract_insights(api_url: &str, api_key: &str, model: &str, prompt: &str, transcript: &str, title: &str) -> Result<InsightResult, anyhow::Error> {
+pub async fn extract_insights(api_url: &str, api_key: &str, model: &str, prompt: &str, transcript: &str, title: &str) -> Result<(InsightResult, String), anyhow::Error> {
     let api_url = if api_url.contains("/chat/completions") { api_url.to_string() } else if api_url.ends_with("/") { format!("{}v1/chat/completions", api_url) } else { format!("{}/v1/chat/completions", api_url) };
     let client = reqwest::Client::new();
     let user_content = format!("Video title: {}\n\nTranscript:\n{}", title, transcript);
@@ -105,7 +105,7 @@ pub async fn extract_insights(api_url: &str, api_key: &str, model: &str, prompt:
     let json: Value = resp.json().await?;
     let content = json["choices"][0]["message"]["content"].as_str().unwrap_or("").trim();
     let content = if content.starts_with("```json") { content.strip_prefix("```json").and_then(|s| s.strip_suffix("```")).unwrap_or(content).trim() } else if content.starts_with("```") { content.strip_prefix("```").and_then(|s| s.strip_suffix("```")).unwrap_or(content).trim() } else { content };
-    Ok(serde_json::from_str::<InsightResult>(content).unwrap_or_else(|_| {
+    let raw = content.to_string(); Ok((serde_json::from_str::<InsightResult>(content).unwrap_or_else(|_| {
         serde_json::from_str::<Value>(content).map(|v| InsightResult { summary: v["summary"].as_str().unwrap_or("").to_string(), key_points: v["key_points"].as_array().map(|a| a.iter().filter_map(|i| i.as_str().map(|s| s.to_string())).collect()).unwrap_or_default(), tags: v["tags"].as_array().map(|a| a.iter().filter_map(|i| i.as_str().map(|s| s.to_string())).collect()).unwrap_or_default() }).unwrap_or(InsightResult { summary: content.to_string(), key_points: vec![], tags: vec![] })
     }))
 }
