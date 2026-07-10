@@ -1,4 +1,4 @@
-﻿use crate::PipelineProgress;
+use crate::PipelineProgress;
 use crate::pipeline;
 use crate::export;
 use crate::VideoInfo;
@@ -54,6 +54,12 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
     let markdown = export::generate_markdown(&video_info, &transcript, &insights);
     emit_progress(&app, "done", 1.0, "Complete");
     Ok(crate::PipelineResult { video_info, transcript, insights, markdown })
+}
+
+#[tauri::command]
+#[allow(dead_code)]
+pub async fn fetch_ai_models(api_url: String, api_key: String) -> Result<Vec<String>, String> {
+    pipeline::fetch_models(&api_url, &api_key).await.map_err(|e| format!("Fetch failed: {}", e))
 }
 
 #[tauri::command]

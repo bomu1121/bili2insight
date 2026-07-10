@@ -15,3 +15,5 @@ export async function runPipeline(
 export async function saveResultToFile(result: PipelineResult, outputPath: string): Promise<void> {
   return invoke("save_result_to_file", { result, outputPath });
 }
+
+export async function fetchModels(apiUrl: string, apiKey: string): Promise<string[]> { return invoke<string[]>('fetch_ai_models', { apiUrl, apiKey }); }

@@ -1,4 +1,4 @@
-use crate::VideoInfo;
+﻿use crate::VideoInfo;
 use crate::InsightResult;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -100,4 +100,23 @@ fn find_worker(rel_path: &str) -> Result<String, anyhow::Error> {
     let candidates = vec![exe_dir.join(rel_path), PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent().map(|p| p.join(rel_path)).unwrap_or_default(), PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..").join(rel_path)];
     for c in &candidates { if c.exists() { return Ok(c.to_string_lossy().to_string()); } }
     Err(anyhow::anyhow!("Worker not found: {}. Searched: {:?}", rel_path, candidates))
+}
+
+pub async fn fetch_models(api_url: &str, api_key: &str) -> Result<Vec<String>, anyhow::Error> {
+    let base = api_url.trim_end_matches("/chat/completions").trim_end_matches('/');
+    let models_url = format!("{}/models", base);
+    let client = reqwest::Client::new();
+    let mut req = client.get(&models_url);
+    if !api_key.is_empty() { req = req.header("Authorization", format!("Bearer {}", api_key)); }
+    let resp = req.send().await?;
+    if !resp.status().is_success() {
+        let s = resp.status(); let t = resp.text().await.unwrap_or_default();
+        return Err(anyhow::anyhow!("API error {}: {}", s, t));
+    }
+    let json: serde_json::Value = resp.json().await?;
+    let models: Vec<String> = json["data"].as_array()
+        .map(|a| a.iter().filter_map(|m| m["id"].as_str().map(|s| s.to_string())).collect())
+        .unwrap_or_default();
+    if models.is_empty() { return Err(anyhow::anyhow!("No models found")); }
+    Ok(models)
 }

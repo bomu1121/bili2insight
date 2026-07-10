@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, watch } from "vue";
 import type { PipelineResult, PipelineProgress, VideoInfo } from "../utils/types";
-import { runPipeline, saveResultToFile, previewVideo } from "../utils/invoke";
+import { runPipeline, saveResultToFile, previewVideo, fetchModels } from "../utils/invoke";
 import { listen } from "@tauri-apps/api/event";
 
 export interface Provider {
@@ -30,6 +30,8 @@ export const useAppStore = defineStore("app", () => {
 
   const preview = ref<VideoInfo | null>(null);
   const previewLoading = ref(false);
+  const customModels = ref<string[]>([]);
+
   let previewTimer: ReturnType<typeof setTimeout> | null = null;
 
   let unlisten: (() => void) | null = null;
@@ -70,6 +72,14 @@ export const useAppStore = defineStore("app", () => {
 
   watch(url, (val) => { detectUrl(val); });
 
+
+  async function fetchModelList() {
+    if (!aiApiKey.value) { error.value = 'Please enter API key first'; return; }
+    try {
+      const models = await fetchModels(aiApiUrl.value, aiApiKey.value);
+      if (models.length > 0) { customModels.value = models; aiModel.value = models[0]; }
+    } catch (e: any) { error.value = 'Fetch failed: ' + String(e); }
+  }
   async function exportToFile() {
     if (!result.value) return;
     try {
@@ -79,5 +89,5 @@ export const useAppStore = defineStore("app", () => {
     } catch (e: any) { error.value = String(e); }
   }
 
-  return { url, proxy, aiApiUrl, aiApiKey, aiModel, aiPrompt, selectedProvider, processing, progress, result, error, preview, previewLoading, PROVIDERS, init, cleanup, startPipeline, exportToFile, switchProvider };
+  return { url, proxy, aiApiUrl, aiApiKey, aiModel, aiPrompt, selectedProvider, processing, progress, result, error, preview, previewLoading, PROVIDERS, init, cleanup, startPipeline, exportToFile, switchProvider, fetchModelList, customModels };
 });
