@@ -44,7 +44,7 @@ const DEFAULT_PROMPT = [
   "- \u5982\u679c\u7528\u6237\u53d1\u9001\u7684\u5185\u5bb9\u660e\u663e\u4e0d\u662f\u89c6\u9891\u6587\u6848\uff0c\u56de\u590d\uff1a\u201c\u8bf7\u63d0\u4f9b\u4e00\u6bb5\u89c6\u9891\u6587\u6848\uff0c\u6211\u6765\u5e2e\u4f60\u63d0\u70bc\u89c2\u70b9\u548c\u4e8b\u5b9e\u3002\u201d"
 ].join("\n");
 
-const STORAGE_KEY = "bili2insight-settings";
+const STORAGE_KEY = "bili2insight-settings"; const SETTINGS_VERSION = 2;
 function loadSaved(): Record<string,any>|null { try { const r=localStorage.getItem(STORAGE_KEY); return r?JSON.parse(r):null; } catch(_){return null;} }
 function saveToDisk(d:Record<string,any>) { try{localStorage.setItem(STORAGE_KEY,JSON.stringify(d));}catch(_){} }
 
@@ -56,7 +56,7 @@ export const useAppStore = defineStore("app", () => {
   const aiApiUrl = ref(saved?.aiApiUrl ?? PROVIDERS[0].url);
   const aiApiKey = ref(saved?.aiApiKey ?? "");
   const aiModel = ref(saved?.aiModel ?? PROVIDERS[0].models[0]);
-  const aiPrompt = ref(saved?.aiPrompt ?? DEFAULT_PROMPT);
+  const aiPrompt = ref((saved?.version === SETTINGS_VERSION && saved?.aiPrompt) ? saved.aiPrompt : DEFAULT_PROMPT);
   const selectedProvider = ref(saved?.selectedProvider ?? 0);
 
   const processing = ref(false);
@@ -71,7 +71,7 @@ export const useAppStore = defineStore("app", () => {
   let unlisten: (() => void) | null = null;
 
   watch([proxy, aiApiUrl, aiApiKey, aiModel, aiPrompt, selectedProvider], () => {
-    saveToDisk({ proxy: proxy.value, aiApiUrl: aiApiUrl.value, aiApiKey: aiApiKey.value, aiModel: aiModel.value, aiPrompt: aiPrompt.value, selectedProvider: selectedProvider.value });
+    saveToDisk({ version: SETTINGS_VERSION, proxy: proxy.value, aiApiUrl: aiApiUrl.value, aiApiKey: aiApiKey.value, aiModel: aiModel.value, aiPrompt: aiPrompt.value, selectedProvider: selectedProvider.value });
   }, { deep: false });
 
   function switchProvider(idx: number) { selectedProvider.value = idx; const p = PROVIDERS[idx]; aiApiUrl.value = p.url; if (p.models.length>0) aiModel.value = p.models[0]; }
