@@ -96,7 +96,7 @@ function fmtDur(sec:number){const h=Math.floor(sec/3600),m=Math.floor((sec%3600)
 
 <style>
 *{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:#f5f5f5}
-.main-content{padding:24px!important;display:flex!important;flex-direction:column!important;gap:16px!important;align-items:center!important;flex:1!important;min-height:0!important}
+.main-content{`n.main-content :deep(.n-layout-scroll-container){display:flex!important;flex-direction:column!important;flex:1!important;min-height:0!important;gap:16px!important;align-items:center!important}`npadding:24px!important;display:flex!important;flex-direction:column!important;gap:16px!important;align-items:center!important;flex:1!important;min-height:0!important}
 .input-row{width:100%;max-width:780px;display:flex;gap:8px;flex-shrink:0}
 .preview-card{width:100%;max-width:780px;flex-shrink:0;display:flex;gap:12px;align-items:center;background:#fff;border-radius:6px;padding:12px 16px;border:1px solid #e0ecff}
 .preview-info{display:flex;flex-direction:column;gap:4px;min-width:0}
