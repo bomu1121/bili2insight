@@ -1,0 +1,5 @@
+D:\Develop\bili2insight\src-tauri\target\debug\deps\want-e804c168ba698e48.d: C:\Users\Admin（无密码）\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\want-0.3.1\src\lib.rs
+
+D:\Develop\bili2insight\src-tauri\target\debug\deps\libwant-e804c168ba698e48.rmeta: C:\Users\Admin（无密码）\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\want-0.3.1\src\lib.rs
+
+C:\Users\Admin（无密码）\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\want-0.3.1\src\lib.rs:
