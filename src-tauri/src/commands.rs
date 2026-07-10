@@ -43,17 +43,24 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
     ).await.map_err(|e| format!("ASR failed: {}", e))?;
     emit_progress(&app, "asr", 0.75, "Speech recognition complete");
 
-    emit_progress(&app, "ai", 0.81, "Extracting insights with AI...");
     let ai_url = ai_api_url.unwrap_or_else(|| "https://api.deepseek.com".to_string());
     let ai_key = ai_api_key.unwrap_or_default();
     let model = ai_model.unwrap_or_else(|| "deepseek-chat".to_string());
-    emit_progress(&app, "refine", 0.76, "AI proofreading transcript..."); let raw = transcript.clone(); let transcript = pipeline::refine_transcript(&ai_url, &ai_key, &model, &transcript).await.map_err(|e| format!("Refine failed: {}", e))?; emit_progress(&app, "refine", 0.80, "Transcript proofread"); let prompt = ai_prompt.unwrap_or_else(|| "You are a deep content editor who transforms conversational video transcripts into structured, insightful notes...".to_string());
+
+    let raw = transcript.clone();
+    emit_progress(&app, "refine", 0.76, "AI proofreading transcript...");
+    let transcript = pipeline::refine_transcript(&ai_url, &ai_key, &model, &transcript).await.map_err(|e| format!("Refine failed: {}", e))?;
+    emit_progress(&app, "refine", 0.80, "Transcript proofread");
+
+    let prompt = ai_prompt.unwrap_or_else(|| "Please analyze the following video transcript...".to_string());
+    emit_progress(&app, "ai", 0.81, "Extracting insights with AI...");
     let (insights, ai_raw) = pipeline::extract_insights(&ai_url, &ai_key, &model, &prompt, &transcript, &video_info.title).await.map_err(|e| format!("AI analysis failed: {}", e))?;
     emit_progress(&app, "ai", 0.95, "AI insights ready");
 
+    let ai_req = format!("SYSTEM: {}\n\nUSER: Video title: {}\n\nTranscript:\n{}", prompt, video_info.title, transcript);
     let markdown = export::generate_markdown(&video_info, &transcript, &insights);
     emit_progress(&app, "done", 1.0, "Complete");
-    Ok(crate::PipelineResult { raw_transcript: raw, video_info, transcript, insights, markdown, ai_request: format!("SYSTEM: {}\n\nUSER: Video title: {}\n\nTranscript:\n{}", prompt, video_info.title, transcript), ai_raw_response: ai_raw })
+    Ok(crate::PipelineResult { raw_transcript: raw, video_info, transcript, insights, markdown, ai_request: ai_req, ai_raw_response: ai_raw })
 }
 
 #[tauri::command]
@@ -75,4 +82,3 @@ pub async fn save_result_to_file(_app: AppHandle, result: crate::PipelineResult,
     { if let Some(parent) = path.parent() { let _ = std::process::Command::new("explorer").arg(parent).spawn(); } }
     Ok(())
 }
-

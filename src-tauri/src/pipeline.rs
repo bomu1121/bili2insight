@@ -107,7 +107,7 @@ pub async fn extract_insights(api_url: &str, api_key: &str, model: &str, prompt:
     let content = if content.starts_with("```json") { content.strip_prefix("```json").and_then(|s| s.strip_suffix("```")).unwrap_or(content).trim() } else if content.starts_with("```") { content.strip_prefix("```").and_then(|s| s.strip_suffix("```")).unwrap_or(content).trim() } else { content };
     let raw = content.to_string(); Ok((serde_json::from_str::<InsightResult>(content).unwrap_or_else(|_| {
         serde_json::from_str::<Value>(content).map(|v| InsightResult { summary: v["summary"].as_str().unwrap_or("").to_string(), key_points: v["key_points"].as_array().map(|a| a.iter().filter_map(|i| i.as_str().map(|s| s.to_string())).collect()).unwrap_or_default(), tags: v["tags"].as_array().map(|a| a.iter().filter_map(|i| i.as_str().map(|s| s.to_string())).collect()).unwrap_or_default() }).unwrap_or(InsightResult { summary: content.to_string(), key_points: vec![], tags: vec![] })
-    }))
+    }), raw))
 }
 
 pub async fn fetch_models(api_url: &str, api_key: &str) -> Result<Vec<String>, anyhow::Error> {
