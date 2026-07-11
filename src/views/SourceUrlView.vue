@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref, watch, computed, onUnmounted } from "vue";
-import { NInput, NButton, NText, NIcon, NCheckbox } from "naive-ui";
-import { PlayOutline, ArrowBackOutline } from "@vicons/ionicons5";
+import { NInput, NButton, NText, NIcon, NCheckbox, useMessage } from "naive-ui";
+import { AddCircleOutline, ArrowBackOutline } from "@vicons/ionicons5";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/app";
 import type { PageInfo } from "../utils/types";
 
 const store = useAppStore();
 const router = useRouter();
-
+const message = useMessage();
 
 const url = ref("");
 let previewTimer: ReturnType<typeof setTimeout> | null = null;
@@ -44,10 +44,16 @@ function togglePage(idx: number) {
 }
 function selectAll() { store.selectedPages = new Set(videoPages.value.map((_, i) => i)); }
 
-function startAnalysis() {
+function addToQueue() {
   if (!store.preview) return;
-  store.url = url.value;
-  store.startPipeline();
+  const pages = videoPages.value;
+  const sel: number[] = [];
+  store.selectedPages.forEach(i => { if (i < pages.length) sel.push(i); });
+  if (sel.length === 0) { message.warning("请至少选择一个分P"); return; }
+  sel.forEach(i => store.addQueueItem({ url: url.value, pageInfo: pages[i] }));
+  message.success(`已加入 ${sel.length} 个视频到队列`);
+  url.value = ""; store.preview = null;
+  router.push("/queue");
 }
 
 const fmtDur = (sec: number) => {
@@ -91,8 +97,8 @@ const fmtDur = (sec: number) => {
           </div>
         </div>
 
-        <n-button type="primary" block @click="startAnalysis" :disabled="!store.preview || store.processing" style="margin-top:14px;">
-          <template #icon><n-icon><PlayOutline /></n-icon></template>开始分析
+        <n-button type="primary" block @click="addToQueue" :disabled="!store.preview || store.isProcessing" style="margin-top:14px;">
+          <template #icon><n-icon><AddCircleOutline /></n-icon></template>加入队列
         </n-button>
       </div>
     </div>
