@@ -1,4 +1,4 @@
-cript setup lang="ts">
+<script setup lang="ts">
 import { ref, watch, computed, onUnmounted } from "vue";
 import { NInput, NButton, NText, NIcon, NCheckbox, createDiscreteApi } from "naive-ui";
 import { AddCircleOutline, ArrowBackOutline } from "@vicons/ionicons5";
