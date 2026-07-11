@@ -120,7 +120,7 @@ const tplPrompt = computed({
           <div v-if="task.status !== 'pending'" class="task-bar">
             <div class="task-bar-fill" :style="{ width: Math.round(task.progress*100)+'%', background: task.status === 'error' ? '#d03050' : task.status === 'done' ? '#18a058' : '#2080f0' }"></div>
           </div>
-          <span class="task-msg" :style="{ color: task.status === 'error' ? '#d03050' : task.status === 'done' ? '#18a058' : '#666' }">{{ task.status === 'error' ? '失败' : task.message || task.stageLabel }}</span>
+          <span class="task-msg" :style="{ color: task.status === 'error' ? '#d03050' : task.status === 'done' ? '#18a058' : '#666' }">{{ task.status === 'error' ? '失败' : task.status === 'done' ? '完成' : task.stageLabel }}</span>
         </div>
       </div>
 
