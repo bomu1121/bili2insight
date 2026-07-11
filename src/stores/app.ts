@@ -261,6 +261,10 @@ export const useAppStore = defineStore("app", () => {
           err[i] = { ...err[i], status: 'error' as const, error: String(e) };
           queue.value = err;
         }
+        // Delay between queue items to avoid B? rate limiting
+        if (i < queue.value.length - 1) {
+          await new Promise(r => setTimeout(r, 3000));
+        }
       }
     } finally { isProcessing.value = false; }
   }
