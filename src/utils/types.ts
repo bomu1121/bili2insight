@@ -33,7 +33,6 @@ export interface PipelineProgress {
   message: string;
 }
 
-
 export interface PageInfo {
   page: number;
   part: string;
@@ -50,4 +49,18 @@ export interface TaskState {
   message: string;
   result: PipelineResult | null;
   error: string;
+}
+
+export interface QueueItem {
+  id: string;
+  source: "url" | "fav" | "local";
+  url?: string;
+  pageInfo: PageInfo;
+  status: "pending" | "running" | "done" | "error";
+  progress: number;
+  stageLabel: string;
+  message: string;
+  result: PipelineResult | null;
+  error: string;
+  createdAt: number;
 }

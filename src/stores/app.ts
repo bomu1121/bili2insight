@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, watch, computed } from "vue";
-import type { PipelineResult, PipelineProgress, VideoInfo, PageInfo, TaskState } from "../utils/types";
+import type { PipelineResult, PipelineProgress, VideoInfo, PageInfo, TaskState, QueueItem } from "../utils/types";
 import { runPipelineWithPage, saveResultToFile, previewVideo, fetchModels } from "../utils/invoke";
 import { listen } from "@tauri-apps/api/event";
 
@@ -115,6 +115,11 @@ export const useAppStore = defineStore("app", () => {
   const activeTaskIndex = ref(-1);
   const activeResultTab = ref<number>(0); // 0 = first page, N = pages[N-1], N+1 = merged
 
+  // ---------- Queue state ----------
+  const queue = ref<QueueItem[]>([]);
+  const isProcessing = ref(false);
+  const queueCount = computed(() => queue.value.length);
+
   const videoPages = computed<PageInfo[]>(() => preview.value?.pages ?? []);
 
   // All completed task results
@@ -200,7 +205,57 @@ export const useAppStore = defineStore("app", () => {
     if (s.has(idx)) s.delete(idx); else s.add(idx);
     selectedPages.value = s;
   }
-  function selectAllPages() {
+  // ---------- Preview (exposed for HomeView) ----------
+  async function previewVideoFn(val: string) {
+    return await previewVideo(val, proxy.value || undefined);
+  }
+
+  // ---------- Queue management ----------
+  function addQueueItem(input: { url: string; pageInfo: PageInfo; source?: string }) {
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    queue.value = [...queue.value, {
+      id,
+      source: (input.source || 'url') as QueueItem['source'],
+      url: input.url,
+      pageInfo: input.pageInfo,
+      status: 'pending' as const,
+      progress: 0,
+      stageLabel: '等待中',
+      message: '',
+      result: null,
+      error: '',
+      createdAt: Date.now(),
+    }];
+  }
+
+  async function processQueue() {
+    if (isProcessing.value) return;
+    isProcessing.value = true;
+    try {
+      for (let i = 0; i < queue.value.length; i++) {
+        const item = queue.value[i];
+        if (item.status !== 'pending') continue;
+        const updated = [...queue.value];
+        updated[i] = { ...item, status: 'running' as const };
+        queue.value = updated;
+        try {
+          const result = await runPipelineWithPage(
+            item.url!, proxy.value || undefined, aiApiUrl.value || undefined, aiApiKey.value || undefined,
+            aiModel.value || undefined, aiPrompt.value || undefined, item.pageInfo.cid,
+          );
+          const done = [...queue.value];
+          done[i] = { ...done[i], status: 'done' as const, progress: 1, stageLabel: '完成', result };
+          queue.value = done;
+        } catch (e: any) {
+          const err = [...queue.value];
+          err[i] = { ...err[i], status: 'error' as const, error: String(e) };
+          queue.value = err;
+        }
+      }
+    } finally { isProcessing.value = false; }
+  }
+
+    function selectAllPages() {
     selectedPages.value = new Set(videoPages.value.map((_, i) => i));
   }
 
@@ -320,5 +375,6 @@ export const useAppStore = defineStore("app", () => {
     init, cleanup, startPipeline, exportToFile, switchProvider, fetchModelList,
     selectTemplate, addCustomTemplate, deleteCustomTemplate, updateTemplatePrompt, updateTemplateName, persistSettings,
     togglePage, selectAllPages,
+    queue, isProcessing, queueCount, previewVideoFn, addQueueItem, processQueue,
   };
 });
