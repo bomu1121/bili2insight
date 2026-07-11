@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed, onUnmounted } from "vue";
-import { NInput, NButton, NText, NIcon, NCheckbox, createDiscreteApi } from "naive-ui";
+import { NInput, NButton, NText, NIcon, NCheckbox } from "naive-ui";
 import { PlayOutline, ArrowBackOutline } from "@vicons/ionicons5";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/app";
