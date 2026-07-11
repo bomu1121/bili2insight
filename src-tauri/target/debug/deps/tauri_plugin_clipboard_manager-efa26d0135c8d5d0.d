@@ -1,8 +1,0 @@
-D:\Develop\bili2insight\src-tauri\target\debug\deps\tauri_plugin_clipboard_manager-efa26d0135c8d5d0.d: C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-plugin-clipboard-manager-2.3.2\src\lib.rs C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-plugin-clipboard-manager-2.3.2\src\desktop.rs C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-plugin-clipboard-manager-2.3.2\src\commands.rs C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-plugin-clipboard-manager-2.3.2\src\error.rs
-
-D:\Develop\bili2insight\src-tauri\target\debug\deps\libtauri_plugin_clipboard_manager-efa26d0135c8d5d0.rmeta: C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-plugin-clipboard-manager-2.3.2\src\lib.rs C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-plugin-clipboard-manager-2.3.2\src\desktop.rs C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-plugin-clipboard-manager-2.3.2\src\commands.rs C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-plugin-clipboard-manager-2.3.2\src\error.rs
-
-C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-plugin-clipboard-manager-2.3.2\src\lib.rs:
-C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-plugin-clipboard-manager-2.3.2\src\desktop.rs:
-C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-plugin-clipboard-manager-2.3.2\src\commands.rs:
-C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-plugin-clipboard-manager-2.3.2\src\error.rs:

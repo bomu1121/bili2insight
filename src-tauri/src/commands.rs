@@ -23,6 +23,7 @@ pub async fn preview_video(app: AppHandle, url: String, proxy: Option<String>, p
 pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai_api_url: Option<String>, ai_api_key: Option<String>, ai_model: Option<String>, ai_prompt: Option<String>, page_cid: Option<i64>) -> Result<crate::PipelineResult, String> {
     let output_dir = app.path().app_data_dir().map_err(|e| e.to_string())?.join("tasks");
     std::fs::create_dir_all(&output_dir).map_err(|e| e.to_string())?;
+    println!("=== run_pipeline CALLED ===");
 
     emit_progress(&app, "download", 0.05, "Getting video info and downloading audio...");
     let app_dl = app.clone();

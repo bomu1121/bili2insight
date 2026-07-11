@@ -9,7 +9,12 @@ export async function runPipelineWithPage(
   url: string, proxy?: string, aiApiUrl?: string, aiApiKey?: string,
   aiModel?: string, aiPrompt?: string, pageCid?: number,
 ): Promise<PipelineResult> {
-  return invoke<PipelineResult>("run_pipeline", { url, proxy: proxy || null, aiApiUrl: aiApiUrl || null, aiApiKey: aiApiKey || null, aiModel: aiModel || null, aiPrompt: aiPrompt || null, pageCid: pageCid ?? null });
+  console.log("invoke run_pipeline", { url: url.slice(0,40), pageCid });
+  try {
+    const r = await invoke<PipelineResult>("run_pipeline", { url, proxy: proxy || null, aiApiUrl: aiApiUrl || null, aiApiKey: aiApiKey || null, aiModel: aiModel || null, aiPrompt: aiPrompt || null, pageCid: pageCid ?? null });
+    console.log("invoke run_pipeline done");
+    return r;
+  } catch(e) { console.error("invoke run_pipeline FAILED:", e); throw e; }
 }
 
 export async function runPipeline(
