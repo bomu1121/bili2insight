@@ -9,6 +9,15 @@ struct PipelineProgress {
     message: String,
 }
 
+
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct VideoPageInfo {
+    pub page: i64,
+    pub part: String,
+    pub cid: i64,
+    pub duration: i64,
+}
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct VideoInfo {
     pub bvid: String,
@@ -19,6 +28,7 @@ pub struct VideoInfo {
     pub uploader: String,
     pub uploader_uid: i64,
     pub pubdate: i64,
+    pub pages: Vec<VideoPageInfo>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

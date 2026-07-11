@@ -1,4 +1,4 @@
-use crate::VideoInfo;
+use crate::{VideoInfo, VideoPageInfo};
 use crate::InsightResult;
 use std::path::Path;
 use tauri::{AppHandle, Manager};
@@ -29,7 +29,8 @@ pub async fn download_bili_audio(
                 Some("progress") => { let s = val["stage"].as_str().unwrap_or(""); let m = val["message"].as_str().unwrap_or(""); progress(s, 0.1, m); }
                 Some("result") => {
                     if let Some(vi) = val["video_info"].as_object() {
-                        video_info = Some(VideoInfo { bvid: vi["bvid"].as_str().unwrap_or("").to_string(), title: vi["title"].as_str().unwrap_or("").to_string(), description: vi["description"].as_str().unwrap_or("").to_string(), duration: vi["duration"].as_i64().unwrap_or(0), cover: vi["cover"].as_str().unwrap_or("").to_string(), uploader: vi["uploader"].as_str().unwrap_or("").to_string(), uploader_uid: vi["uploader_uid"].as_i64().unwrap_or(0), pubdate: vi["pubdate"].as_i64().unwrap_or(0) });
+                        let pages: Vec<VideoPageInfo> = vi.get("pages").and_then(|p| p.as_array()).map(|a| a.iter().filter_map(|p| Some(VideoPageInfo { page: p.get("page")?.as_i64()?, part: p.get("part")?.as_str().unwrap_or("").to_string(), cid: p.get("cid")?.as_i64()?, duration: p.get("duration").and_then(|d| d.as_i64()).unwrap_or(0) })).collect()).unwrap_or_default();
+                        video_info = Some(VideoInfo { bvid: vi["bvid"].as_str().unwrap_or("").to_string(), title: vi["title"].as_str().unwrap_or("").to_string(), description: vi["description"].as_str().unwrap_or("").to_string(), duration: vi["duration"].as_i64().unwrap_or(0), cover: vi["cover"].as_str().unwrap_or("").to_string(), uploader: vi["uploader"].as_str().unwrap_or("").to_string(), uploader_uid: vi["uploader_uid"].as_i64().unwrap_or(0), pubdate: vi["pubdate"].as_i64().unwrap_or(0), pages });
                     }
                 }
                 Some("error") => return Err(anyhow::anyhow!("{}", val["message"].as_str().unwrap_or("unknown"))),
