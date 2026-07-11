@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { NIcon } from "naive-ui";
-import { VideocamOutline, FolderOpenOutline, CloudUploadOutline, ListOutline } from "@vicons/ionicons5";
+import { VideocamOutline, FolderOpenOutline, CloudUploadOutline } from "@vicons/ionicons5";
 import { useRouter } from "vue-router";
-import { useAppStore } from "../stores/app";
-const store = useAppStore();
 const router = useRouter();
 </script>
+
 <template>
   <div class="home-root">
     <div class="hero">
@@ -36,18 +35,6 @@ const router = useRouter();
         <div class="entry-badge">即将支持</div>
       </button>
     </div>
-
-    <!-- Floating queue button -->
-    <div v-if="store.queueCount > 0" class="queue-float" @click="router.push('/queue')">
-      <n-icon size="20"><ListOutline /></n-icon>
-      <span class="queue-badge">{{ store.queueCount }}</span>
-    </div>
-
-    <!-- Floating queue button -->
-    <div v-if="store.queueCount > 0" class="queue-float" @click="router.push('/queue')">
-      <n-icon size="20"><ListOutline /></n-icon>
-      <span class="queue-badge">{{ store.queueCount }}</span>
-    </div>
   </div>
 </template>
 
@@ -72,18 +59,4 @@ const router = useRouter();
 .entry-desc { font-size: 12px; color: #aaa; }
 .entry-arrow { font-size: 18px; color: #ccc; flex-shrink: 0; }
 .entry-badge { font-size: 11px; color: #bbb; border: 1px dashed #ddd; padding: 2px 10px; border-radius: 10px; flex-shrink: 0; white-space: nowrap; }
-.queue-float {
-  position: fixed; bottom: 24px; right: 24px;
-  width: 48px; height: 48px; background: #00aeec; color: #fff;
-  border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  cursor: pointer; box-shadow: 0 4px 16px rgba(0,174,236,.35);
-  transition: transform .2s; z-index: 100;
-}
-.queue-float:hover { transform: scale(1.08); }
-.queue-badge {
-  position: absolute; top: -4px; right: -4px;
-  background: #d03050; color: #fff; font-size: 10px;
-  width: 18px; height: 18px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center; font-weight: 600;
-}
 </style>
