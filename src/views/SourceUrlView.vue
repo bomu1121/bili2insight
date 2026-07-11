@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed, onUnmounted } from "vue";
-import { NInput, NButton, NText, NIcon, NCheckbox, useMessage } from "naive-ui";
+import { NInput, NButton, NText, NIcon, NCheckbox, createDiscreteApi } from "naive-ui";
 import { AddCircleOutline, ArrowBackOutline } from "@vicons/ionicons5";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/app";
@@ -8,7 +8,7 @@ import type { PageInfo } from "../utils/types";
 
 const store = useAppStore();
 const router = useRouter();
-const message = useMessage();
+const { message } = createDiscreteApi(['message']);
 
 const url = ref("");
 let previewTimer: ReturnType<typeof setTimeout> | null = null;

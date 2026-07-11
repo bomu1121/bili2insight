@@ -173,6 +173,13 @@ export const useAppStore = defineStore("app", () => {
         const msgMap: Record<string,string> = {"Getting video info and downloading audio...":"获取视频信息并下载音频...","Download complete":"下载完成","Converting audio format...":"转换音频格式...","Audio conversion complete":"音频转换完成","Running speech recognition...":"运行语音识别...","Speech recognition complete":"语音识别完成","AI proofreading transcript...":"AI 校对文稿...","Transcript proofread":"文稿校对完成","Extracting insights with AI...":"AI 提炼观点...","AI insights ready":"AI 观点提炼完成","Complete":"处理完成","Detecting video...":"检测视频中..."};
         task.stageLabel = stageMap[ev.payload.stage] || ev.payload.stage;
         task.message = msgMap[ev.payload.message] || ev.payload.message;
+        // Also update queue items
+        const qIdx = queue.value.findIndex(q => q.status === 'running');
+        if (qIdx >= 0) {
+          const q = [...queue.value];
+          q[qIdx] = { ...q[qIdx], progress: ev.payload.progress, stageLabel: stageMap[ev.payload.stage] || ev.payload.stage, message: msgMap[ev.payload.message] || ev.payload.message };
+          queue.value = q;
+        }
       }
     });
   }
@@ -230,14 +237,16 @@ export const useAppStore = defineStore("app", () => {
 
   async function processQueue() {
     if (isProcessing.value) return;
+    console.log("processQueue started", queue.value.length, "items");
     isProcessing.value = true;
     try {
       for (let i = 0; i < queue.value.length; i++) {
         const item = queue.value[i];
         if (item.status !== 'pending') continue;
         const updated = [...queue.value];
-        updated[i] = { ...item, status: 'running' as const };
+        updated[i] = { ...item, status: 'running' as const, stageLabel: '开始处理' };
         queue.value = updated;
+        console.log('processQueue: item', i, 'set to running');
         try {
           const result = await runPipelineWithPage(
             item.url!, proxy.value || undefined, aiApiUrl.value || undefined, aiApiKey.value || undefined,
