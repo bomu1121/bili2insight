@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { } from "vue";
 import { NButton, NText, NIcon, NSpace } from "naive-ui";
 import { ArrowBackOutline, TrashOutline, PlayOutline, EyeOutline, CheckmarkCircle, CloseCircle, SyncOutline } from "@vicons/ionicons5";
 import { useRouter } from "vue-router";
