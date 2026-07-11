@@ -61,6 +61,8 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
     let ai_req = format!("SYSTEM: {}\n\nUSER: Video title: {}\n\nTranscript:\n{}", prompt, video_info.title, transcript);
     let markdown = export::generate_markdown(&video_info, &transcript, &insights);
     emit_progress(&app, "done", 1.0, "Complete");
+    let _ = std::fs::remove_file(&audio_path);
+    let _ = std::fs::remove_file(&wav_path);
     Ok(crate::PipelineResult { raw_transcript: raw, video_info, transcript, insights, markdown, ai_request: ai_req, ai_raw_response: ai_raw })
 }
 
