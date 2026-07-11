@@ -157,9 +157,7 @@ export const useAppStore = defineStore("app", () => {
         const info = await previewVideo(val, proxy.value||undefined);
         preview.value = info;
         if (info.pages && info.pages.length > 1) {
-          info.pages.forEach((_, i) => selectedPages.value.add(i));
-          const s = new Set(selectedPages.value); s.forEach(()=>{}); // trigger reactivity
-          selectedPages.value = s;
+            selectedPages.value = new Set([0]);
         }
       } catch (e: any) { console.error("preview error:", e); error.value = String(e); }
       finally { previewLoading.value = false; }

@@ -20,6 +20,7 @@ pub struct VideoPageInfo {
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct VideoInfo {
+    pub cid: i64,
     pub bvid: String,
     pub title: String,
     pub description: String,

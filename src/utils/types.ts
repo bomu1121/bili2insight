@@ -1,4 +1,5 @@
 export interface VideoInfo {
+  cid: number;
   pages?: PageInfo[];
   bvid: string;
   title: string;

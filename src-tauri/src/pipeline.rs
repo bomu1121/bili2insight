@@ -30,7 +30,7 @@ pub async fn download_bili_audio(
                 Some("result") => {
                     if let Some(vi) = val["video_info"].as_object() {
                         let pages: Vec<VideoPageInfo> = vi.get("pages").and_then(|p| p.as_array()).map(|a| a.iter().filter_map(|p| Some(VideoPageInfo { page: p.get("page")?.as_i64()?, part: p.get("part")?.as_str().unwrap_or("").to_string(), cid: p.get("cid")?.as_i64()?, duration: p.get("duration").and_then(|d| d.as_i64()).unwrap_or(0) })).collect()).unwrap_or_default();
-                        video_info = Some(VideoInfo { bvid: vi["bvid"].as_str().unwrap_or("").to_string(), title: vi["title"].as_str().unwrap_or("").to_string(), description: vi["description"].as_str().unwrap_or("").to_string(), duration: vi["duration"].as_i64().unwrap_or(0), cover: vi["cover"].as_str().unwrap_or("").to_string(), uploader: vi["uploader"].as_str().unwrap_or("").to_string(), uploader_uid: vi["uploader_uid"].as_i64().unwrap_or(0), pubdate: vi["pubdate"].as_i64().unwrap_or(0), pages });
+                        video_info = Some(VideoInfo { cid: vi["cid"].as_i64().unwrap_or(0), bvid: vi["bvid"].as_str().unwrap_or("").to_string(), title: vi["title"].as_str().unwrap_or("").to_string(), description: vi["description"].as_str().unwrap_or("").to_string(), duration: vi["duration"].as_i64().unwrap_or(0), cover: vi["cover"].as_str().unwrap_or("").to_string(), uploader: vi["uploader"].as_str().unwrap_or("").to_string(), uploader_uid: vi["uploader_uid"].as_i64().unwrap_or(0), pubdate: vi["pubdate"].as_i64().unwrap_or(0), pages });
                     }
                 }
                 Some("error") => return Err(anyhow::anyhow!("{}", val["message"].as_str().unwrap_or("unknown"))),
