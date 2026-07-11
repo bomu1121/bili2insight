@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import { NButton, NText, NIcon, NDivider } from "naive-ui";
-import { ArrowBackOutline, CopyOutline, DownloadOutline } from "@vicons/ionicons5";
+import { computed, ref } from "vue";
+import { NButton, NText, NIcon, NDivider, NDrawer, NDrawerContent } from "naive-ui";
+import { ArrowBackOutline, CopyOutline, DownloadOutline, DocumentTextOutline } from "@vicons/ionicons5";
 import { useRoute, useRouter } from "vue-router";
 import { useAppStore } from "../stores/app";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
@@ -10,6 +10,7 @@ import { createDiscreteApi } from "naive-ui";
 const route = useRoute();
 const router = useRouter();
 const store = useAppStore();
+const showLog = ref(false);
 const { message } = createDiscreteApi(["message"]);
 
 const itemId = computed(() => route.params.id as string);
@@ -72,6 +73,7 @@ async function exportFile() {
       <div class="result-actions">
         <n-button size="small" @click="copyContent"><template #icon><n-icon><CopyOutline /></n-icon></template>复制</n-button>
         <n-button size="small" @click="exportFile"><template #icon><n-icon><DownloadOutline /></n-icon></template>导出</n-button>
+        <n-button size="small" @click="showLog = true"><template #icon><n-icon><DocumentTextOutline /></n-icon></template>日志</n-button>
       </div>
     </div>
 
@@ -87,6 +89,17 @@ async function exportFile() {
       <n-divider />
       <div class="md-preview" v-html="renderMarkdown(aiContent)" />
     </div>
+
+    <!-- Log Drawer -->
+    <n-drawer v-model:show="showLog" width="620"><n-drawer-content title="流水线日志" closable>
+      <div class="log-console" v-if="item">
+        <div class="log-block"><div class="log-tag info">视频信息</div><pre class="log-text">{{ JSON.stringify(item.result?.video_info, null, 2) }}</pre></div>
+        <div class="log-block"><div class="log-tag success">AI 观点提炼</div><pre class="log-text">{{ JSON.stringify(item.result?.insights, null, 2) }}</pre></div>
+        <div class="log-block"><div class="log-tag warn">AI 请求</div><pre class="log-text">{{ item.result?.ai_request }}</pre></div>
+        <div class="log-block"><div class="log-tag">AI 原始响应</div><pre class="log-text">{{ item.result?.ai_raw_response }}</pre></div>
+      </div>
+      <n-text depth="3" v-else>暂无流水线数据。</n-text>
+    </n-drawer-content></n-drawer>
   </div>
 </template>
 
@@ -111,4 +124,12 @@ async function exportFile() {
 .md-preview :deep(code) { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 13px; }
 .md-preview :deep(li) { margin-left: 22px; }
 .md-preview :deep(hr) { border: none; border-top: 1px solid #eee; margin: 14px 0; }
+
+.log-console { background: #1e1e1e; color: #ccc; border-radius: 6px; padding: 16px; font-family: "Cascadia Code","Fira Code",Consolas,monospace; font-size: 12px; line-height: 1.6; max-height: calc(100vh - 140px); overflow-y: auto; }
+.log-block { margin-bottom: 16px; border-bottom: 1px solid #333; padding-bottom: 12px; }
+.log-tag { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; margin-bottom: 8px; color: #fff; }
+.log-tag.info { background: #007acc; }
+.log-tag.warn { background: #d4a72c; }
+.log-tag.success { background: #4c9a2a; }
+.log-text { margin: 0; white-space: pre-wrap; word-break: break-all; color: #a0a0a0; }
 </style>
