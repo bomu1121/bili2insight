@@ -11,6 +11,11 @@ cargo:PERMISSION_FILES_PATH=D:\Develop\bili2insight\src-tauri\target\debug\build
 cargo:rerun-if-changed=capabilities
 cargo:rerun-if-env-changed=REMOVE_UNUSED_COMMANDS
 cargo:rustc-env=TAURI_ENV_TARGET_TRIPLE=x86_64-pc-windows-msvc
+cargo:rerun-if-changed=binaries\bili_worker-x86_64-pc-windows-msvc.exe
+cargo:rerun-if-changed=binaries\asr_worker-x86_64-pc-windows-msvc.exe
+cargo:rerun-if-changed=binaries\ffmpeg-x86_64-pc-windows-msvc.exe
+cargo:rerun-if-changed=resources\models\paraformer-large\model.int8.onnx
+cargo:rerun-if-changed=resources\models\paraformer-large\tokens.txt
 package.metadata does not exist
 Microsoft (R) Windows (R) Resource Compiler Version 10.0.10011.16384
 Copyright (C) Microsoft Corporation.  All rights reserved.

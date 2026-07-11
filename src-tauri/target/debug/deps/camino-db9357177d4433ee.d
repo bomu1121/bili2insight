@@ -1,8 +1,8 @@
-D:\Develop\bili2insight\src-tauri\target\debug\deps\camino-db9357177d4433ee.d: C:\Users\Admin（无密码）\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\camino-1.2.4\src\lib.rs C:\Users\Admin（无密码）\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\camino-1.2.4\src\serde_impls.rs
+D:\Develop\bili2insight\src-tauri\target\debug\deps\camino-db9357177d4433ee.d: C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\camino-1.2.4\src\lib.rs C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\camino-1.2.4\src\serde_impls.rs
 
-D:\Develop\bili2insight\src-tauri\target\debug\deps\libcamino-db9357177d4433ee.rlib: C:\Users\Admin（无密码）\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\camino-1.2.4\src\lib.rs C:\Users\Admin（无密码）\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\camino-1.2.4\src\serde_impls.rs
+D:\Develop\bili2insight\src-tauri\target\debug\deps\libcamino-db9357177d4433ee.rlib: C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\camino-1.2.4\src\lib.rs C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\camino-1.2.4\src\serde_impls.rs
 
-D:\Develop\bili2insight\src-tauri\target\debug\deps\libcamino-db9357177d4433ee.rmeta: C:\Users\Admin（无密码）\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\camino-1.2.4\src\lib.rs C:\Users\Admin（无密码）\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\camino-1.2.4\src\serde_impls.rs
+D:\Develop\bili2insight\src-tauri\target\debug\deps\libcamino-db9357177d4433ee.rmeta: C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\camino-1.2.4\src\lib.rs C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\camino-1.2.4\src\serde_impls.rs
 
-C:\Users\Admin（无密码）\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\camino-1.2.4\src\lib.rs:
-C:\Users\Admin（无密码）\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\camino-1.2.4\src\serde_impls.rs:
+C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\camino-1.2.4\src\lib.rs:
+C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\camino-1.2.4\src\serde_impls.rs:

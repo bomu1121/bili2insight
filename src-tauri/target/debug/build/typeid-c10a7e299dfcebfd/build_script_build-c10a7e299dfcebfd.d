@@ -1,5 +1,5 @@
-D:\Develop\bili2insight\src-tauri\target\debug\build\typeid-c10a7e299dfcebfd\build_script_build-c10a7e299dfcebfd.d: C:\Users\Admin（无密码）\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\typeid-1.0.3\build.rs
+D:\Develop\bili2insight\src-tauri\target\debug\build\typeid-c10a7e299dfcebfd\build_script_build-c10a7e299dfcebfd.d: C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\typeid-1.0.3\build.rs
 
-D:\Develop\bili2insight\src-tauri\target\debug\build\typeid-c10a7e299dfcebfd\build_script_build-c10a7e299dfcebfd.exe: C:\Users\Admin（无密码）\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\typeid-1.0.3\build.rs
+D:\Develop\bili2insight\src-tauri\target\debug\build\typeid-c10a7e299dfcebfd\build_script_build-c10a7e299dfcebfd.exe: C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\typeid-1.0.3\build.rs
 
-C:\Users\Admin（无密码）\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\typeid-1.0.3\build.rs:
+C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\typeid-1.0.3\build.rs:

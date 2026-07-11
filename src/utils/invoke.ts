@@ -2,7 +2,14 @@ import { invoke } from "@tauri-apps/api/core";
 import type { PipelineResult, VideoInfo } from "./types";
 
 export async function previewVideo(url: string, proxy?: string): Promise<VideoInfo> {
-  return invoke<VideoInfo>("preview_video", { url, proxy: proxy || null });
+  return invoke<VideoInfo>("preview_video", { url, proxy: proxy || null, pageCid: null });
+}
+
+export async function runPipelineWithPage(
+  url: string, proxy?: string, aiApiUrl?: string, aiApiKey?: string,
+  aiModel?: string, aiPrompt?: string, pageCid?: number,
+): Promise<PipelineResult> {
+  return invoke<PipelineResult>("run_pipeline", { url, proxy: proxy || null, aiApiUrl: aiApiUrl || null, aiApiKey: aiApiKey || null, aiModel: aiModel || null, aiPrompt: aiPrompt || null, pageCid: pageCid ?? null });
 }
 
 export async function runPipeline(

@@ -10,28 +10,29 @@ fn emit_progress(app: &AppHandle, stage: &str, progress: f64, message: &str) {
 }
 
 #[tauri::command]
-pub async fn preview_video(app: AppHandle, url: String, proxy: Option<String>) -> Result<VideoInfo, String> {
+pub async fn preview_video(app: AppHandle, url: String, proxy: Option<String>, page_cid: Option<i64>) -> Result<VideoInfo, String> {
     emit_progress(&app, "preview", 0.0, "Detecting video...");
     let app_pv = app.clone();
-    let result = pipeline::download_bili_audio(&app, &url, &PathBuf::from("."), true, proxy.as_deref(),
+    let result = pipeline::download_bili_audio(&app, &url, &PathBuf::from("."), true, proxy.as_deref(), page_cid,
         move |s, p, m| { let _ = app_pv.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string() }); },
     ).await.map_err(|e| format!("Preview failed: {}", e))?;
     Ok(result)
 }
 
 #[tauri::command]
-pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai_api_url: Option<String>, ai_api_key: Option<String>, ai_model: Option<String>, ai_prompt: Option<String>) -> Result<crate::PipelineResult, String> {
+pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai_api_url: Option<String>, ai_api_key: Option<String>, ai_model: Option<String>, ai_prompt: Option<String>, page_cid: Option<i64>) -> Result<crate::PipelineResult, String> {
     let output_dir = app.path().app_data_dir().map_err(|e| e.to_string())?.join("tasks");
     std::fs::create_dir_all(&output_dir).map_err(|e| e.to_string())?;
 
     emit_progress(&app, "download", 0.05, "Getting video info and downloading audio...");
     let app_dl = app.clone();
-    let video_info = pipeline::download_bili_audio(&app, &url, &output_dir, false, proxy.as_deref(),
+    let video_info = pipeline::download_bili_audio(&app, &url, &output_dir, false, proxy.as_deref(), page_cid,
         move |s, p, m| { let _ = app_dl.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string() }); },
     ).await.map_err(|e| format!("Download failed: {}", e))?;
     emit_progress(&app, "download", 0.25, "Download complete");
 
-    let audio_path = output_dir.join(format!("{}.m4a", video_info.bvid));
+    let audio_tag = if let Some(cid) = page_cid { format!("{}_p{}", video_info.bvid, cid) } else { video_info.bvid.clone() };
+    let audio_path = output_dir.join(format!("{}.m4a", audio_tag));
     emit_progress(&app, "ffmpeg", 0.30, "Converting audio format...");
     let wav_path = pipeline::extract_audio_wav(&app, &audio_path.to_string_lossy(), &output_dir).await.map_err(|e| format!("FFmpeg error: {}", e))?;
     emit_progress(&app, "ffmpeg", 0.40, "Audio conversion complete");

@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, watch, computed } from "vue";
-import type { PipelineResult, PipelineProgress, VideoInfo } from "../utils/types";
-import { runPipeline, saveResultToFile, previewVideo, fetchModels } from "../utils/invoke";
+import type { PipelineResult, PipelineProgress, VideoInfo, PageInfo, TaskState } from "../utils/types";
+import { runPipelineWithPage, saveResultToFile, previewVideo, fetchModels } from "../utils/invoke";
 import { listen } from "@tauri-apps/api/event";
 
 export interface Provider { name: string; url: string; models: string[]; }
@@ -14,69 +14,32 @@ const PROVIDERS: Provider[] = [
 ];
 
 const PROMPT_GUANDIAN = [
-  "你是深度内容编辑，专门将口语化的视频文案提炼为有思考深度、有逻辑归类的结构化笔记。不做简单逐句改写，而是理解视频在讨论哪些核心议题，然后把分散在全文中的相关现象、事实、例证和判断整合到一起，形成有机的观点块。",
+  "你是深度内容编辑，专门将口语化的视频文案提炼为有思考深度、有逻辑归类的结构化笔记。",
+  "不做简单逐句改写，而是理解视频在讨论哪些核心议题，然后把分散在全文中的相关现象、事实、例证和判断整合到一起。",
   "",
-  "【总体概要】",
-  "（3-5句话概括：视频讲了什么主题、作者的核心态度/立场是什么、得出了什么关键结论。）",
+  "【总体概要】（3-5句话概括）",
   "",
-  "【核心观点与支撑】",
-  "### 观点块N：[用一句话提炼这个观点的核心主张]",
-  "- 现象/背景：跟这个观点相关的具体事件、数据、行业动向、个人经历等客观信息",
-  "- 作者的判断：作者针对上述现象明确表达的主观看法、评价、立场或态度",
-  "- 补充例证：作者用来进一步支撑自己判断的案例、对比、数据等",
+  "【核心观点与支撑】### 观点块N：[核心主张]",
+  "- 现象/背景 - 作者的判断 - 补充例证",
+  "3-6个观点块，按论证逻辑排序",
   "",
-  "3-6个观点块，按论证逻辑排序，非时间顺序",
-  "",
-  "【情绪基调与弦外之音】",
-  "1-2句话点出明显情绪色彩、未明说的潜台词或反复流露的矛盾心态。可省略。",
+  "【情绪基调与弦外之音】（可选）",
 ].join("\n");
 
 const PROMPT_TECH = [
-  "你是技术文档工程师，专门将口语化的技术教程、编程教学、工具演示类视频文案，提炼为结构严谨、可直接用于学习和实操的结构化技术笔记。",
-  "提炼目标不是概括，而是还原——让一个没有看过原视频的开发者/学习者，仅凭你的提炼就能理解核心概念并完成关键操作。",
+  "你是技术文档工程师，专门将口语化的技术教程提炼为结构严谨、可直接使用的结构化技术笔记。",
+  "提炼目标不是概括，而是还原——让没看过原视频的开发者也能理解核心概念并完成操作。",
   "",
-  "【视频目标】",
-  "（用一句话说清楚：这个视频最终要教会观众什么？解决什么问题？达成什么效果？）",
+  "【视频目标】【前置条件】【核心概念】【操作步骤】【关键技术细节】【常见坑与解决方案】【最终效果/成果验证】【延伸与参考】",
   "",
-  "【前置条件】",
-  "- 需要的软件/工具/环境及版本号",
-  "- 需要的前置知识（如果有）",
-  "- 其他依赖或准备工作",
-  "（如果没有明确提及，写无特殊前置，不要编造）",
-  "",
-  "【核心概念】（如果有的话）",
-  "对于视频中涉及的关键技术概念、术语、原理，用简明扼要的方式逐个解释。如果视频纯粹是操作演示可不写。",
-  "",
-  "【操作步骤】",
-  "按视频的实际操作顺序，每一步包含：步骤名称、具体操作、关键配置/参数/代码、预期结果、易错点。",
-  "（步骤数量不限，忠实于视频实际操作流程。如果视频演示了多个方案或分支路径，分别整理。）",
-  "",
-  "【关键技术细节】",
-  "将在视频各处散布但至关重要的技术信息集中列出：配置项/参数的具体值、版本兼容性说明、性能数据或对比数据、快捷键、命令行、文件路径。",
-  "",
-  "【常见坑与解决方案】",
-  "把视频中提到的所有容易出错的地方、报错信息及对应的解决方法集中整理。如果没有写未提及。",
-  "",
-  "【最终效果 / 成果验证】",
-  "（操作完成后得到的结果是什么？如何验证是否成功？）",
-  "",
-  "【延伸与参考】（如果有的话）",
-  "视频中提到的进一步学习方向、相关资源链接、参考文档。",
-  "",
-  "提炼原则：结构化还原优先；技术信息零损耗；口语转技术书面语；区分作者观点和技术事实；不添加原文没有的技术信息。",
-  "只输出上述结构，不添加开场白、评价或闲聊。",
+  "提炼原则：结构化还原优先；技术信息零损耗；口语转技术书面语；不添加原文没有的技术信息。",
 ].join("\n");
 
 const PROMPT_TRACE = [
-  "你是专业的视频文案信息提取与溯源助手。从用户提供的视频文字稿中提取有用信息，并为每一条信息标注清晰的信源，让读者能够直接核对原文。",
+  "你是专业的视频文案信息提取与溯源助手。从视频文字稿中提取有用信息，并为每一条标注清晰的信源。",
   "",
-  "有用信息定义：关键事实、数据、统计数字、日期、金额、比例；明确的观点、结论、判断、预测；重要的名称（人名、地名、机构名、产品名、专有名词）；操作步骤、方法、建议、注意事项。",
-  "",
-  "信源要求：每条信息标注时间戳（如果原文稿有时间戳）或原文定位（如无时间戳）。原文引用用双引号包裹，1-2句关键原句。",
-  "",
-  "输出格式：按类型分块（事实数据、观点结论、操作步骤等），每条单独编号。如果原文稿较长、信息密集，可先给出不超过200字的核心信息摘要。",
-  "",
-  "特别注意：文稿中没有明确信息就说经分析未发现符合要求的有用信息，不编造。文稿语义模糊可在信源后加注存疑并说明原因。直接输出结果，不打招呼不结束语。",
+  "有用信息：关键事实、数据、观点、结论、名称、操作步骤、注意事项。信源要求：时间戳或原文定位 + 原文引用。",
+  "按类型分块输出，信息密集时先给不超过200字的核心摘要。不编造，语义模糊加注存疑。",
 ].join("\n");
 
 const BUILTIN_TEMPLATES: PromptTemplate[] = [
@@ -103,12 +66,8 @@ export const useAppStore = defineStore("app", () => {
   const customModels = ref<string[]>(ver?.customModels ?? []);
   const selectedTemplateIndex = ref(ver?.selectedTemplateIndex ?? 0);
   const customTemplates = ref<PromptTemplate[]>(ver?.customTemplates ?? []);
-  const editingTemplateIdx = ref(ver?.selectedTemplateIndex ?? 0);
 
-  // Build templates: builtin + custom
   const allTemplates = computed(() => [...BUILTIN_TEMPLATES, ...customTemplates.value]);
-
-  // aiPrompt derived from selected template
   const aiPrompt = computed(() => {
     const idx = selectedTemplateIndex.value;
     if (idx < BUILTIN_TEMPLATES.length) return BUILTIN_TEMPLATES[idx].prompt;
@@ -116,24 +75,54 @@ export const useAppStore = defineStore("app", () => {
     return customTemplates.value[ci]?.prompt ?? "";
   });
 
+  // ---------- Pipeline state ----------
   const processing = ref(false);
   const progress = ref<PipelineProgress | null>(null);
   const result = ref<PipelineResult | null>(null);
   const error = ref("");
-
   const preview = ref<VideoInfo | null>(null);
   const previewLoading = ref(false);
+
+  // ---------- Multi-page state ----------
+  const selectedPages = ref<Set<number>>(new Set());
+  const tasks = ref<TaskState[]>([]);
+  const activeTaskIndex = ref(-1);
+  const activeResultTab = ref<number>(0); // 0 = first page, N = pages[N-1], N+1 = merged
+
+  const videoPages = computed<PageInfo[]>(() => preview.value?.pages ?? []);
+
+  // All completed task results
+  const completedTasks = computed(() => tasks.value.filter(t => t.status === "done"));
+  const hasMultiPages = computed(() => videoPages.value.length > 1);
+
+  // Active result (current tab)
+  const activeResult = computed(() => {
+    if (completedTasks.value.length === 0) return result.value;
+    if (activeResultTab.value < completedTasks.value.length) {
+      return completedTasks.value[activeResultTab.value].result;
+    }
+    // "merged" tab
+    return null;
+  });
+
+  const mergedMarkdown = computed(() => {
+    if (completedTasks.value.length === 0) return "";
+    const parts = completedTasks.value.map(t => {
+      if (!t.result) return "";
+      return `## ${t.pageInfo.part}\n\n${t.result.markdown}`;
+    });
+    return `# ${preview.value?.title ?? ""}\n\n${parts.join("\n\n---\n\n")}`;
+  });
+
   let previewTimer: ReturnType<typeof setTimeout> | null = null;
   let unlisten: (() => void) | null = null;
 
+  // ---------- Persistence ----------
   function persistSettings() {
     saveToDisk({
-      version: SETTINGS_VERSION,
-      proxy: proxy.value, aiApiUrl: aiApiUrl.value, aiApiKey: aiApiKey.value,
-      aiModel: aiModel.value, selectedProvider: selectedProvider.value,
-      customModels: customModels.value,
-      selectedTemplateIndex: selectedTemplateIndex.value,
-      customTemplates: customTemplates.value,
+      version: SETTINGS_VERSION, proxy: proxy.value, aiApiUrl: aiApiUrl.value, aiApiKey: aiApiKey.value,
+      aiModel: aiModel.value, selectedProvider: selectedProvider.value, customModels: customModels.value,
+      selectedTemplateIndex: selectedTemplateIndex.value, customTemplates: customTemplates.value,
     });
   }
 
@@ -141,51 +130,128 @@ export const useAppStore = defineStore("app", () => {
     persistSettings();
   }, { deep: false });
 
+  // ---------- Lifecycle ----------
   function switchProvider(idx: number) { selectedProvider.value = idx; const p = PROVIDERS[idx]; aiApiUrl.value = p.url; if (p.models.length>0 && customModels.value.length===0) aiModel.value = p.models[0]; }
-  async function init() { unlisten = await listen<PipelineProgress>("pipeline-progress", (ev) => { progress.value = ev.payload; }); }
+  async function init() {
+    unlisten = await listen<PipelineProgress>("pipeline-progress", (ev) => {
+      progress.value = ev.payload;
+      if (activeTaskIndex.value >= 0 && activeTaskIndex.value < tasks.value.length) {
+        const task = tasks.value[activeTaskIndex.value];
+        task.progress = ev.payload.progress;
+        task.stageLabel = ev.payload.stage;
+        task.message = ev.payload.message;
+      }
+    });
+  }
   function cleanup() { if (unlisten) { unlisten(); unlisten = null; } }
 
-  async function startPipeline() {
-    if (!url.value.trim()) { error.value = "Please enter a Bilibili video URL"; return; }
-    processing.value = true; error.value = ""; result.value = null;
-    try { result.value = await runPipeline(url.value, proxy.value||undefined, aiApiUrl.value||undefined, aiApiKey.value||undefined, aiModel.value||undefined, aiPrompt.value||undefined); }
-    catch (e: any) { error.value = String(e); }
-    finally { processing.value = false; }
-  }
-
+  // ---------- URL detection ----------
   async function detectUrl(val: string) {
     if (previewTimer) clearTimeout(previewTimer);
     preview.value = null; previewLoading.value = false;
+    selectedPages.value = new Set();
     if (!val.trim() || !val.includes("bilibili.com")) return;
     previewLoading.value = true;
-    previewTimer = setTimeout(async () => { try { preview.value = await previewVideo(val, proxy.value||undefined); } catch (e: any) { console.error("preview error:", e); error.value = String(e); } finally { previewLoading.value = false; } }, 600);
+    previewTimer = setTimeout(async () => {
+      try {
+        const info = await previewVideo(val, proxy.value||undefined);
+        preview.value = info;
+        if (info.pages && info.pages.length > 1) {
+          info.pages.forEach((_, i) => selectedPages.value.add(i));
+          const s = new Set(selectedPages.value); s.forEach(()=>{}); // trigger reactivity
+          selectedPages.value = s;
+        }
+      } catch (e: any) { console.error("preview error:", e); error.value = String(e); }
+      finally { previewLoading.value = false; }
+    }, 600);
   }
   watch(url, (val) => { detectUrl(val); });
 
-  async function fetchModelList() {
-    if (!aiApiKey.value.trim()) { error.value = "Please enter API key first"; return; }
-    try { const models = await fetchModels(aiApiUrl.value, aiApiKey.value.trim()); if (models.length>0) { customModels.value = models; aiModel.value = models[0]; persistSettings(); } }
-    catch (e: any) { const msg = String(e); error.value = msg.includes("401") ? "Invalid API key" : "Fetch failed: "+msg; }
+  // ---------- Page selection ----------
+  function togglePage(idx: number) {
+    const s = new Set(selectedPages.value);
+    if (s.has(idx)) s.delete(idx); else s.add(idx);
+    selectedPages.value = s;
+  }
+  function selectAllPages() {
+    selectedPages.value = new Set(videoPages.value.map((_, i) => i));
   }
 
-  function selectTemplate(idx: number) { selectedTemplateIndex.value = idx; editingTemplateIdx.value = idx; }
+  // ---------- Pipeline ----------
+  async function startPipeline() {
+    if (!url.value.trim()) { error.value = "请输入 Bilibili 视频链接"; return; }
+    if (!preview.value) return;
+
+    const pages = videoPages.value;
+    const selected: number[] = [];
+    selectedPages.value.forEach(i => { if (i < pages.length) selected.push(i); });
+
+    if (selected.length === 0) {
+      error.value = "请至少选择一个分P";
+      return;
+    }
+
+    // Reset state
+    processing.value = true; error.value = ""; result.value = null;
+    tasks.value = selected.map(i => ({
+      pageKey: i,
+      pageInfo: pages[i],
+      status: "pending" as const,
+      progress: 0, stageLabel: "等待中", message: "",
+      result: null, error: "",
+    }));
+    activeTaskIndex.value = -1;
+
+    // Sequential processing
+    for (let ti = 0; ti < tasks.value.length; ti++) {
+      activeTaskIndex.value = ti;
+      tasks.value[ti].status = "running";
+      try {
+        const res = await runPipelineWithPage(
+          url.value, proxy.value||undefined, aiApiUrl.value||undefined, aiApiKey.value||undefined,
+          aiModel.value||undefined, aiPrompt.value||undefined, tasks.value[ti].pageInfo.cid,
+        );
+        tasks.value[ti].status = "done";
+        tasks.value[ti].result = res;
+        tasks.value[ti].progress = 1;
+        tasks.value[ti].stageLabel = "完成";
+        // For single page, also set legacy result
+        if (tasks.value.length === 1) result.value = res;
+      } catch (e: any) {
+        tasks.value[ti].status = "error";
+        tasks.value[ti].error = String(e);
+      }
+    }
+
+    processing.value = false;
+    activeTaskIndex.value = -1;
+    if (completedTasks.value.length > 0) {
+      activeResultTab.value = 0;
+    }
+  }
+
+  // ---------- Fetch models ----------
+  async function fetchModelList() {
+    if (!aiApiKey.value.trim()) { error.value = "请先输入 API 密钥"; return; }
+    try { const models = await fetchModels(aiApiUrl.value, aiApiKey.value.trim()); if (models.length>0) { customModels.value = models; aiModel.value = models[0]; persistSettings(); } }
+    catch (e: any) { const msg = String(e); error.value = msg.includes("401") ? "API 密钥无效" : "获取失败: "+msg; }
+  }
+
+  // ---------- Template management ----------
+  function selectTemplate(idx: number) { selectedTemplateIndex.value = idx; }
   function addCustomTemplate() {
-    const name = "Custom "+(customTemplates.value.length+1);
+    const name = "自定义 "+(customTemplates.value.length+1);
     customTemplates.value = [...customTemplates.value, { name, prompt: "请分析以下视频文案...", builtin: false }];
     selectedTemplateIndex.value = BUILTIN_TEMPLATES.length + customTemplates.value.length - 1;
-    editingTemplateIdx.value = selectedTemplateIndex.value;
   }
   function deleteCustomTemplate(idx: number) {
     const ci = idx - BUILTIN_TEMPLATES.length;
     if (ci < 0 || ci >= customTemplates.value.length) return;
     customTemplates.value = customTemplates.value.filter((_, i) => i !== ci);
-    if (selectedTemplateIndex.value >= idx) {
-      selectedTemplateIndex.value = Math.max(0, selectedTemplateIndex.value - 1);
-      editingTemplateIdx.value = selectedTemplateIndex.value;
-    }
+    if (selectedTemplateIndex.value >= idx) selectedTemplateIndex.value = Math.max(0, selectedTemplateIndex.value - 1);
   }
   function updateTemplatePrompt(idx: number, prompt: string) {
-    if (idx < BUILTIN_TEMPLATES.length) return; // builtin prompts are immutable
+    if (idx < BUILTIN_TEMPLATES.length) return;
     const ci = idx - BUILTIN_TEMPLATES.length;
     if (ci < 0 || ci >= customTemplates.value.length) return;
     const updated = [...customTemplates.value];
@@ -201,11 +267,31 @@ export const useAppStore = defineStore("app", () => {
     customTemplates.value = updated;
   }
 
+  // ---------- Export ----------
   async function exportToFile() {
-    if (!result.value) return;
-    try { const { save } = await import("@tauri-apps/plugin-dialog"); const path = await save({ filters:[{name:"Markdown",extensions:["md"]}], defaultPath:`${result.value.video_info.title}.md` }); if (path) await saveResultToFile(result.value, path); }
-    catch (e: any) { error.value = String(e); }
+    const md = activeResultTab.value < completedTasks.value.length
+      ? completedTasks.value[activeResultTab.value]?.result?.markdown ?? ""
+      : mergedMarkdown.value;
+    if (!md) return;
+    try {
+      const { save } = await import("@tauri-apps/plugin-dialog");
+      const defaultName = completedTasks.value.length <= 1
+        ? `${preview.value?.title ?? "output"}.md`
+        : activeResultTab.value < completedTasks.value.length
+          ? `${completedTasks.value[activeResultTab.value].pageInfo.part}.md`
+          : `${preview.value?.title ?? "merged"}_合并.md`;
+      const path = await save({ filters:[{name:"Markdown",extensions:["md"]}], defaultPath: defaultName });
+      if (path) await saveResultToFile({ ...completedTasks.value[0]?.result as any, markdown: md }, path);
+    } catch (e: any) { error.value = String(e); }
   }
 
-  return { url, proxy, aiApiUrl, aiApiKey, aiModel, aiPrompt, selectedProvider, processing, progress, result, error, preview, previewLoading, PROVIDERS, customModels, BUILTIN_TEMPLATES, allTemplates, selectedTemplateIndex, editingTemplateIdx, customTemplates, init, cleanup, startPipeline, exportToFile, switchProvider, fetchModelList, selectTemplate, addCustomTemplate, deleteCustomTemplate, updateTemplatePrompt, updateTemplateName, persistSettings };
+  return {
+    url, proxy, aiApiUrl, aiApiKey, aiModel, aiPrompt, selectedProvider, processing, progress, result, error,
+    preview, previewLoading, PROVIDERS, BUILTIN_TEMPLATES, allTemplates, selectedTemplateIndex, customTemplates, customModels,
+    selectedPages, tasks, activeTaskIndex, videoPages, completedTasks, hasMultiPages, activeResultTab,
+    activeResult, mergedMarkdown,
+    init, cleanup, startPipeline, exportToFile, switchProvider, fetchModelList,
+    selectTemplate, addCustomTemplate, deleteCustomTemplate, updateTemplatePrompt, updateTemplateName, persistSettings,
+    togglePage, selectAllPages,
+  };
 });

@@ -1,7 +1,7 @@
-D:\Develop\bili2insight\src-tauri\target\debug\deps\phf_codegen-1b3471c921a9de7b.d: C:\Users\Admin（无密码）\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\phf_codegen-0.13.1\src\lib.rs
+D:\Develop\bili2insight\src-tauri\target\debug\deps\phf_codegen-1b3471c921a9de7b.d: C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\phf_codegen-0.13.1\src\lib.rs
 
-D:\Develop\bili2insight\src-tauri\target\debug\deps\libphf_codegen-1b3471c921a9de7b.rlib: C:\Users\Admin（无密码）\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\phf_codegen-0.13.1\src\lib.rs
+D:\Develop\bili2insight\src-tauri\target\debug\deps\libphf_codegen-1b3471c921a9de7b.rlib: C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\phf_codegen-0.13.1\src\lib.rs
 
-D:\Develop\bili2insight\src-tauri\target\debug\deps\libphf_codegen-1b3471c921a9de7b.rmeta: C:\Users\Admin（无密码）\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\phf_codegen-0.13.1\src\lib.rs
+D:\Develop\bili2insight\src-tauri\target\debug\deps\libphf_codegen-1b3471c921a9de7b.rmeta: C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\phf_codegen-0.13.1\src\lib.rs
 
-C:\Users\Admin（无密码）\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\phf_codegen-0.13.1\src\lib.rs:
+C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\phf_codegen-0.13.1\src\lib.rs:

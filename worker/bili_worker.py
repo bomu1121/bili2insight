@@ -107,15 +107,17 @@ class BiliWorker:
         emit("progress", {"stage": "download", "message": f"Download done ({size_mb:.1f}MB)"})
         return output_path
 
-    def run(self, preview_only: bool = False) -> dict:
+    def run(self, preview_only: bool = False, page_cid: int = None) -> dict:
         bvid = self.parse_bvid()
         self.fetch_wbi_keys()
         video_info = self.get_video_info(bvid)
         if preview_only:
             emit("result", {"video_info": video_info})
             return {"video_info": video_info}
-        play_url = self.get_play_url(bvid, video_info["cid"])
-        audio_path = self.download_audio(play_url["audio_url"], bvid)
+        active_cid = page_cid if page_cid else video_info["cid"]
+        audio_tag = bvid if not page_cid else f"{bvid}_p{active_cid}"
+        play_url = self.get_play_url(bvid, active_cid)
+        audio_path = self.download_audio(play_url["audio_url"], audio_tag)
         result = {"video_info": video_info, "audio_path": str(audio_path.absolute())}
         emit("result", result)
         return result
@@ -125,11 +127,12 @@ def main():
     parser.add_argument("--url", required=True)
     parser.add_argument("--output-dir", default="./downloads")
     parser.add_argument("--preview-only", action="store_true")
+    parser.add_argument("--cid", type=int, default=None)
     parser.add_argument("--proxy", default=None)
     args = parser.parse_args()
     try:
         worker = BiliWorker(args.url, args.output_dir, proxy=args.proxy)
-        worker.run(preview_only=args.preview_only)
+        worker.run(preview_only=args.preview_only, page_cid=args.cid)
         sys.exit(0)
     except Exception as e:
         emit("error", {"message": str(e)})

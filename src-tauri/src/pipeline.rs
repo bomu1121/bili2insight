@@ -6,13 +6,14 @@ use tauri_plugin_shell::ShellExt;
 use serde_json::Value;
 
 pub async fn download_bili_audio(
-    app: &AppHandle, url: &str, output_dir: &Path, preview_only: bool, proxy: Option<&str>,
+    app: &AppHandle, url: &str, output_dir: &Path, preview_only: bool, proxy: Option<&str>, page_cid: Option<i64>,
     progress: impl Fn(&str, f64, &str) + Send + 'static,
 ) -> Result<VideoInfo, anyhow::Error> {
     let mut cmd = app.shell().sidecar("bili_worker")
         .map_err(|e| anyhow::anyhow!("bili_worker sidecar not found: {}", e))?;
     cmd = cmd.args(["--url", url, "--output-dir", output_dir.to_str().unwrap_or(".")]);
     if preview_only { cmd = cmd.arg("--preview-only"); }
+    if let Some(cid) = page_cid { cmd = cmd.args(["--cid", &cid.to_string()]); }
     if let Some(p) = proxy { cmd = cmd.args(["--proxy", p]); }
     let out = cmd.output().await.map_err(|e| anyhow::anyhow!("bili_worker failed: {}", e))?;
     if !out.status.success() {

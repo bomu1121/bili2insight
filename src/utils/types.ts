@@ -1,4 +1,5 @@
 export interface VideoInfo {
+  pages?: PageInfo[];
   bvid: string;
   title: string;
   description: string;
@@ -29,4 +30,23 @@ export interface PipelineProgress {
   stage: string;
   progress: number;
   message: string;
+}
+
+
+export interface PageInfo {
+  page: number;
+  part: string;
+  cid: number;
+  duration: number;
+}
+
+export interface TaskState {
+  pageKey: number;
+  pageInfo: PageInfo;
+  status: "pending" | "running" | "done" | "error";
+  progress: number;
+  stageLabel: string;
+  message: string;
+  result: PipelineResult | null;
+  error: string;
 }
