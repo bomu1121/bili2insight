@@ -235,7 +235,7 @@ const tplPrompt = computed({
 .page-dur{font-size:11px;color:#999;flex-shrink:0}
 .progress-row{width:100%;max-width:780px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;background:#fff;border-radius:8px;padding:14px 20px;border:1px solid #e8e8e8}
 .task-queue{width:100%;max-width:780px;flex-shrink:0;background:#fff;border-radius:8px;border:1px solid #e8e8e8;overflow:hidden}
-.task-item{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid #f5f5f5;transition:background .2s}
+.task-item{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid #f5f5f5;transition:background .2s;height:44px;overflow:hidden}
 .task-item:last-child{border-bottom:none}
 .task-item.active{background:#f0f7ff}
 .task-item.done{background:#f6ffed}
@@ -245,7 +245,7 @@ const tplPrompt = computed({
 .task-dur{font-size:11px;color:#999;flex-shrink:0;min-width:42px;text-align:right}
 .task-bar{width:80px;height:5px;background:#eee;border-radius:3px;overflow:hidden;flex-shrink:0}
 .task-bar-fill{height:100%;border-radius:3px;transition:width .3s ease}
-.task-msg{font-size:11px;width:56px;text-align:right;flex-shrink:0}
+.task-msg{font-size:11px;width:56px;text-align:right;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 .spinning{animation:spin 1s linear infinite}
 .result-area{width:100%;max-width:780px;flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;background:#fff;border-radius:8px;border:1px solid #e8e8e8}

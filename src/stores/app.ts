@@ -138,7 +138,7 @@ export const useAppStore = defineStore("app", () => {
       if (activeTaskIndex.value >= 0 && activeTaskIndex.value < tasks.value.length) {
         const task = tasks.value[activeTaskIndex.value];
         task.progress = ev.payload.progress;
-        task.stageLabel = ev.payload.stage;
+        task.stageLabel = ({download:"下载中",ffmpeg:"转换格式",asr:"语音识别",refine:"AI 校对",ai:"AI 分析",done:"完成"} as Record<string,string>)[ev.payload.stage] || ev.payload.stage;
         task.message = ev.payload.message;
       }
     });
