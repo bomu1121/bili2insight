@@ -157,7 +157,8 @@ export const useAppStore = defineStore("app", () => {
         const info = await previewVideo(val, proxy.value||undefined);
         preview.value = info;
         if (info.pages && info.pages.length > 1) {
-            selectedPages.value = new Set([0]);
+            const matchIdx = info.pages.findIndex(p => p.cid === info.cid);
+            selectedPages.value = new Set([matchIdx >= 0 ? matchIdx : 0]);
         }
       } catch (e: any) { console.error("preview error:", e); error.value = String(e); }
       finally { previewLoading.value = false; }
