@@ -1,15 +1,20 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch, computed } from "vue";
 import { NInput, NButton, NSpace, NText, NIcon, createDiscreteApi, NDrawer, NDrawerContent, NSelect } from "naive-ui";
-import { SettingsSharp, VideocamOutline, ListOutline } from "@vicons/ionicons5";
+import { SettingsSharp, VideocamOutline, ListOutline, PlayOutline, TrashOutline, EyeOutline, CheckmarkCircle, CloseCircle, SyncOutline } from "@vicons/ionicons5";
 import { useRouter } from "vue-router";
 import { useAppStore } from "./stores/app";
 const { message } = createDiscreteApi(["message"]);
 const store = useAppStore();
 const router = useRouter();
 const showSettings = ref(false);
+const showQueue = ref(false);
 onMounted(() => store.init()); onUnmounted(() => store.cleanup());
 watch(() => store.error, (val) => { if (val) message.error(val); });
+
+function viewResult(id: string) { showQueue.value = false; router.push(`/result/${id}`); }
+function startProcessing() { store.processQueue(); }
+function clearDone() { store.queue = store.queue.filter(q => q.status !== "done" && q.status !== "error"); }
 
 const tplPrompt = computed({
   get: () => {
@@ -34,7 +39,7 @@ const tplPrompt = computed({
         <n-text strong style="font-size:18px;">Bili2Insight</n-text>
       </div>
       <n-space :size="8">
-        <n-button text @click="router.push('/queue')" style="position:relative;">
+        <n-button text @click="showQueue = true" style="position:relative;">
           <template #icon><n-icon><ListOutline /></n-icon></template>队列
           <span v-if="store.queueCount > 0" class="hdr-badge">{{ store.queueCount }}</span>
         </n-button>
@@ -46,7 +51,42 @@ const tplPrompt = computed({
       <router-view />
     </main>
 
-    <!-- Settings drawer -->
+    <!-- Queue Drawer -->
+    <n-drawer v-model:show="showQueue" width="420" placement="right">
+      <n-drawer-content title="处理队列" closable>
+        <div class="queue-drawer" v-if="store.queue.length > 0">
+          <div class="queue-actions">
+            <n-button size="small" type="primary" @click="startProcessing" :disabled="store.isProcessing || store.queue.filter(q=>q.status==='pending').length===0">
+              <template #icon><n-icon><PlayOutline /></n-icon></template>开始处理
+            </n-button>
+            <n-button size="small" @click="clearDone" :disabled="store.queue.filter(q=>q.status==='done'||q.status==='error').length===0">
+              <template #icon><n-icon><TrashOutline /></n-icon></template>清除已完成
+            </n-button>
+          </div>
+          <div class="queue-list">
+            <div v-for="item in store.queue" :key="item.id" class="q-item" :class="{ running: item.status === 'running', done: item.status === 'done', error: item.status === 'error' }">
+              <span class="q-s">
+                <n-icon v-if="item.status === 'done'" color="#18a058" size="16"><CheckmarkCircle /></n-icon>
+                <n-icon v-else-if="item.status === 'error'" color="#d03050" size="16"><CloseCircle /></n-icon>
+                <n-icon v-else-if="item.status === 'running'" color="#2080f0" size="16" class="spinning"><SyncOutline /></n-icon>
+                <span v-else style="color:#ccc;font-size:14px;">&#9679;</span>
+              </span>
+              <div class="q-info">
+                <n-text style="font-size:13px;">{{ item.pageInfo.part }}</n-text>
+                <n-text depth="3" style="font-size:11px;">P{{ item.pageInfo.page }} &middot; {{ item.status === 'done' ? '完成' : item.status === 'error' ? '失败' : item.status === 'running' ? item.stageLabel : '等待中' }}</n-text>
+                <div class="q-bar" v-if="item.status === 'running'"><div class="q-fill" :style="{ width: Math.round(item.progress*100)+'%' }"></div></div>
+              </div>
+              <n-button v-if="item.status === 'done'" size="tiny" text @click="viewResult(item.id)">
+                <template #icon><n-icon size="16"><EyeOutline /></n-icon></template>
+              </n-button>
+            </div>
+          </div>
+        </div>
+        <n-text depth="3" v-else style="display:block;text-align:center;padding:60px 0;">队列为空，返回首页添加视频</n-text>
+      </n-drawer-content>
+    </n-drawer>
+
+    <!-- Settings Drawer -->
     <n-drawer v-model:show="showSettings" width="440"><n-drawer-content title="设置" closable><n-space vertical style="gap:16px;">
       <div><n-text depth="3" style="font-size:12px;">HTTP 代理</n-text><n-input v-model:value="store.proxy" placeholder="http://127.0.0.1:7897" size="small" /></div>
       <div><n-text depth="3" style="font-size:12px;">AI 提供商</n-text><n-select v-model:value="store.selectedProvider" :options="store.PROVIDERS.map((p:any,i:number)=>({label:p.name,value:i}))" size="small" @update:value="(i:number)=>store.switchProvider(i)" /></div>
@@ -89,4 +129,18 @@ const tplPrompt = computed({
 .header-left{display:flex;align-items:center;gap:8px}
 .app-main{overflow:hidden;display:flex;flex-direction:column}
 .hdr-badge{position:absolute;top:-4px;right:-6px;background:#d03050;color:#fff;font-size:10px;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600}
+
+.queue-drawer{display:flex;flex-direction:column;gap:10px}
+.queue-actions{display:flex;gap:8px;margin-bottom:4px}
+.queue-list{display:flex;flex-direction:column;gap:6px}
+.q-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid #eee;background:#fff;transition:background .2s}
+.q-item.running{background:#f0f7ff;border-color:#c8ddf8}
+.q-item.done{background:#f6ffed;border-color:#c8e8b8}
+.q-item.error{background:#fff2f0;border-color:#f0c8c0}
+.q-s{flex-shrink:0;width:20px;display:flex;align-items:center;justify-content:center}
+.q-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.q-bar{width:100%;height:3px;background:#eee;border-radius:2px;overflow:hidden;margin-top:2px}
+.q-fill{height:100%;background:#2080f0;border-radius:2px;transition:width .3s ease}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.spinning{animation:spin 1s linear infinite}
 </style>
