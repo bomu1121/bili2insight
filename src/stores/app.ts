@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, watch, computed } from "vue";
 import type { PipelineResult, PipelineProgress, VideoInfo, PageInfo, TaskState, QueueItem } from "../utils/types";
-import { runPipeline, runPipelineWithPage, saveResultToFile, previewVideo, fetchModels } from "../utils/invoke";
+import { runPipelineWithPage, saveResultToFile, previewVideo, fetchModels } from "../utils/invoke";
 import { listen } from "@tauri-apps/api/event";
 
 export interface Provider { name: string; url: string; models: string[]; }
@@ -249,9 +249,9 @@ export const useAppStore = defineStore("app", () => {
         queue.value = updated;
         console.log('processQueue: item', i, 'set to running');
         try {
-          const result = await runPipeline(
+          const result = await runPipelineWithPage(
             item.url!, proxy.value || undefined, aiApiUrl.value || undefined, aiApiKey.value || undefined,
-            aiModel.value || undefined, aiPrompt.value || undefined,
+            aiModel.value || undefined, aiPrompt.value || undefined, item.pageInfo.cid,
           );
           const done = [...queue.value];
           done[i] = { ...done[i], status: 'done' as const, progress: 1, stageLabel: '完成', result };
