@@ -84,7 +84,7 @@ export const useAppStore = defineStore("app", () => {
   const ver = saved?.version === SETTINGS_VERSION ? saved : null;
 
   const url = ref("");
-  const proxy = ref(ver?.proxy ?? "http://127.0.0.1:7897");
+  const proxy = ref(ver?.proxy ?? "");
   const aiApiUrl = ref(ver?.aiApiUrl ?? PROVIDERS[0].url);
   const aiApiKey = ref(ver?.aiApiKey ?? "");
   const aiModel = ref(ver?.aiModel ?? PROVIDERS[0].models[0]);

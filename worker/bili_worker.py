@@ -29,12 +29,29 @@ class BiliWorker:
         self.client = httpx.Client(limits=limits, timeout=30, headers=headers, mounts=mounts, follow_redirects=True)
         self.img_key = ""; self.sub_key = ""
 
-    def fetch_wbi_keys(self):
-        emit("progress", {"stage": "wbi_keys", "message": "Fetching WBI keys..."})
+    def _retry(self, fn, name: str, max_retries: int = 3):
+        import time as _time
+        last_err = None
+        for attempt in range(max_retries):
+            if attempt > 0:
+                emit("progress", {"stage": name, "message": f"Retrying {name} ({attempt+1}/{max_retries})..."})
+                _time.sleep(1 + attempt)
+            try:
+                return fn()
+            except Exception as e:
+                last_err = e
+                emit("progress", {"stage": name, "message": f"{name} attempt {attempt+1} failed: {e}"})
+        raise last_err
+
+    def _do_fetch_wbi_keys(self):
         resp = self.client.get("https://api.bilibili.com/x/web-interface/nav")
         data = resp.json()["data"]
         self.img_key = data["wbi_img"]["img_url"].split("/")[-1].split(".")[0]
         self.sub_key = data["wbi_img"]["sub_url"].split("/")[-1].split(".")[0]
+
+    def fetch_wbi_keys(self):
+        emit("progress", {"stage": "wbi_keys", "message": "Fetching WBI keys..."})
+        self._retry(self._do_fetch_wbi_keys, "wbi_keys")
 
     def sign_wbi(self, params: dict) -> str:
         def get_mixin_key(orig: str):
@@ -90,19 +107,39 @@ class BiliWorker:
         emit("progress", {"stage": "video_info", "message": f"Got: {info['title']}"})
         return info
 
+    def _do_get_play_url(self, bvid: str, cid: int) -> dict:
+        # Try multiple quality params to handle pages with limited quality options
+        param_sets = [
+            {"bvid": bvid, "cid": cid, "qn": 0, "fnver": 0, "fnval": 4048, "fourk": 1},
+            {"bvid": bvid, "cid": cid, "qn": 0, "fnver": 0, "fnval": 4048},
+        ]
+        last_msg = None
+        for attempt, params in enumerate(param_sets):
+            if attempt > 0:
+                emit("progress", {"stage": "play_url", "message": f"Trying alternate play params ({attempt+1}/{len(param_sets)})..."})
+            url = f"https://api.bilibili.com/x/player/wbi/playurl?{self.sign_wbi(params)}"
+            resp = self.client.get(url); data = resp.json()
+            code = data.get("code", -1)
+            if code != 0:
+                last_msg = data.get("message", "Unknown")
+                continue
+            dash = data.get("data", {}).get("dash", {})
+            audio_streams = sorted([a for a in dash.get("audio", [])], key=lambda x: x.get("bandwidth", 0), reverse=True)
+            if not audio_streams:
+                last_msg = "No audio stream"
+                continue
+            audio = audio_streams[0]
+            audio_url = audio.get("baseUrl") or audio.get("base_url") or audio.get("url", "")
+            if not audio_url:
+                last_msg = "Audio URL empty"
+                continue
+            emit("progress", {"stage": "play_url", "message": f"Play URL OK ({audio.get('bandwidth', 0)//1000}kbps)"})
+            return {"audio_url": audio_url, "bandwidth": audio.get("bandwidth", 0)}
+        raise RuntimeError(f"Play URL error: {last_msg}")
+
     def get_play_url(self, bvid: str, cid: int) -> dict:
         emit("progress", {"stage": "play_url", "message": "Fetching play URL..."})
-        params = {"bvid": bvid, "cid": cid, "qn": 0, "fnver": 0, "fnval": 4048, "fourk": 1}
-        url = f"https://api.bilibili.com/x/player/wbi/playurl?{self.sign_wbi(params)}"
-        resp = self.client.get(url); data = resp.json()
-        if data.get("code") != 0: raise RuntimeError(f"Play URL error: {data.get('message')}")
-        dash = data["data"]["dash"]
-        audio_streams = sorted([a for a in dash.get("audio", [])], key=lambda x: x.get("bandwidth", 0), reverse=True)
-        if not audio_streams: raise RuntimeError("No audio stream found")
-        audio = audio_streams[0]
-        audio_url = audio.get("baseUrl") or audio.get("base_url") or audio.get("url", "")
-        if not audio_url: raise RuntimeError("Audio URL is empty")
-        return {"audio_url": audio_url, "bandwidth": audio.get("bandwidth", 0)}
+        return self._retry(lambda: self._do_get_play_url(bvid, cid), "play_url")
 
     def download_audio(self, audio_url: str, filename: str) -> Path:
         output_path = self.output_dir / f"{filename}.m4a"
