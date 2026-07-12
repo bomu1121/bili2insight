@@ -11,6 +11,20 @@ import httpx
 
 logging.getLogger("httpx").setLevel("WARNING")
 
+
+# Global WBI key cache (matches Bili23''s config.get approach)
+_wbi_img_key = None
+_wbi_sub_key = None
+
+def get_cached_wbi_keys(client):
+    global _wbi_img_key, _wbi_sub_key
+    if _wbi_img_key and _wbi_sub_key:
+        return _wbi_img_key, _wbi_sub_key
+    resp = client.get("https://api.bilibili.com/x/web-interface/nav")
+    data = resp.json()["data"]
+    _wbi_img_key = data["wbi_img"]["img_url"].split("/")[-1].split(".")[0]
+    _wbi_sub_key = data["wbi_img"]["sub_url"].split("/")[-1].split(".")[0]
+    return _wbi_img_key, _wbi_sub_key
 mixinKeyEncTab = [46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49, 33, 9, 42, 19, 29, 28, 14, 39, 12, 38, 41, 13, 37, 48, 7, 16, 24, 55, 40, 61, 26, 17, 0, 1, 60, 51, 30, 4, 22, 25, 54, 21, 56, 59, 6, 63, 57, 62, 11, 36, 20, 34, 44, 52]
 
 def emit(kind: str, data: dict):
@@ -44,14 +58,17 @@ class BiliWorker:
         raise last_err
 
     def _do_fetch_wbi_keys(self):
-        resp = self.client.get("https://api.bilibili.com/x/web-interface/nav")
-        data = resp.json()["data"]
-        self.img_key = data["wbi_img"]["img_url"].split("/")[-1].split(".")[0]
-        self.sub_key = data["wbi_img"]["sub_url"].split("/")[-1].split(".")[0]
+        self.img_key, self.sub_key = get_cached_wbi_keys(self.client)
 
     def fetch_wbi_keys(self):
-        emit("progress", {"stage": "wbi_keys", "message": "Fetching WBI keys..."})
-        self._retry(self._do_fetch_wbi_keys, "wbi_keys")
+        global _wbi_img_key
+        if _wbi_img_key and _wbi_sub_key:
+            self.img_key = _wbi_img_key
+            self.sub_key = _wbi_sub_key
+            emit("progress", {"stage": "wbi_keys", "message": "Using cached WBI keys"})
+        else:
+            emit("progress", {"stage": "wbi_keys", "message": "Fetching WBI keys..."})
+            self._retry(self._do_fetch_wbi_keys, "wbi_keys")
 
     def sign_wbi(self, params: dict) -> str:
         def get_mixin_key(orig: str):
