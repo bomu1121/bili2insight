@@ -52,7 +52,7 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
         move |s, p, m| { let _ = app_dl.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string() }); },
     ).await.map_err(|e| format!("Download failed: {}", e))?;
     println!("  [STAGE:download] DONE, bvid={} title={}", video_info.bvid, video_info.title);
-    emit_progress(&app, "download", 0.25, "Download complete"); }
+    emit_progress(&app, "download", 0.25, "Download complete");
 
     let audio_tag = if let Some(cid) = page_cid { format!("{}_p{}", video_info.bvid, cid) } else { video_info.bvid.clone() };
     let audio_path = output_dir.join(format!("{}.m4a", audio_tag));
