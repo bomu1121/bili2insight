@@ -66,7 +66,7 @@ async function exportFile() {
 <template>
   <div class="result-root">
     <div class="result-header">
-      <n-button text @click="router.push('/queue')"><template #icon><n-icon><ArrowBackOutline /></n-icon></template>返回队列</n-button>
+      <n-button text @click="router.push('/')"><template #icon><n-icon><ArrowBackOutline /></n-icon></template>返回首页</n-button>
       <n-text strong style="font-size:14px;flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 12px;">
         {{ item?.pageInfo.part ?? "结果" }}
       </n-text>
