@@ -109,6 +109,7 @@ class BiliWorker:
 
     def _do_get_play_url(self, bvid: str, cid: int) -> dict:
         # Try multiple quality params to handle pages with limited quality options
+        emit("progress", {"stage": "play_url", "message": f"Requesting play URL for bvid={bvid} cid={cid}"})
         param_sets = [
             {"bvid": bvid, "cid": cid, "qn": 0, "fnver": 0, "fnval": 4048},
             {"bvid": bvid, "cid": cid, "qn": 80, "fnver": 0, "fnval": 4048},
@@ -123,6 +124,7 @@ class BiliWorker:
             code = data.get("code", -1)
             if code != 0:
                 last_msg = data.get("message", "Unknown")
+                emit("progress", {"stage": "play_url", "message": f"API response: code={code} msg={last_msg} full={json.dumps(data, ensure_ascii=False)[:500]}"})
                 continue
             dash = data.get("data", {}).get("dash", {})
             audio_streams = sorted([a for a in dash.get("audio", [])], key=lambda x: x.get("bandwidth", 0), reverse=True)
