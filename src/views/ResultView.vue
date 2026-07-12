@@ -44,8 +44,8 @@ function renderMarkdown(text: string) {
 async function copyContent() {
   if (!item.value) return;
   try {
-    await writeText(`【${item.value.pageInfo.part}】\n\n${aiContent.value}`);
-    message.success("已复制");
+    await writeText(`�?{item.value.pageInfo.part}】\n\n${aiContent.value}`);
+    message.success("已复�?);
   } catch (e: any) { message.error("复制失败: " + String(e)); }
 }
 
@@ -78,27 +78,27 @@ async function exportFile() {
     </div>
 
     <div v-if="!item" class="result-empty">
-      <n-text depth="3">未找到结果</n-text>
+      <n-text depth="3">未找到结�?/n-text>
     </div>
 
     <div v-else class="result-body">
       <div class="ref-line">
-        <span class="ref-bracket">【</span>{{ item.pageInfo.part }}<span class="ref-bracket">】</span>
-        <span class="ref-source">{{ item.source === 'url' ? 'B站链接' : item.source === 'fav' ? '收藏夹' : '本地文件' }}</span>
+        <span class="ref-bracket">�?/span>{{ item.pageInfo.part }}<span class="ref-bracket">�?/span>
+        <span class="ref-source">{{ item.source === 'url' ? 'B站链�? : item.source === 'fav' ? '收藏�? : '本地文件' }}</span>
       </div>
       <n-divider />
       <div class="md-preview" v-html="renderMarkdown(aiContent)" />
     </div>
 
     <!-- Log Drawer -->
-    <n-drawer v-model:show="showLog" width="620"><n-drawer-content title="流水线日志" closable>
+    <n-drawer v-model:show="showLog" width="620"><n-drawer-content title="流水线日�? closable>
       <div class="log-console" v-if="item">
         <div class="log-block"><div class="log-tag info">视频信息</div><pre class="log-text">{{ JSON.stringify(item.result?.video_info, null, 2) }}</pre></div>
         <div class="log-block"><div class="log-tag success">AI 观点提炼</div><pre class="log-text">{{ JSON.stringify(item.result?.insights, null, 2) }}</pre></div>
         <div class="log-block"><div class="log-tag warn">AI 请求</div><pre class="log-text">{{ item.result?.ai_request }}</pre></div>
         <div class="log-block"><div class="log-tag">AI 原始响应</div><pre class="log-text">{{ item.result?.ai_raw_response }}</pre></div>
       </div>
-      <n-text depth="3" v-else>暂无流水线数据。</n-text>
+      <n-text depth="3" v-else>暂无流水线数据�?/n-text>
     </n-drawer-content></n-drawer>
   </div>
 </template>
@@ -111,7 +111,11 @@ async function exportFile() {
 }
 .result-actions { display: flex; gap: 6px; flex-shrink: 0; }
 .result-empty { flex: 1; display: flex; align-items: center; justify-content: center; }
-.result-body { flex: 1; overflow-y: auto; padding: 20px 28px; max-width: 780px; margin: 0 auto; width: 100%; }
+.result-body { flex: 1; overflow-y: auto; padding: 20px 28px; max-width: 780px; margin: 0 auto; width: 100%; scrollbar-width: thin; scrollbar-color: #c0c0c0 transparent; }
+.result-body::-webkit-scrollbar { width: 6px; }
+.result-body::-webkit-scrollbar-track { background: transparent; }
+.result-body::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius: 3px; }
+.result-body::-webkit-scrollbar-thumb:hover { background: #a0a0a0; }
 .ref-line { font-size: 13px; color: #666; line-height: 1.7; padding: 8px 0; word-break: break-all; }
 .ref-bracket { color: #999; }
 .ref-source { color: #bbb; font-size: 11px; margin-left: 8px; }
@@ -125,7 +129,11 @@ async function exportFile() {
 .md-preview :deep(li) { margin-left: 22px; }
 .md-preview :deep(hr) { border: none; border-top: 1px solid #eee; margin: 14px 0; }
 
-.log-console { background: #1e1e1e; color: #ccc; border-radius: 6px; padding: 16px; font-family: "Cascadia Code","Fira Code",Consolas,monospace; font-size: 12px; line-height: 1.6; max-height: calc(100vh - 140px); overflow-y: auto; }
+.log-console { background: #1e1e1e; color: #ccc; border-radius: 6px; padding: 16px; font-family: ""Cascadia Code"",""Fira Code"",Consolas,monospace; font-size: 12px; line-height: 1.6; max-height: calc(100vh - 140px); overflow-y: auto; scrollbar-width: thin; scrollbar-color: #555 #2a2a2a; }
+.log-console::-webkit-scrollbar { width: 5px; }
+.log-console::-webkit-scrollbar-track { background: #2a2a2a; }
+.log-console::-webkit-scrollbar-thumb { background: #555; border-radius: 2px; }
+.log-console::-webkit-scrollbar-thumb:hover { background: #777; }
 .log-block { margin-bottom: 16px; border-bottom: 1px solid #333; padding-bottom: 12px; }
 .log-tag { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; margin-bottom: 8px; color: #fff; }
 .log-tag.info { background: #007acc; }
