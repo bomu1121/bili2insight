@@ -92,17 +92,36 @@ class BiliWorker:
 
     def get_play_url(self, bvid: str, cid: int) -> dict:
         emit("progress", {"stage": "play_url", "message": "Fetching play URL..."})
-        params = {"bvid": bvid, "cid": cid, "qn": 0, "fnver": 0, "fnval": 4048, "fourk": 1}
-        url = f"https://api.bilibili.com/x/player/wbi/playurl?{self.sign_wbi(params)}"
-        resp = self.client.get(url); data = resp.json()
-        if data.get("code") != 0: raise RuntimeError(f"Play URL error: {data.get('message')}")
-        dash = data["data"]["dash"]
-        audio_streams = sorted([a for a in dash.get("audio", [])], key=lambda x: x.get("bandwidth", 0), reverse=True)
-        if not audio_streams: raise RuntimeError("No audio stream found")
-        audio = audio_streams[0]
-        audio_url = audio.get("baseUrl") or audio.get("base_url") or audio.get("url", "")
-        if not audio_url: raise RuntimeError("Audio URL is empty")
-        return {"audio_url": audio_url, "bandwidth": audio.get("bandwidth", 0)}
+        param_sets = [
+            {"bvid": bvid, "cid": cid, "qn": 80, "fnver": 0, "fnval": 4048, "fourk": 1},
+            {"bvid": bvid, "cid": cid, "qn": 64, "fnver": 0, "fnval": 4048, "fourk": 1},
+            {"bvid": bvid, "cid": cid, "qn": 80, "fnver": 0, "fnval": 4048},
+        ]
+        last_error = None
+        for attempt, params in enumerate(param_sets):
+            if attempt > 0:
+                emit("progress", {"stage": "play_url", "message": f"Retrying play URL with fallback params ({attempt+1}/{len(param_sets)})..."})
+            url = f"https://api.bilibili.com/x/player/wbi/playurl?{self.sign_wbi(params)}"
+            resp = self.client.get(url); data = resp.json()
+            code = data.get("code", -1)
+            if code != 0:
+                last_error = data.get("message", "Unknown")
+                emit("progress", {"stage": "play_url", "message": f"Play URL attempt {attempt+1} failed: code={code} msg={last_error}"})
+                continue
+            dash = data.get("data", {}).get("dash", {})
+            audio_streams = sorted([a for a in dash.get("audio", [])], key=lambda x: x.get("bandwidth", 0), reverse=True)
+            if not audio_streams:
+                last_error = "No audio stream in response"
+                emit("progress", {"stage": "play_url", "message": f"Play URL attempt {attempt+1}: no audio stream"})
+                continue
+            audio = audio_streams[0]
+            audio_url = audio.get("baseUrl") or audio.get("base_url") or audio.get("url", "")
+            if not audio_url:
+                last_error = "Audio URL is empty"
+                continue
+            emit("progress", {"stage": "play_url", "message": f"Play URL OK ({audio.get('bandwidth', 0)//1000}kbps)"})
+            return {"audio_url": audio_url, "bandwidth": audio.get("bandwidth", 0)}
+        raise RuntimeError(f"Play URL error after {len(param_sets)} attempts: {last_error}")
 
     def download_audio(self, audio_url: str, filename: str) -> Path:
         output_path = self.output_dir / f"{filename}.m4a"
