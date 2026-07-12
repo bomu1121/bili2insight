@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, watch, computed } from "vue";
 import type { PipelineResult, PipelineProgress, VideoInfo, PageInfo, TaskState, QueueItem } from "../utils/types";
-import { runPipelineWithPage, saveResultToFile, previewVideo, fetchModels } from "../utils/invoke";
+import { runPipelineWithPage, saveResultToFile, previewVideo, fetchModels, downloadBatch } from "../utils/invoke";
 import { listen } from "@tauri-apps/api/event";
 
 export interface Provider { name: string; url: string; models: string[]; }
@@ -250,9 +250,7 @@ export const useAppStore = defineStore("app", () => {
         queue.value = updated;
         console.log('processQueue: item', i, 'set to running, url=', item.url?.slice(0,50), 'cid=', item.pageInfo.cid, 'part=', item.pageInfo.part);
         try {
-          const result = await runPipelineWithPage(
-            item.url!, proxy.value || undefined, aiApiUrl.value || undefined, aiApiKey.value || undefined,
-            aiModel.value || undefined, aiPrompt.value || undefined, item.pageInfo.cid,
+          const result = await runPipelineWithPage(item.url!, proxy.value || undefined, aiApiUrl.value || undefined, aiApiKey.value || undefined, aiModel.value || undefined, aiPrompt.value || undefined, item.pageInfo.cid, preview.value?.bvid,
           );
           console.log('processQueue: item', i, 'DONE, bvid=', result.video_info.bvid, 'title=', result.video_info.title?.slice(0,40));
           const done = [...queue.value];

@@ -5,6 +5,10 @@ export async function previewVideo(url: string, proxy?: string): Promise<VideoIn
   return invoke<VideoInfo>("preview_video", { url, proxy: proxy || null, pageCid: null });
 }
 
+export async function downloadBatch(url: string, cids: number[], proxy?: string): Promise<VideoInfo> {
+  return invoke<VideoInfo>("download_batch", { url, cids, proxy: proxy || null });
+}
+
 export async function runPipelineWithPage(
   url: string, proxy?: string, aiApiUrl?: string, aiApiKey?: string,
   aiModel?: string, aiPrompt?: string, pageCid?: number,

@@ -296,6 +296,44 @@ class BiliWorker:
                 last_err = e
                 emit("progress", {"stage": "download", "message": f"Download attempt {dl_attempt+1} failed: {e}"})
         raise last_err
+
+    def run_batch(self, preview_only=False, page_cids=None):
+        bvid = self.parse_bvid()
+        self.fetch_wbi_keys()
+        video_info = self.get_video_info(bvid)
+        if preview_only:
+            emit("result", {"video_info": video_info})
+            return {"video_info": video_info}
+        results = []
+        for page_cid in page_cids:
+            active_cid = page_cid
+            audio_tag = f"{bvid}_p{active_cid}"
+            page_bvid = bvid
+            if video_info.get("pages"):
+                for p in video_info["pages"]:
+                    if p["cid"] == page_cid and p.get("bvid"):
+                        page_bvid = p["bvid"]
+                        break
+            emit("progress", {"stage": "batch", "message": f"Page {len(results)+1}/{len(page_cids)} cid={page_cid} bvid={page_bvid}"})
+            last_err = None
+            for dl_attempt in range(3):
+                if dl_attempt > 0:
+                    delay = pow(2, dl_attempt)
+                    emit("progress", {"stage": "download", "message": f"Retrying ({dl_attempt+1}/3) in {delay}s..."})
+                    time.sleep(delay)
+                try:
+                    play_url = self.get_play_url(page_bvid, active_cid)
+                    audio_path = self.download_audio(play_url["audio_url"], audio_tag)
+                    results.append({"cid": page_cid, "bvid": page_bvid, "audio_path": str(audio_path.absolute())})
+                    break
+                except Exception as e:
+                    last_err = e
+                    emit("progress", {"stage": "download", "message": f"Attempt {dl_attempt+1} failed: {e}"})
+            else:
+                emit("progress", {"stage": "batch", "message": f"FAILED cid={page_cid} after 3 attempts: {last_err}"})
+        result = {"video_info": video_info, "results": results}
+        emit("result", result)
+        return result
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--url", required=True)

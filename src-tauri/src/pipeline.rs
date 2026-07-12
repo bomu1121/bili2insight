@@ -50,6 +50,50 @@ pub async fn download_bili_audio(
     video_info.ok_or_else(|| anyhow::anyhow!("No video info in worker output"))
 }
 
+pub async fn download_bili_audio_batch(
+    app: &AppHandle, url: &str, output_dir: &Path, proxy: Option<&str>, page_cids: &[i64],
+    progress: impl Fn(&str, f64, &str) + Send + 'static,
+) -> Result<crate::VideoInfo, anyhow::Error> {
+    let mut cmd = app.shell().sidecar("bili_worker")
+        .map_err(|e| anyhow::anyhow!("bili_worker sidecar not found: {}", e))?;
+    cmd = cmd.args(["--url", url, "--output-dir", output_dir.to_str().unwrap_or(".")]);
+    let cids_str = page_cids.iter().map(|c| c.to_string()).collect::<Vec<_>>().join(",");
+    cmd = cmd.args(["--cids", &cids_str]);
+    if let Some(p) = proxy { cmd = cmd.args(["--proxy", p]); }
+    println!("  [sidecar] spawning bili_worker BATCH, url={} cids={}", url, cids_str);
+    let out = match tokio::time::timeout(std::time::Duration::from_secs(180), cmd.output()).await {
+        Ok(Ok(out)) => {
+            println!("  [sidecar] batch process exited, status={:?} stdout_len={} stderr_len={}", out.status, out.stdout.len(), out.stderr.len());
+            out
+        }
+        Ok(Err(e)) => return Err(anyhow::anyhow!("bili_worker batch failed: {}", e)),
+        Err(_) => return Err(anyhow::anyhow!("bili_worker batch timed out after 180s")),
+    };
+    if !out.status.success() {
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        return Err(anyhow::anyhow!("bili_worker batch failed: stdout={}, stderr={}", stdout, stderr));
+    }
+    let stdout = String::from_utf8(out.stdout)?;
+    let mut video_info: Option<crate::VideoInfo> = None;
+    for line in stdout.lines() {
+        if let Ok(val) = serde_json::from_str::<serde_json::Value>(line) {
+            match val["type"].as_str() {
+                Some("progress") => { let s = val["stage"].as_str().unwrap_or(""); let m = val["message"].as_str().unwrap_or(""); progress(s, 0.1, m); }
+                Some("result") => {
+                    if let Some(vi) = val["video_info"].as_object() {
+                        let pages: Vec<crate::VideoPageInfo> = vi.get("pages").and_then(|p| p.as_array()).map(|a| a.iter().filter_map(|p| Some(crate::VideoPageInfo { page: p.get("page")?.as_i64()?, part: p.get("part")?.as_str().unwrap_or("").to_string(), cid: p.get("cid")?.as_i64()?, duration: p.get("duration").and_then(|d| d.as_i64()).unwrap_or(0) })).collect()).unwrap_or_default();
+                        video_info = Some(crate::VideoInfo { cid: vi["cid"].as_i64().unwrap_or(0), bvid: vi["bvid"].as_str().unwrap_or("").to_string(), title: vi["title"].as_str().unwrap_or("").to_string(), description: vi["description"].as_str().unwrap_or("").to_string(), duration: vi["duration"].as_i64().unwrap_or(0), cover: vi["cover"].as_str().unwrap_or("").to_string(), uploader: vi["uploader"].as_str().unwrap_or("").to_string(), uploader_uid: vi["uploader_uid"].as_i64().unwrap_or(0), pubdate: vi["pubdate"].as_i64().unwrap_or(0), pages });
+                    }
+                }
+                Some("error") => return Err(anyhow::anyhow!("{}", val["message"].as_str().unwrap_or("unknown"))),
+                _ => {}
+            }
+        }
+    }
+    video_info.ok_or_else(|| anyhow::anyhow!("No video info in worker output"))
+}
+
 pub async fn extract_audio_wav(
     app: &AppHandle, audio_path: &str, output_dir: &Path
 ) -> Result<String, anyhow::Error> {

@@ -20,20 +20,39 @@ pub async fn preview_video(app: AppHandle, url: String, proxy: Option<String>, p
 }
 
 #[tauri::command]
-pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai_api_url: Option<String>, ai_api_key: Option<String>, ai_model: Option<String>, ai_prompt: Option<String>, page_cid: Option<i64>) -> Result<crate::PipelineResult, String> {
+#[tauri::command]
+pub async fn download_batch(app: AppHandle, url: String, proxy: Option<String>, cids: Vec<i64>) -> Result<crate::VideoInfo, String> {
+    let output_dir = app.path().app_data_dir().map_err(|e| e.to_string())?.join("tasks");
+    std::fs::create_dir_all(&output_dir).map_err(|e| e.to_string())?;
+    emit_progress(&app, "download", 0.05, &format!("Batch downloading {} page(s)...", cids.len()));
+    let app_dl = app.clone();
+    let video_info = pipeline::download_bili_audio_batch(&app, &url, &output_dir, proxy.as_deref(), &cids,
+        move |s, p, m| { let _ = app_dl.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string() }); },
+    ).await.map_err(|e| format!("Batch download failed: {}", e))?;
+    emit_progress(&app, "download", 0.25, "Batch download complete");
+    Ok(video_info)
+}
+
+pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai_api_url: Option<String>, ai_api_key: Option<String>, ai_model: Option<String>, ai_prompt: Option<String>, page_cid: Option<i64>, bvid: Option<String>) -> Result<crate::PipelineResult, String> {
     let output_dir = app.path().app_data_dir().map_err(|e| e.to_string())?.join("tasks");
     std::fs::create_dir_all(&output_dir).map_err(|e| e.to_string())?;
     let start = std::time::Instant::now();
     println!("=== PIPELINE START [{:.0}s] url={} cid={:?} ===", start.elapsed().as_secs_f64(), url, page_cid);
 
     println!("  [STAGE:download] calling bili_worker sidecar...");
+    let audio_tag = if let (Some(ref b), Some(cid)) = (&bvid, page_cid) { format!("{}_p{}", b, cid) } else if let Some(ref b) = bvid { b.clone() } else { String::new() };
+    let audio_path = output_dir.join(format!("{}.m4a", audio_tag));
+    if audio_path.exists() && page_cid.is_some() {
+        println!("  [pipeline] audio file already exists, skipping download: {}", audio_path.display());
+        emit_progress(&app, "download", 0.25, "Audio already downloaded");
+    } else {
     emit_progress(&app, "download", 0.05, "Getting video info and downloading audio...");
     let app_dl = app.clone();
     let video_info = pipeline::download_bili_audio(&app, &url, &output_dir, false, proxy.as_deref(), page_cid,
         move |s, p, m| { let _ = app_dl.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string() }); },
     ).await.map_err(|e| format!("Download failed: {}", e))?;
     println!("  [STAGE:download] DONE, bvid={} title={}", video_info.bvid, video_info.title);
-    emit_progress(&app, "download", 0.25, "Download complete");
+    emit_progress(&app, "download", 0.25, "Download complete"); }
 
     let audio_tag = if let Some(cid) = page_cid { format!("{}_p{}", video_info.bvid, cid) } else { video_info.bvid.clone() };
     let audio_path = output_dir.join(format!("{}.m4a", audio_tag));

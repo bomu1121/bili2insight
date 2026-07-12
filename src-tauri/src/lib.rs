@@ -61,7 +61,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::preview_video,
             commands::fetch_ai_models,
-            commands::run_pipeline,
+            commands::download_batch, commands::run_pipeline,
             commands::save_result,
             commands::save_result_to_file,
         ])
