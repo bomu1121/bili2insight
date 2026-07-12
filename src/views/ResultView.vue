@@ -50,6 +50,7 @@ async function copyContent() {
 }
 
 async function exportFile() {
+<n-button size="small" @click="showLog = true"><template #icon><n-icon><DocumentTextOutline /></n-icon></template>日志</n-button>
   if (!item.value?.result) return;
   try {
     const { save } = await import("@tauri-apps/plugin-dialog");
@@ -86,7 +87,6 @@ async function exportFile() {
         <span class="ref-source">{{ item.source === 'url' ? 'B站链接' : item.source === 'fav' ? '收藏夹' : '本地文件' }}</span>
       </div>
       <n-divider />
-<n-button size="small" @click="showLog = true"><template #icon><n-icon><DocumentTextOutline /></n-icon></template>日志</n-button>
       <div class="md-preview" v-html="renderMarkdown(aiContent)" />
     </div>
     <n-drawer v-model:show="showLog" width="620"><n-drawer-content title="流水线日志" closable>
