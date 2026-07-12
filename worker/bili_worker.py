@@ -63,14 +63,6 @@ class BiliWorker:
             transport = httpx.HTTPTransport(proxy=proxy, retries=5)
             mounts = {"http://": transport, "https://": transport}
         self.client = httpx.Client(limits=limits, timeout=30, headers=headers, mounts=mounts, follow_redirects=True)
-        # Set B? cookies (matches Bili23 guest session)
-        self.client.cookies.update({
-            "_uuid": "9aa29b56d9ab460aa302190a9c6bd3bc",
-            "buvid3": "69ca2dea4883434eb00a85b2a09418ba",
-            "buvid4": "9c5608fae91c48bfb65eaa1807fb78e7",
-            "CURRENT_FNVAL": "4048",
-            "CURRENT_QUALITY": "0",
-        })
         self.img_key = ""; self.sub_key = ""
 
     def _retry(self, fn, name: str, max_retries: int = 3):
@@ -292,12 +284,23 @@ class BiliWorker:
                 if p["cid"] == page_cid and p.get("bvid"):
                     page_bvid = p["bvid"]
                     break
-        play_url = self.get_play_url(page_bvid, active_cid)
-        audio_path = self.download_audio(play_url["audio_url"], audio_tag)
-        result = {"video_info": video_info, "audio_path": str(audio_path.absolute())}
-        emit("result", result)
-        return result
-
+        # Download with retry: re-fetch play URL on each attempt for fresh CDN URL
+        last_err = None
+        for dl_attempt in range(3):
+            if dl_attempt > 0:
+                delay = pow(2, dl_attempt)
+                emit("progress", {"stage": "download", "message": f"Retrying with fresh URL ({dl_attempt+1}/3) in {delay}s..."})
+                time.sleep(delay)
+            try:
+                play_url = self.get_play_url(page_bvid, active_cid)
+                audio_path = self.download_audio(play_url["audio_url"], audio_tag)
+                result = {"video_info": video_info, "audio_path": str(audio_path.absolute())}
+                emit("result", result)
+                return result
+            except Exception as e:
+                last_err = e
+                emit("progress", {"stage": "download", "message": f"Download attempt {dl_attempt+1} failed: {e}"})
+        raise last_err
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--url", required=True)
