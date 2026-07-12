@@ -90,6 +90,7 @@ class BiliWorker:
             self.sub_key = _wbi_sub_key
             emit("progress", {"stage": "wbi_keys", "message": "Using cached WBI keys"})
             return
+        emit("progress", {"stage": "wbi_keys", "message": "Checking WBI key cache..."})
         try:
             self.img_key, self.sub_key = get_cached_wbi_keys(self.client)
         except Exception as _e:
@@ -262,6 +263,7 @@ class BiliWorker:
         return output_path
 
     def run(self, preview_only: bool = False, page_cid: int = None) -> dict:
+        emit("progress", {"stage": "start", "message": "Worker starting..."})
         bvid = self.parse_bvid()
         self.fetch_wbi_keys()
         video_info = self.get_video_info(bvid)

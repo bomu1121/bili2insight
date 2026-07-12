@@ -16,7 +16,7 @@ pub async fn download_bili_audio(
     if let Some(cid) = page_cid { cmd = cmd.args(["--cid", &cid.to_string()]); }
     if let Some(p) = proxy { cmd = cmd.args(["--proxy", p]); }
     println!("  [sidecar] spawning bili_worker, url={} cid={:?}", url, page_cid);
-    let out = match tokio::time::timeout(std::time::Duration::from_secs(60), cmd.output()).await {
+    let out = match tokio::time::timeout(std::time::Duration::from_secs(120), cmd.output()).await {
         Ok(Ok(out)) => {
             println!("  [sidecar] process exited, status={:?} stdout_len={} stderr_len={}", out.status, out.stdout.len(), out.stderr.len());
             out
