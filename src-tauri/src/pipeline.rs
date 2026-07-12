@@ -15,7 +15,15 @@ pub async fn download_bili_audio(
     if preview_only { cmd = cmd.arg("--preview-only"); }
     if let Some(cid) = page_cid { cmd = cmd.args(["--cid", &cid.to_string()]); }
     if let Some(p) = proxy { cmd = cmd.args(["--proxy", p]); }
-    let out = cmd.output().await.map_err(|e| anyhow::anyhow!("bili_worker failed: {}", e))?;
+    println!("  [sidecar] spawning bili_worker, url={} cid={:?}", url, page_cid);
+    let out = match tokio::time::timeout(std::time::Duration::from_secs(60), cmd.output()).await {
+        Ok(Ok(out)) => {
+            println!("  [sidecar] process exited, status={} stdout_len={} stderr_len={}", out.status, out.stdout.len(), out.stderr.len());
+            out
+        }
+        Ok(Err(e)) => return Err(anyhow::anyhow!("bili_worker failed: {}", e)),
+        Err(_) => return Err(anyhow::anyhow!("bili_worker timed out after 60s")),
+    };
     if !out.status.success() {
         let stdout = String::from_utf8_lossy(&out.stdout);
         let stderr = String::from_utf8_lossy(&out.stderr);
