@@ -85,14 +85,22 @@ class BiliWorker:
     def get_video_info(self, bvid: str) -> dict:
         emit("progress", {"stage": "video_info", "message": "Fetching video info..."})
         params = {"bvid": bvid}
-        # Try non-WBI endpoint first (matching Bili23), fallback to WBI
-        url = f"https://api.bilibili.com/x/web-interface/view?bvid={bvid}"
-        resp = self.client.get(url); data = resp.json()
-        if data.get("code") != 0:
-            emit("progress", {"stage": "video_info", "message": "Non-WBI view failed, trying WBI..."})
-            url = f"https://api.bilibili.com/x/web-interface/wbi/view?{self.sign_wbi(params)}"
-            resp = self.client.get(url); data = resp.json()
-        if data.get("code") != 0: raise RuntimeError(f"Video info error: {data.get('message')}")
+        # Fetch from BOTH endpoints to compare cids
+        url_nw = f"https://api.bilibili.com/x/web-interface/view?bvid={bvid}"
+        resp_nw = self.client.get(url_nw); data_nw = resp_nw.json()
+        url_wb = f"https://api.bilibili.com/x/web-interface/wbi/view?{self.sign_wbi(params)}"
+        resp_wb = self.client.get(url_wb); data_wb = resp_wb.json()
+        cids_nw = [p.get("cid") for p in (data_nw.get("data", {}).get("pages", []) if data_nw.get("code") == 0 else [])]
+        cids_wb = [p.get("cid") for p in (data_wb.get("data", {}).get("pages", []) if data_wb.get("code") == 0 else [])]
+        emit("progress", {"stage": "video_info", "message": f"Non-WBI cids: {cids_nw}"})
+        emit("progress", {"stage": "video_info", "message": f"WBI cids: {cids_wb}"})
+        # Use non-WBI data if available, otherwise WBI
+        if data_nw.get("code") == 0:
+            data = data_nw
+        elif data_wb.get("code") == 0:
+            data = data_wb
+        else:
+            raise RuntimeError(f"Video info error: both endpoints failed")
         vdata = data["data"]
         # Build pages: use season episodes if ugc_season exists, otherwise traditional pages
         season = vdata.get("ugc_season")
