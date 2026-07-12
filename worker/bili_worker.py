@@ -57,7 +57,7 @@ class BiliWorker:
         def get_mixin_key(orig: str):
             return reduce(lambda s, i: s + orig[i], mixinKeyEncTab, "")[:32]
         mixin_key = get_mixin_key(self.img_key + self.sub_key)
-        params["wts"] = int(time.time())
+        params["wts"] = round(time.time())
         params = dict(sorted(params.items()))
         params = {k: "".join(filter(lambda ch: ch not in "!'()*", str(v))) for k, v in params.items()}
         query = urllib.parse.urlencode(params)
@@ -85,8 +85,13 @@ class BiliWorker:
     def get_video_info(self, bvid: str) -> dict:
         emit("progress", {"stage": "video_info", "message": "Fetching video info..."})
         params = {"bvid": bvid}
-        url = f"https://api.bilibili.com/x/web-interface/wbi/view?{self.sign_wbi(params)}"
+        # Try non-WBI endpoint first (matching Bili23), fallback to WBI
+        url = f"https://api.bilibili.com/x/web-interface/view?bvid={bvid}"
         resp = self.client.get(url); data = resp.json()
+        if data.get("code") != 0:
+            emit("progress", {"stage": "video_info", "message": "Non-WBI view failed, trying WBI..."})
+            url = f"https://api.bilibili.com/x/web-interface/wbi/view?{self.sign_wbi(params)}"
+            resp = self.client.get(url); data = resp.json()
         if data.get("code") != 0: raise RuntimeError(f"Video info error: {data.get('message')}")
         vdata = data["data"]
         # Build pages: use season episodes if ugc_season exists, otherwise traditional pages
