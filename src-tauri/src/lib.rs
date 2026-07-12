@@ -2,6 +2,67 @@ mod commands;
 mod pipeline;
 mod export;
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct QrGenerateResult {
+    pub qr_url: String,
+    pub qrcode_key: String,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct QrPollResult {
+    pub status_code: i64,
+    pub message: String,
+    pub logged_in: bool,
+    pub cookies: Option<std::collections::HashMap<String, String>>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct LoginCheckResult {
+    pub logged_in: bool,
+    pub uname: String,
+    pub uid: i64,
+    pub face: String,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct FavFolder {
+    pub id: i64,
+    pub title: String,
+    pub count: i64,
+    pub mid: i64,
+    #[serde(default)]
+    pub collected: bool,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct FavFoldersResult {
+    pub uid: i64,
+    pub uname: String,
+    pub face: String,
+    pub folders: Vec<FavFolder>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct FavVideo {
+    pub bvid: String,
+    pub title: String,
+    pub cover: String,
+    pub duration: i64,
+    pub uploader: String,
+    pub uploader_uid: i64,
+    pub cid: i64,
+    pub pubdate: i64,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct FavVideosResult {
+    pub folder_id: i64,
+    pub page: i64,
+    pub total: i64,
+    pub total_pages: i64,
+    pub videos: Vec<FavVideo>,
+}
+
 #[derive(Clone, serde::Serialize)]
 struct PipelineProgress {
     stage: String,
@@ -64,6 +125,15 @@ pub fn run() {
             commands::download_batch, commands::run_pipeline,
             commands::save_result,
             commands::save_result_to_file,
+            commands::qr_generate,
+            commands::qr_poll,
+            commands::check_login,
+            commands::fav_get_folders,
+            commands::fav_get_videos,
+            commands::get_cookies_path,
+            commands::sms_captcha,
+            commands::sms_send,
+            commands::sms_login,
         ])
         .setup(|app| {
             let _app_handle = app.handle().clone();

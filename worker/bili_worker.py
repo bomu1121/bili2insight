@@ -338,14 +338,404 @@ class BiliWorker:
         result = {"video_info": video_info, "results": results}
         emit("result", result)
         return result
+
+def _mode_sms_captcha(client):
+    url = "https://passport.bilibili.com/x/passport-login/captcha?source=main-fe-header"
+    resp = client.get(url)
+    data = resp.json()
+    if data.get("code") != 0:
+        import time as _t2
+        ts = int(_t2.time() * 1000)
+        url2 = f"https://passport.bilibili.com/x/passport-login/web/captcha/combine?platform=web&source=main-fe-header&ts={ts}"
+        resp2 = client.get(url2)
+        data2 = resp2.json()
+        if data2.get("code") != 0:
+            raise RuntimeError("Captcha failed: " + data2.get("message", "unknown"))
+        data = data2
+    c = data.get("data", {})
+    result = {
+        "token": c.get("token", ""),
+        "gt": c.get("geetest", {}).get("gt", ""),
+        "challenge": c.get("geetest", {}).get("challenge", ""),
+        "type": c.get("type", ""),
+    }
+    emit("result", result)
+
+
+def _mode_sms_send(client, cid, tel, captcha_token, challenge, validate, seccode):
+    params = {
+        "cid": cid, "tel": tel, "source": "main-fe-header",
+        "token": captcha_token, "challenge": challenge,
+        "validate": validate, "seccode": seccode,
+    }
+    url = "https://passport.bilibili.com/x/passport-login/web/sms/send"
+    resp = client.post(url, data=params)
+    data = resp.json()
+    if data.get("code") != 0:
+        raise RuntimeError("SMS send failed: " + data.get("message", "unknown"))
+    emit("result", {"captcha_key": data["data"]["captcha_key"], "sent": True})
+
+
+def _mode_sms_login(client, cid, tel, code, captcha_key, cookies_file):
+    params = {
+        "cid": cid, "tel": tel, "code": code, "source": "main-fe-header",
+        "captcha_key": captcha_key, "go_url": "https://www.bilibili.com/",
+    }
+    url = "https://passport.bilibili.com/x/passport-login/web/login/sms"
+    resp = client.post(url, data=params)
+    data = resp.json()
+    if data.get("code") != 0:
+        msg = str(data.get("message", "unknown"))
+        raise RuntimeError("SMS login failed: " + msg)
+
+    COOKIE_KEYS = ["SESSDATA", "bili_jct", "DedeUserID", "DedeUserID__ckMd5", "sid"]
+    cookies = {}
+    for key in COOKIE_KEYS:
+        val = client.cookies.get(key, domain=".bilibili.com")
+        if val:
+            cookies[key] = val
+
+    if not cookies.get("SESSDATA"):
+        raw = resp.headers.get("set-cookie", "")
+        parts = raw.split(",")
+        for p in parts:
+            seg = p.strip().split(";")[0]
+            if "=" in seg:
+                k, v = seg.split("=", 1)
+                k = k.strip()
+                if k in COOKIE_KEYS:
+                    cookies[k] = v
+
+    if cookies_file and cookies:
+        with open(cookies_file, "w") as f:
+            json.dump(cookies, f)
+
+    emit("result", {"cookies": cookies, "logged_in": True})
+
+def _mode_qr_generate(client):
+    """Generate a QR code for Bilibili login."""
+    url = "https://passport.bilibili.com/x/passport-login/web/qrcode/generate?source=main-fe-header&go_url=https://www.bilibili.com/&web_location=333.1007"
+    resp = client.get(url)
+    data = resp.json()
+    if data.get("code") != 0:
+        raise RuntimeError(f"QR generate failed: {data.get('message', 'unknown')}")
+    result = {"qr_url": data["data"]["url"], "qrcode_key": data["data"]["qrcode_key"]}
+    emit("result", result)
+    return result
+
+
+def _mode_qr_poll(client, qrcode_key, cookies_file):
+    """Poll QR code scan status. On success, save cookies from response."""
+    url = f"https://passport.bilibili.com/x/passport-login/web/qrcode/poll?qrcode_key={qrcode_key}"
+    resp = client.get(url)
+    data = resp.json()
+    if data.get("code") != 0:
+        raise RuntimeError('QR poll request failed: ' + str(data.get('message', 'unknown')))
+
+    inner = data["data"]
+    status_code = inner.get("code", -1)
+    message = inner.get("message", "")
+    cookies = {}
+
+    if status_code == 0:
+        # Success: extract cookies matching upstream Bili23's update_cookies() approach.
+        # Upstream reads from requests.Session cookie jar. With httpx, the client stores
+        # Set-Cookie response headers in its cookie jar automatically.
+        COOKIE_KEYS = ["SESSDATA", "bili_jct", "DedeUserID", "DedeUserID__ckMd5", "sid"]
+
+        # Approach 1: read from httpx client cookie jar WITHOUT domain filter
+        for key in COOKIE_KEYS:
+            val = client.cookies.get(key)
+            if val:
+                cookies[key] = val
+
+        # Approach 2: also try response-specific cookies
+        for key in COOKIE_KEYS:
+            if not cookies.get(key):
+                val = resp.cookies.get(key)
+                if val:
+                    cookies[key] = val
+
+        # Approach 3: iterate all cookies in the jar (catch any domain-filtered ones)
+        if not cookies.get("SESSDATA"):
+            for ck in client.cookies.jar:
+                if ck.name in COOKIE_KEYS:
+                    cookies[ck.name] = ck.value
+
+        # Approach 4: parse Set-Cookie response headers
+        if not cookies.get("SESSDATA"):
+            raw = resp.headers.get("set-cookie", "")
+            for line in raw.split(","):
+                if not line.strip():
+                    continue
+                seg = line.strip().split(";")[0]
+                if "=" in seg:
+                    k, v = seg.split("=", 1)
+                    k = k.strip()
+                    if k in COOKIE_KEYS:
+                        cookies[k] = v
+
+        # Approach 5: Extract from redirect URL query params
+        if not cookies.get("SESSDATA"):
+            redirect_url = inner.get("url", "")
+            if redirect_url and "?" in redirect_url:
+                from urllib.parse import urlparse as _urlparse, parse_qs as _parse_qs
+                try:
+                    parsed = _urlparse(redirect_url)
+                    qs = _parse_qs(parsed.query)
+                    for key in COOKIE_KEYS:
+                        if key in qs:
+                            cookies[key] = qs[key][0]
+                except Exception:
+                    pass
+
+        if not cookies.get("SESSDATA"):
+            debug_info = {
+                "raw_set_cookie": resp.headers.get("set-cookie", "")[:500],
+                "jar_cookies": [f"{c.name}={c.value[:20]}" for c in client.cookies.jar],
+                "response_url": inner.get("url", "")[:200],
+            }
+            emit("progress", {"stage": "qr_poll", "message": "Warning: no SESSDATA found. Debug: " + json.dumps(debug_info, ensure_ascii=False)})
+
+        # Save cookies to file
+        if cookies_file and cookies:
+            try:
+                with open(cookies_file, "w") as f:
+                    json.dump(cookies, f)
+                emit("progress", {"stage": "qr_poll", "message": "Cookies saved"})
+            except Exception as e:
+                emit("progress", {"stage": "qr_poll", "message": f"Failed to save cookies: {e}"})
+
+        # Always include debug info in the success result so frontend can see what happened
+        debug = {
+            "resp_has_set_cookie": "set-cookie" in resp.headers,
+            "client_cookies_count": len(list(client.cookies.jar)),
+            "sessdata_found": bool(cookies.get("SESSDATA")),
+        }
+        result = {"status_code": status_code, "message": message, "cookies": cookies, "logged_in": True}
+        result["_debug"] = debug
+    elif status_code == 86038:
+        result = {"status_code": status_code, "message": "QR code expired, please refresh", "logged_in": False}
+    elif status_code == 86101:
+        result = {"status_code": status_code, "message": "Waiting for scan...", "logged_in": False}
+    elif status_code == 86090:
+        result = {"status_code": status_code, "message": "Scanned! Please confirm on your phone", "logged_in": False}
+    else:
+        result = {"status_code": status_code, "message": message, "logged_in": False}
+
+    emit("result", result)
+    return result
+
+
+def _load_cookies(cookies_arg):
+    """Load cookies from a file path or JSON string."""
+    if not cookies_arg:
+        return {}
+    if cookies_arg.strip().startswith("{"):
+        try:
+            return json.loads(cookies_arg)
+        except (json.JSONDecodeError, TypeError):
+            pass
+    try:
+        with open(cookies_arg) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def _mode_fav_folders(client, cookies_arg):
+    """List user's favorite folders."""
+    cookies = _load_cookies(cookies_arg)
+    if not cookies:
+        raise RuntimeError("No cookies provided. Please login first.")
+
+    user_url = "https://api.bilibili.com/x/web-interface/nav"
+    resp = client.get(user_url, cookies=cookies)
+    user_data = resp.json()
+    if user_data.get("code") != 0 or not user_data.get("data", {}).get("isLogin"):
+        raise RuntimeError("Not logged in or cookies expired.")
+
+    uid = user_data["data"]["mid"]
+    uname = user_data["data"]["uname"]
+    face = user_data["data"].get("face", "")
+
+    # Get created folders
+    fav_url = f"https://api.bilibili.com/x/v3/fav/folder/created/list-all?up_mid={uid}"
+    resp = client.get(fav_url, cookies=cookies)
+    data = resp.json()
+    if data.get("code") != 0:
+        raise RuntimeError(f"Failed to get favorite folders: {data.get('message', 'unknown')}")
+
+    folders = []
+    for entry in data.get("data", {}).get("list", []):
+        folders.append({
+            "id": entry["id"],
+            "title": entry["title"],
+            "count": entry.get("media_count", 0),
+            "mid": entry.get("mid", uid),
+        })
+
+    # Also get collected folders
+    sub_url = f"https://api.bilibili.com/x/v3/fav/folder/collected/list?pn=1&ps=50&up_mid={uid}&platform=web&web_location=333.1387"
+    try:
+        resp = client.get(sub_url, cookies=cookies)
+        sub_data = resp.json()
+        if sub_data.get("code") == 0:
+            for entry in sub_data.get("data", {}).get("list", []):
+                folders.append({
+                    "id": entry["id"],
+                    "title": "[收藏] " + entry["title"],
+                    "count": entry.get("media_count", 0),
+                    "mid": entry.get("mid", uid),
+                    "collected": True,
+                })
+    except Exception:
+        pass
+
+    result = {"uid": uid, "uname": uname, "face": face, "folders": folders}
+    emit("result", result)
+    return result
+
+
+def _mode_fav_videos(client, cookies_arg, folder_id, page):
+    """List videos in a specific favorite folder."""
+    cookies = _load_cookies(cookies_arg)
+    if not cookies:
+        raise RuntimeError("No cookies provided. Please login first.")
+
+    ps = 20
+    params = {
+        "media_id": folder_id,
+        "pn": page,
+        "ps": ps,
+        "keyword": "",
+        "order": "mtime",
+        "type": 0,
+        "tid": 0,
+        "platform": "web",
+        "web_location": "333.1387",
+    }
+    query = urllib.parse.urlencode(params)
+    url = f"https://api.bilibili.com/x/v3/fav/resource/list?{query}"
+    resp = client.get(url, cookies=cookies)
+    data = resp.json()
+    if data.get("code") != 0:
+        raise RuntimeError(f"Failed to get favorite videos: {data.get('message', 'unknown')}")
+
+    info = data.get("data", {}).get("info", {})
+    total = info.get("media_count", 0)
+    medias = data.get("data", {}).get("medias", []) or []
+
+    videos = []
+    for m in medias:
+        videos.append({
+            "bvid": m.get("bvid", ""),
+            "title": m.get("title", ""),
+            "cover": m.get("cover", ""),
+            "duration": m.get("duration", 0),
+            "uploader": m.get("upper", {}).get("name", ""),
+            "uploader_uid": m.get("upper", {}).get("mid", 0),
+            "cid": m.get("page", {}).get("cid", 0),
+            "pubdate": m.get("pubdate", 0),
+        })
+
+    total_pages = (total + ps - 1) // ps if total > 0 else 0
+    emit("result", {
+        "folder_id": folder_id,
+        "page": page,
+        "total": total,
+        "total_pages": total_pages,
+        "videos": videos,
+    })
+
+
+def _mode_check_login(client, cookies_arg):
+    """Check if current cookies are valid."""
+    cookies = _load_cookies(cookies_arg)
+    if not cookies:
+        emit("result", {"logged_in": False, "uname": "", "uid": 0, "face": ""})
+        return
+    url = "https://api.bilibili.com/x/web-interface/nav"
+    resp = client.get(url, cookies=cookies)
+    data = resp.json()
+    logged_in = data.get("code") == 0 and data.get("data", {}).get("isLogin", False)
+    emit("result", {
+        "logged_in": logged_in,
+        "uname": data.get("data", {}).get("uname", ""),
+        "uid": data.get("data", {}).get("mid", 0),
+        "face": data.get("data", {}).get("face", ""),
+    })
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--url", required=True)
+    parser.add_argument("--mode", default=None, help="Sub-mode: qr_generate, qr_poll, fav_folders, fav_videos, check_login")
+    parser.add_argument("--url", required=False, default="")
     parser.add_argument("--output-dir", default="./downloads")
+    parser.add_argument("--qrcode-key", default=None, help="QR code key for polling")
+    parser.add_argument("--cookies", default=None, help="Cookies JSON string or path to cookies file")
+    parser.add_argument("--cookies-file", default=None, help="Path to save cookies after login")
+    parser.add_argument("--folder-id", type=int, default=None, help="Favorite folder ID")
+    parser.add_argument("--page", type=int, default=1, help="Page number for listing")
+    parser.add_argument("--cids", default=None, help="Comma-separated cids for batch download")
     parser.add_argument("--preview-only", action="store_true")
     parser.add_argument("--cid", type=int, default=None)
     parser.add_argument("--proxy", default=None)
     args = parser.parse_args()
+
+    # Build client for mode operations
+    limits = httpx.Limits(max_connections=10, max_keepalive_connections=10)
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36", "Referer": "https://www.bilibili.com/"}
+    mounts = {}
+    if args.proxy:
+        transport = httpx.HTTPTransport(proxy=args.proxy, retries=5)
+        mounts = {"http://": transport, "https://": transport}
+    mode_client = httpx.Client(limits=limits, timeout=30, headers=headers, mounts=mounts, follow_redirects=True)
+
+    if args.mode:
+        if args.mode == "qr_generate":
+            _mode_qr_generate(mode_client)
+        elif args.mode == "qr_poll":
+            if not args.qrcode_key:
+                emit("error", {"message": "--qrcode-key is required for qr_poll mode"})
+                sys.exit(1)
+            _mode_qr_poll(mode_client, args.qrcode_key, args.cookies_file)
+        elif args.mode == "fav_folders":
+            _mode_fav_folders(mode_client, args.cookies)
+        elif args.mode == "fav_videos":
+            if not args.folder_id:
+                emit("error", {"message": "--folder-id is required for fav_videos mode"})
+                sys.exit(1)
+            _mode_fav_videos(mode_client, args.cookies, args.folder_id, args.page)
+        elif args.mode == "sms_captcha":
+            _mode_sms_captcha(mode_client)
+        elif args.mode == "sms_send":
+            if not args.qrcode_key:
+                emit("error", {"message": "Need --qrcode-key=cid,tel,token,challenge,validate,seccode"})
+                sys.exit(1)
+            p = args.qrcode_key.split(",")
+            if len(p) < 6:
+                emit("error", {"message": "Need 6 comma-separated values"})
+                sys.exit(1)
+            _mode_sms_send(mode_client, p[0], p[1], p[2], p[3], p[4], p[5])
+        elif args.mode == "sms_login":
+            if not args.qrcode_key:
+                emit("error", {"message": "Need --qrcode-key=cid,tel,code,captcha_key"})
+                sys.exit(1)
+            p = args.qrcode_key.split(",")
+            if len(p) < 4:
+                emit("error", {"message": "Need 4 comma-separated values"})
+                sys.exit(1)
+            _mode_sms_login(mode_client, p[0], p[1], p[2], p[3], args.cookies_file)
+
+        elif args.mode == "check_login":
+            _mode_check_login(mode_client, args.cookies)
+        else:
+            emit("error", {"message": f"Unknown mode: {args.mode}"})
+            sys.exit(1)
+        sys.exit(0)
+
+    # Legacy mode: download
     try:
         worker = BiliWorker(args.url, args.output_dir, proxy=args.proxy)
         worker.run(preview_only=args.preview_only, page_cid=args.cid)

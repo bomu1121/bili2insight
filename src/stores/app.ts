@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, watch, computed } from "vue";
 import type { PipelineResult, PipelineProgress, VideoInfo, PageInfo, TaskState, QueueItem } from "../utils/types";
-import { runPipelineWithPage, saveResultToFile, previewVideo, fetchModels, downloadBatch } from "../utils/invoke";
+import { runPipelineWithPage, saveResultToFile, previewVideo, fetchModels } from "../utils/invoke";
 import { listen } from "@tauri-apps/api/event";
 
 export interface Provider { name: string; url: string; models: string[]; }
@@ -161,9 +161,223 @@ export const useAppStore = defineStore("app", () => {
     persistSettings();
   }, { deep: false });
 
+  // ---------- Login state ----------
+  const showLogin = ref(false);
+  const qrUrl = ref('');
+  const qrcodeKey = ref('');
+  const qrPolling = ref(false);
+  const qrStatusMessage = ref('');
+  const qrStatus = ref(''); // 'waiting' | 'scanned' | 'expired' | 'success'
+  const loginError = ref('');
+  const isLoggedIn = ref(false);
+  const loginUname = ref('');
+  const loginUid = ref(0);
+  const loginFace = ref('');
+  const cookiesSaved = ref<Record<string,string>>({});
+  let qrPollTimer: ReturnType<typeof setInterval> | null = null;
+
+  // ---------- Favorites state ----------
+  const favFolders = ref<any[]>([]);
+  const favLoading = ref(false);
+  const favCurrentFolderId = ref(0);
+  const favCurrentFolderTitle = ref('');
+  const favVideos = ref<any[]>([]);
+  const favPage = ref(1);
+  const favTotalPages = ref(0);
+  const favTotal = ref(0);
+  const favLoadingVideos = ref(false);
+  const favSelectedVideos = ref<Set<number>>(new Set());
+
+  const cookiesFilePath = ref('');
+  async function initCookiesPath() {
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      cookiesFilePath.value = await invoke<string>('get_cookies_path');
+    } catch(_) {
+      const home = typeof localStorage !== 'undefined' ? localStorage.getItem('bili2insight-cookies-path') || '' : '';
+      cookiesFilePath.value = home || 'cookies.json';
+    }
+  }
+
+  // ---------- Login functions ----------
+  async function startLogin() {
+    loginError.value = ''; qrStatus.value = 'waiting'; qrStatusMessage.value = '正在生成二维码...';
+    console.log("[login] startLogin called"); showLogin.value = true;
+    try {
+      const { qrGenerate } = await import('../utils/invoke');
+      const result = await qrGenerate(proxy.value || undefined); console.log("[login] qrGenerate OK, key:", result.qrcode_key.slice(0,20));
+      qrUrl.value = result.qr_url;
+      qrcodeKey.value = result.qrcode_key;
+      qrStatusMessage.value = '请使用B站客户端扫码';
+      qrStatus.value = 'waiting';
+      startPolling();
+    } catch (e: any) {
+      loginError.value = String(e);
+      qrStatus.value = 'error';
+      qrStatusMessage.value = '获取二维码失败';
+    }
+  }
+
+  function startPolling() {
+    stopPolling();
+    qrPolling.value = true;
+    qrPollTimer = setInterval(pollQr, 2000);
+    pollQr();
+  }
+
+  async function pollQr() {
+    if (!qrcodeKey.value || qrStatus.value === 'success') { stopPolling(); return; }
+    try {
+      const { qrPoll } = await import('../utils/invoke');
+      const result = await qrPoll(qrcodeKey.value, cookiesFilePath.value, proxy.value || undefined);
+      console.log("[login] pollQr:", {code: result.status_code, msg: result.message, logged: result.logged_in, hasCookies: result.cookies && Object.keys(result.cookies).length > 0});
+      if (result.status_code === 0 && result.logged_in) {
+        qrStatus.value = 'success'; console.log('[login] *** QR LOGIN SUCCESS, cookies keys:', result.cookies ? Object.keys(result.cookies) : 'none');
+        qrStatusMessage.value = '登录成功！';
+        stopPolling(); console.log('[login] saving cookies to localStorage...'); cookiesSaved.value = result.cookies || {};
+        if (result.cookies) {
+      try { localStorage.setItem('bili2insight-cookies', JSON.stringify(result.cookies)); } catch(_) {}
+    }
+    // Set logged-in state IMMEDIATELY from cookies, don't wait for verification
+    isLoggedIn.value = true;
+    loginUname.value = loginUname.value || '...';
+    await checkLoginAfterAuth();
+        setTimeout(() => { showLogin.value = false; }, 1500);
+      } else if (result.status_code === 86090) {
+        qrStatus.value = 'scanned';
+        qrStatusMessage.value = '已扫码，请在手机上确认';
+      } else if (result.status_code === 86038) {
+        qrStatus.value = 'expired';
+        qrStatusMessage.value = '二维码已过期，请刷新';
+        stopPolling();
+      }
+    } catch (e: any) {
+      loginError.value = String(e);
+    }
+  }
+
+  function stopPolling() {
+    qrPolling.value = false;
+    if (qrPollTimer) { clearInterval(qrPollTimer); qrPollTimer = null; }
+  }
+
+  function cancelLogin() {
+    stopPolling();
+    showLogin.value = false;
+    qrUrl.value = ''; qrcodeKey.value = ''; qrStatus.value = '';
+  }
+
+async function checkLoginAfterAuth() {
+    console.log("[login] checkLoginAfterAuth: verifying cookies...");
+    try {
+      const cookiesStr = JSON.stringify(cookiesSaved.value);
+      const { checkLogin } = await import('../utils/invoke');
+      const result = await checkLogin(cookiesStr, proxy.value || undefined); console.log("[login] checkLoginAfterAuth:", {logged_in: result.logged_in, uname: result.uname, uid: result.uid}); isLoggedIn.value = result.logged_in;
+      loginUname.value = result.uname;
+      loginUid.value = result.uid;
+      loginFace.value = result.face;
+    } catch (e: any) { console.error("[login] checkLoginAfterAuth FAILED:", e); }
+  }
+
+  async function checkLoginStatus() {
+    try {
+      let cookies: Record<string,string> = {};
+      try {
+        const saved = localStorage.getItem('bili2insight-cookies');
+        if (saved) cookies = JSON.parse(saved);
+      } catch(_) {}
+      console.log("[login] checkLoginStatus: found cookies, keys:", Object.keys(cookies)); if (Object.keys(cookies).length === 0) {console.log("[login] checkLoginStatus: no cookies, not logged in"); isLoggedIn.value = false; return;
+      }
+      cookiesSaved.value = cookies;
+      const { checkLogin } = await import('../utils/invoke');
+      const result = await checkLogin(JSON.stringify(cookies), proxy.value || undefined); console.log("[login] checkLoginStatus result:", {logged_in: result.logged_in, uname: result.uname}); isLoggedIn.value = result.logged_in;
+      loginUname.value = result.uname;
+      loginUid.value = result.uid;
+      loginFace.value = result.face;
+    } catch (_) { isLoggedIn.value = false; }
+  }
+
+  async function doLogout() {
+    stopPolling();
+    try { localStorage.removeItem('bili2insight-cookies'); } catch(_) {}
+    cookiesSaved.value = {};
+    isLoggedIn.value = false;
+    loginUname.value = ''; loginUid.value = 0; loginFace.value = '';
+    favFolders.value = []; favVideos.value = [];
+    cancelLogin();
+  }
+
+  // ---------- Favorites functions ----------
+  async function loadFavFolders() {
+    favLoading.value = true;
+    try {
+      const cookiesStr = JSON.stringify(cookiesSaved.value);
+      const { favGetFolders } = await import('../utils/invoke');
+      const result = await favGetFolders(cookiesStr, proxy.value || undefined);
+      favFolders.value = result.folders; console.log("FAV loadFavFolders OK:", result.folders.length, "folders");
+      loginUname.value = result.uname;
+      loginUid.value = result.uid;
+      loginFace.value = result.face;
+      isLoggedIn.value = true;
+    } catch (e: any) {
+      loginError.value = String(e);
+      if (String(e).includes('expired') || String(e).includes('login')) {
+        isLoggedIn.value = false;
+      }
+    } finally { favLoading.value = false; }
+  }
+
+  async function loadFavVideos(folderId: number, page: number) {
+    favLoadingVideos.value = true;
+    try {
+      const cookiesStr = JSON.stringify(cookiesSaved.value); console.log("FAV loadFavVideos: folder=" + folderId + " page=" + page + " hasCookies=" + Object.keys(cookiesSaved.value || {}).length); const { favGetVideos } = await import('../utils/invoke');
+      const result = await favGetVideos(cookiesStr, folderId, page, proxy.value || undefined);
+      favVideos.value = result.videos; console.log("FAV loadFavVideos OK:", result.videos.length, "videos, total=", result.total);
+      favPage.value = result.page;
+      favTotalPages.value = result.total_pages;
+      favTotal.value = result.total;
+      favCurrentFolderId.value = folderId;
+    } catch (e: any) { console.error("FAV loadFavVideos ERROR:", e); loginError.value = String(e); }
+    finally { favLoadingVideos.value = false; }
+  }
+
+  function openFavFolder(folder: any) {
+    favCurrentFolderId.value = folder.id;
+    favCurrentFolderTitle.value = folder.title;
+    favSelectedVideos.value = new Set();
+    loadFavVideos(folder.id, 1);
+  }
+
+  function toggleFavVideo(idx: number) {
+    const s = new Set(favSelectedVideos.value);
+    if (s.has(idx)) s.delete(idx); else s.add(idx);
+    favSelectedVideos.value = s;
+  }
+
+  function selectAllFavVideos() {
+    favSelectedVideos.value = new Set(favVideos.value.map((_: any, i: number) => i));
+  }
+
+  function addFavVideosToQueue() {
+    const sel: any[] = [];
+    favSelectedVideos.value.forEach(i => { if (i < favVideos.value.length) sel.push(favVideos.value[i]); });
+    if (sel.length === 0) return;
+    sel.forEach(v => {
+      const url = 'https://www.bilibili.com/video/' + v.bvid;
+      addQueueItem({
+        url,
+        pageInfo: { page: 1, part: v.title, cid: v.cid, duration: v.duration },
+        source: 'fav'
+      });
+    });
+  }
+
+
+
+
   // ---------- Lifecycle ----------
   function switchProvider(idx: number) { selectedProvider.value = idx; const p = PROVIDERS[idx]; aiApiUrl.value = p.url; if (p.models.length>0 && customModels.value.length===0) aiModel.value = p.models[0]; }
-  async function init() {
+  async function init() { console.log("[login] App init - checking..."); await initCookiesPath(); console.log("[login] cookies path:", cookiesFilePath.value);
     unlisten = await listen<PipelineProgress>("pipeline-progress", (ev) => {
       progress.value = ev.payload;
       const stageMap: Record<string,string> = {download:"下载中",ffmpeg:"转换格式",asr:"语音识别",refine:"AI 校对",ai:"AI 分析",done:"完成",preview:"检测中"};
@@ -250,7 +464,7 @@ export const useAppStore = defineStore("app", () => {
         queue.value = updated;
         console.log('processQueue: item', i, 'set to running, url=', item.url?.slice(0,50), 'cid=', item.pageInfo.cid, 'part=', item.pageInfo.part);
         try {
-          const result = await runPipelineWithPage(item.url!, proxy.value || undefined, aiApiUrl.value || undefined, aiApiKey.value || undefined, aiModel.value || undefined, aiPrompt.value || undefined, item.pageInfo.cid, preview.value?.bvid,
+          const result = await runPipelineWithPage(item.url!, proxy.value || undefined, aiApiUrl.value || undefined, aiApiKey.value || undefined, aiModel.value || undefined, aiPrompt.value || undefined, item.pageInfo.cid,
           );
           console.log('processQueue: item', i, 'DONE, bvid=', result.video_info.bvid, 'title=', result.video_info.title?.slice(0,40));
           const done = [...queue.value];
@@ -391,5 +605,11 @@ export const useAppStore = defineStore("app", () => {
     selectTemplate, addCustomTemplate, deleteCustomTemplate, updateTemplatePrompt, updateTemplateName, persistSettings,
     togglePage, selectAllPages,
     queue, isProcessing, queueCount, previewVideoFn, addQueueItem, processQueue,
+    // Login
+    showLogin, qrUrl, qrcodeKey, qrPolling, qrStatusMessage, qrStatus, loginError, isLoggedIn, loginUname, loginUid, loginFace, cookiesSaved, cookiesFilePath, initCookiesPath,
+    startLogin, pollQr, stopPolling, cancelLogin, checkLoginStatus, doLogout, checkLoginAfterAuth,
+    // Favorites
+    favFolders, favLoading, favCurrentFolderId, favCurrentFolderTitle, favVideos, favPage, favTotalPages, favTotal, favLoadingVideos, favSelectedVideos,
+    loadFavFolders, loadFavVideos, openFavFolder, toggleFavVideo, selectAllFavVideos, addFavVideosToQueue,
   };
 });

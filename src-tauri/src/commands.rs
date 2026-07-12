@@ -102,6 +102,13 @@ pub async fn fetch_ai_models(api_url: String, api_key: String) -> Result<Vec<Str
 pub async fn save_result(result: crate::PipelineResult) -> Result<String, String> { Ok(result.markdown) }
 
 #[tauri::command]
+pub fn get_cookies_path(app: AppHandle) -> Result<String, String> {
+    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    Ok(dir.join("bili_cookies.json").to_string_lossy().to_string())
+}
+
+#[tauri::command]
 pub async fn save_result_to_file(_app: AppHandle, result: crate::PipelineResult, output_path: String) -> Result<(), String> {
     let path = PathBuf::from(&output_path);
     if let Some(parent) = path.parent() { std::fs::create_dir_all(parent).map_err(|e| e.to_string())?; }
@@ -109,4 +116,45 @@ pub async fn save_result_to_file(_app: AppHandle, result: crate::PipelineResult,
     #[cfg(target_os = "windows")]
     { if let Some(parent) = path.parent() { let _ = std::process::Command::new("explorer").arg(parent).spawn(); } }
     Ok(())
+}
+
+// --- Login & Favorites commands ---
+#[tauri::command]
+pub async fn qr_generate(app: AppHandle, proxy: Option<String>) -> Result<crate::QrGenerateResult, String> {
+    pipeline::qr_generate_flow(&app, proxy.as_deref()).await.map_err(|e| format!("QR generate failed: {}", e))
+}
+
+#[tauri::command]
+pub async fn qr_poll(app: AppHandle, qrcode_key: String, cookies_file: Option<String>, proxy: Option<String>) -> Result<crate::QrPollResult, String> {
+    pipeline::qr_poll_flow(&app, &qrcode_key, cookies_file.as_deref(), proxy.as_deref()).await.map_err(|e| format!("QR poll failed: {}", e))
+}
+
+#[tauri::command]
+pub async fn check_login(app: AppHandle, cookies_json: String, proxy: Option<String>) -> Result<crate::LoginCheckResult, String> {
+    pipeline::check_login_flow(&app, &cookies_json, proxy.as_deref()).await.map_err(|e| format!("Check login failed: {}", e))
+}
+
+#[tauri::command]
+pub async fn fav_get_folders(app: AppHandle, cookies_json: String, proxy: Option<String>) -> Result<crate::FavFoldersResult, String> {
+    pipeline::fav_get_folders_flow(&app, &cookies_json, proxy.as_deref()).await.map_err(|e| format!("Get folders failed: {}", e))
+}
+
+#[tauri::command]
+pub async fn fav_get_videos(app: AppHandle, cookies_json: String, folder_id: i64, page: i64, proxy: Option<String>) -> Result<crate::FavVideosResult, String> {
+    pipeline::fav_get_videos_flow(&app, &cookies_json, folder_id, page, proxy.as_deref()).await.map_err(|e| format!("Get videos failed: {}", e))
+}
+
+#[tauri::command]
+pub async fn sms_captcha(app: AppHandle, proxy: Option<String>) -> Result<serde_json::Value, String> {
+    pipeline::sms_captcha_flow(&app, proxy.as_deref()).await.map_err(|e| format!("SMS captcha failed: {}", e))
+}
+
+#[tauri::command]
+pub async fn sms_send(app: AppHandle, cid: String, tel: String, token: String, challenge: String, validate: String, seccode: String, proxy: Option<String>) -> Result<serde_json::Value, String> {
+    pipeline::sms_send_flow(&app, &cid, &tel, &token, &challenge, &validate, &seccode, proxy.as_deref()).await.map_err(|e| format!("SMS send failed: {}", e))
+}
+
+#[tauri::command]
+pub async fn sms_login(app: AppHandle, cid: String, tel: String, code: String, captcha_key: String, cookies_file: Option<String>, proxy: Option<String>) -> Result<serde_json::Value, String> {
+    pipeline::sms_login_flow(&app, &cid, &tel, &code, &captcha_key, cookies_file.as_deref(), proxy.as_deref()).await.map_err(|e| format!("SMS login failed: {}", e))
 }

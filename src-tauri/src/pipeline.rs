@@ -200,3 +200,97 @@ pub async fn fetch_models(api_url: &str, api_key: &str) -> Result<Vec<String>, a
     if models.is_empty() { return Err(anyhow::anyhow!("No models found")); }
     Ok(models)
 }
+
+// --- Login & Favorites mode runner ---
+async fn run_bili_mode(app: &AppHandle, mode: &str, extra_args: &[(&str, &str)], proxy: Option<&str>) -> Result<serde_json::Value, anyhow::Error> {
+    let mut cmd = app.shell().sidecar("bili_worker")
+        .map_err(|e| anyhow::anyhow!("bili_worker sidecar not found: {}", e))?;
+    cmd = cmd.args(["--mode", mode]);
+    for (k, v) in extra_args {
+        cmd = cmd.args([k, v]);
+    }
+    if let Some(p) = proxy {
+        cmd = cmd.args(["--proxy", p]);
+    }
+    println!("  [sidecar/mode] spawning bili_worker mode={}", mode);
+    let out = match tokio::time::timeout(std::time::Duration::from_secs(30), cmd.output()).await {
+        Ok(Ok(out)) => {
+            println!("  [sidecar/mode] process exited, status={:?} stdout_len={}", out.status, out.stdout.len());
+            out
+        }
+        Ok(Err(e)) => return Err(anyhow::anyhow!("bili_worker mode {} failed: {}", mode, e)),
+        Err(_) => return Err(anyhow::anyhow!("bili_worker mode {} timed out", mode)),
+    };
+    if !out.status.success() {
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        return Err(anyhow::anyhow!("bili_worker mode {} failed: stdout={}, stderr={}", mode, stdout, stderr));
+    }
+    let stdout = String::from_utf8(out.stdout)?;
+    println!("  [sidecar/mode] stdout [{}]: {}", mode, &stdout[..std::cmp::min(stdout.len(), 800)]);
+    let mut result: Option<serde_json::Value> = None;
+    for line in stdout.lines() {
+        if let Ok(val) = serde_json::from_str::<serde_json::Value>(line) {
+            match val["type"].as_str() {
+                Some("result") => { println!("  [sidecar/mode] result found: keys={:?}", val.as_object().map(|o| o.keys().collect::<Vec<_>>())); result = Some(val.clone()); }
+                Some("error") => return Err(anyhow::anyhow!("{}", val["message"].as_str().unwrap_or("unknown"))),
+                Some("progress") => { println!("  [sidecar/mode] progress: {:?}", val.get("message").and_then(|v| v.as_str()).unwrap_or("")); }
+                _ => {}
+            }
+        }
+    }
+    result.ok_or_else(|| anyhow::anyhow!("No result from bili_worker mode {}", mode))
+}
+
+pub async fn qr_generate_flow(app: &AppHandle, proxy: Option<&str>) -> Result<crate::QrGenerateResult, anyhow::Error> {
+    let val = run_bili_mode(app, "qr_generate", &[], proxy).await?;
+    Ok(serde_json::from_value(val)?)
+}
+
+pub async fn qr_poll_flow(app: &AppHandle, qrcode_key: &str, cookies_file: Option<&str>, proxy: Option<&str>) -> Result<crate::QrPollResult, anyhow::Error> {
+    let mut args = vec![("--qrcode-key", qrcode_key)];
+    let cf_str;
+    if let Some(cf) = cookies_file {
+        cf_str = cf.to_string();
+        args.push(("--cookies-file", &cf_str));
+    }
+    let val = run_bili_mode(app, "qr_poll", &args, proxy).await?;
+    Ok(serde_json::from_value(val)?)
+}
+
+pub async fn check_login_flow(app: &AppHandle, cookies_json: &str, proxy: Option<&str>) -> Result<crate::LoginCheckResult, anyhow::Error> {
+    let val = run_bili_mode(app, "check_login", &[("--cookies", cookies_json)], proxy).await?;
+    Ok(serde_json::from_value(val)?)
+}
+
+pub async fn fav_get_folders_flow(app: &AppHandle, cookies_json: &str, proxy: Option<&str>) -> Result<crate::FavFoldersResult, anyhow::Error> {
+    let val = run_bili_mode(app, "fav_folders", &[("--cookies", cookies_json)], proxy).await?;
+    Ok(serde_json::from_value(val)?)
+}
+
+pub async fn fav_get_videos_flow(app: &AppHandle, cookies_json: &str, folder_id: i64, page: i64, proxy: Option<&str>) -> Result<crate::FavVideosResult, anyhow::Error> {
+    let fid = folder_id.to_string();
+    let pg = page.to_string();
+    let val = run_bili_mode(app, "fav_videos", &[("--cookies", cookies_json), ("--folder-id", &fid), ("--page", &pg)], proxy).await?;
+    Ok(serde_json::from_value(val)?)
+}
+
+pub async fn sms_captcha_flow(app: &AppHandle, proxy: Option<&str>) -> Result<serde_json::Value, anyhow::Error> {
+    run_bili_mode(app, "sms_captcha", &[], proxy).await
+}
+
+pub async fn sms_send_flow(app: &AppHandle, cid: &str, tel: &str, token: &str, challenge: &str, validate: &str, seccode: &str, proxy: Option<&str>) -> Result<serde_json::Value, anyhow::Error> {
+    let packed = format!("{},{},{},{},{},{}", cid, tel, token, challenge, validate, seccode);
+    run_bili_mode(app, "sms_send", &[("--qrcode-key", &packed)], proxy).await
+}
+
+pub async fn sms_login_flow(app: &AppHandle, cid: &str, tel: &str, code: &str, captcha_key: &str, cookies_file: Option<&str>, proxy: Option<&str>) -> Result<serde_json::Value, anyhow::Error> {
+    let packed = format!("{},{},{},{}", cid, tel, code, captcha_key);
+    let mut args = vec![("--qrcode-key", packed.as_str())];
+    let cf;
+    if let Some(cf_val) = cookies_file {
+        cf = cf_val.to_string();
+        args.push(("--cookies-file", &cf));
+    }
+    run_bili_mode(app, "sms_login", &args, proxy).await
+}

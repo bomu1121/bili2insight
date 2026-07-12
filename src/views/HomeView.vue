@@ -2,7 +2,19 @@
 import { NIcon } from "naive-ui";
 import { VideocamOutline, FolderOpenOutline, CloudUploadOutline } from "@vicons/ionicons5";
 import { useRouter } from "vue-router";
+import { useAppStore } from "../stores/app";
+import { createDiscreteApi } from "naive-ui";
 const router = useRouter();
+const store = useAppStore();
+const { message } = createDiscreteApi(["message"]);
+
+function goToFav() {
+  if (store.isLoggedIn) {
+    router.push("/source/fav");
+  } else {
+    message.warning("请先点击右上角头像登录B站账号");
+  }
+}
 </script>
 
 <template>
@@ -21,11 +33,11 @@ const router = useRouter();
         <div class="entry-arrow">→</div>
       </button>
 
-      <button class="entry-btn disabled" disabled>
+      <button class="entry-btn" @click="goToFav()">
         <div class="entry-icon fav"><n-icon size="28"><FolderOpenOutline /></n-icon></div>
         <div class="entry-label">B站收藏夹</div>
         <div class="entry-desc">登录B站账号，批量导入收藏视频</div>
-        <div class="entry-badge">即将支持</div>
+        <div class="entry-arrow">→</div>
       </button>
 
       <button class="entry-btn disabled" disabled>
@@ -50,7 +62,7 @@ const router = useRouter();
   cursor: pointer; text-align: left; transition: all .2s; width: 100%; font-family: inherit;
 }
 .entry-btn:hover:not(:disabled) { border-color: #00aeec; box-shadow: 0 2px 16px rgba(0,174,236,.1); transform: translateY(-1px); }
-.entry-btn:disabled { opacity: .5; cursor: default; }
+.entry-btn:disabled { opacity: .5; cursor: not-allowed; }
 .entry-icon { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .entry-icon.url { background: #e8f4fd; color: #00aeec; }
 .entry-icon.fav { background: #fef3e8; color: #f0a020; }
