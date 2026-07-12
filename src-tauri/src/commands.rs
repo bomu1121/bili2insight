@@ -33,7 +33,6 @@ pub async fn download_batch(app: AppHandle, url: String, proxy: Option<String>, 
     emit_progress(&app, "download", 0.25, "Batch download complete");
     Ok(video_info)
 }
-
 pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai_api_url: Option<String>, ai_api_key: Option<String>, ai_model: Option<String>, ai_prompt: Option<String>, page_cid: Option<i64>) -> Result<crate::PipelineResult, String> {
     let output_dir = app.path().app_data_dir().map_err(|e| e.to_string())?.join("tasks");
     std::fs::create_dir_all(&output_dir).map_err(|e| e.to_string())?;
