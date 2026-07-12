@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { NButton, NText, NIcon, NDivider } from "naive-ui";
-import { ArrowBackOutline, CopyOutline, DownloadOutline } from "@vicons/ionicons5";
+import { NButton, NText, NIcon, NDivider, NDrawer, NDrawerContent } from "naive-ui";
+import { ArrowBackOutline, CopyOutline, DownloadOutline, DocumentTextOutline } from "@vicons/ionicons5";
 import { useRoute, useRouter } from "vue-router";
 import { useAppStore } from "../stores/app";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { createDiscreteApi } from "naive-ui";
+const { message } = createDiscreteApi(["message"]);
 
 const route = useRoute();
 const router = useRouter();
