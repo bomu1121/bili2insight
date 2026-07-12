@@ -115,4 +115,11 @@ async function exportFile() {
 .md-preview :deep(code) { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 13px; }
 .md-preview :deep(li) { margin-left: 22px; }
 .md-preview :deep(hr) { border: none; border-top: 1px solid #eee; margin: 14px 0; }
+.log-console { background: #1e1e1e; color: #ccc; border-radius: 6px; padding: 16px; font-family: "Cascadia Code","Fira Code",Consolas,monospace; font-size: 12px; line-height: 1.6; max-height: calc(100vh - 140px); overflow-y: auto; }
+.log-block { margin-bottom: 16px; border-bottom: 1px solid #333; padding-bottom: 12px; }
+.log-tag { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; margin-bottom: 8px; color: #fff; }
+.log-tag.info { background: #007acc; }
+.log-tag.warn { background: #d4a72c; }
+.log-tag.success { background: #4c9a2a; }
+.log-text { margin: 0; white-space: pre-wrap; word-break: break-all; color: #a0a0a0; }
 </style>
