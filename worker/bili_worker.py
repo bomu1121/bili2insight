@@ -4,7 +4,7 @@ os.environ["PYTHONIOENCODING"] = "utf-8"
 if sys.stdout is not None: sys.stdout.reconfigure(encoding="utf-8")
 if sys.stderr is not None: sys.stderr.reconfigure(encoding="utf-8")
 
-import json, re, time, argparse, hashlib, urllib.parse, logging
+import json, re, time, argparse, hashlib, urllib.parse, logging, tempfile, pathlib
 from functools import reduce
 from pathlib import Path
 import httpx
@@ -16,14 +16,36 @@ logging.getLogger("httpx").setLevel("WARNING")
 _wbi_img_key = None
 _wbi_sub_key = None
 
+# File-based WBI key cache: persists across sidecar process invocations
+_WBI_CACHE_FILE = pathlib.Path(tempfile.gettempdir()) / "bili2insight_wbi_keys.txt"
+_WBI_CACHE_TTL = 600  # 10 minutes
+
 def get_cached_wbi_keys(client):
     global _wbi_img_key, _wbi_sub_key
+    # Check in-process global cache first
     if _wbi_img_key and _wbi_sub_key:
         return _wbi_img_key, _wbi_sub_key
+    # Check file-based cache (persists across sidecar process invocations)
+    if _WBI_CACHE_FILE.exists():
+        try:
+            mtime = _WBI_CACHE_FILE.stat().st_mtime
+            if time.time() - mtime < _WBI_CACHE_TTL:
+                with open(_WBI_CACHE_FILE) as f:
+                    _wbi_img_key, _wbi_sub_key = f.read().strip().split(",", 1)
+                return _wbi_img_key, _wbi_sub_key
+        except Exception:
+            pass
+    # Fetch fresh keys from Bilibili
     resp = client.get("https://api.bilibili.com/x/web-interface/nav")
     data = resp.json()["data"]
     _wbi_img_key = data["wbi_img"]["img_url"].split("/")[-1].split(".")[0]
     _wbi_sub_key = data["wbi_img"]["sub_url"].split("/")[-1].split(".")[0]
+    # Persist to file cache
+    try:
+        with open(_WBI_CACHE_FILE, "w") as f:
+            f.write(f"{_wbi_img_key},{_wbi_sub_key}")
+    except Exception:
+        pass
     return _wbi_img_key, _wbi_sub_key
 mixinKeyEncTab = [46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49, 33, 9, 42, 19, 29, 28, 14, 39, 12, 38, 41, 13, 37, 48, 7, 16, 24, 55, 40, 61, 26, 17, 0, 1, 60, 51, 30, 4, 22, 25, 54, 21, 56, 59, 6, 63, 57, 62, 11, 36, 20, 34, 44, 52]
 
@@ -56,8 +78,9 @@ class BiliWorker:
         last_err = None
         for attempt in range(max_retries):
             if attempt > 0:
-                emit("progress", {"stage": name, "message": f"Retrying {name} ({attempt+1}/{max_retries})..."})
-                _time.sleep(1 + attempt)
+                delay = 2 ** attempt  # exponential backoff: 2, 4, 8 seconds
+                emit("progress", {"stage": name, "message": f"Retrying {name} ({attempt+1}/{max_retries}) in {delay}s..."})
+                _time.sleep(delay)
             try:
                 return fn()
             except Exception as e:
@@ -74,9 +97,18 @@ class BiliWorker:
             self.img_key = _wbi_img_key
             self.sub_key = _wbi_sub_key
             emit("progress", {"stage": "wbi_keys", "message": "Using cached WBI keys"})
-        else:
-            emit("progress", {"stage": "wbi_keys", "message": "Fetching WBI keys..."})
-            self._retry(self._do_fetch_wbi_keys, "wbi_keys")
+            return
+        self.img_key, self.sub_key = get_cached_wbi_keys(self.client)
+        if self.img_key and self.sub_key:
+            emit("progress", {"stage": "wbi_keys", "message": "WBI keys loaded from cache"})
+            return
+        emit("progress", {"stage": "wbi_keys", "message": "Fetching WBI keys..."})
+        try:
+            self._retry(self._do_fetch_wbi_keys, "wbi_keys", max_retries=2)
+        except Exception as e:
+            emit("progress", {"stage": "wbi_keys", "message": f"WBI keys unavailable: {e}. Using non-WBI fallback."})
+            self.img_key = ""; self.sub_key = ""
+            self._wbi_unavailable = True
 
     def sign_wbi(self, params: dict) -> str:
         def get_mixin_key(orig: str):
@@ -119,13 +151,17 @@ class BiliWorker:
         cids_wb = [p.get("cid") for p in (data_wb.get("data", {}).get("pages", []) if data_wb.get("code") == 0 else [])]
         emit("progress", {"stage": "video_info", "message": f"Non-WBI cids: {cids_nw}"})
         emit("progress", {"stage": "video_info", "message": f"WBI cids: {cids_wb}"})
-        # Use non-WBI data if available, otherwise WBI
-        if data_nw.get("code") == 0:
-            data = data_nw
-        elif data_wb.get("code") == 0:
+        # Prefer WBI data (matches upstream Bili23). Non-WBI may return stale/wrong cids.
+        if data_wb.get("code") == 0:
             data = data_wb
+            cids_used = [p.get("cid") for p in data.get("data", {}).get("pages", [])]
+            emit("progress", {"stage": "video_info", "message": f"Using WBI data, cids: {cids_used}"})
+        elif data_nw.get("code") == 0:
+            data = data_nw
+            cids_used = [p.get("cid") for p in data.get("data", {}).get("pages", [])]
+            emit("progress", {"stage": "video_info", "message": f"WBI failed, using non-WBI data, cids: {cids_used}"})
         else:
-            raise RuntimeError(f"Video info error: both endpoints failed")
+            raise RuntimeError("Video info error: both WBI and non-WBI endpoints failed")
         vdata = data["data"]
         # Build pages: use season episodes if ugc_season exists, otherwise traditional pages
         season = vdata.get("ugc_season")
@@ -137,10 +173,11 @@ class BiliWorker:
                         "page": len(pages) + 1,
                         "part": ep["title"],
                         "cid": ep["cid"],
+                        "bvid": ep.get("bvid", vdata["bvid"]),
                         "duration": ep.get("arc", {}).get("duration", 0)
                     })
         else:
-            pages = [{"page": p["page"], "part": p["part"], "cid": p["cid"], "duration": p["duration"]} for p in vdata.get("pages", [])]
+            pages = [{"page": p["page"], "part": p["part"], "cid": p["cid"], "duration": p["duration"], "bvid": vdata["bvid"]} for p in vdata.get("pages", [])]
         info = {"bvid": vdata["bvid"], "aid": vdata["aid"], "cid": vdata["cid"], "title": vdata["title"], "description": vdata["desc"], "duration": vdata["duration"], "cover": vdata["pic"].replace("http://", "https://"), "uploader": vdata["owner"]["name"], "uploader_uid": vdata["owner"]["mid"], "pubdate": vdata["pubdate"], "pages": pages}
         emit("progress", {"stage": "video_info", "message": f"Got: {info['title']}"})
         return info
@@ -237,7 +274,14 @@ class BiliWorker:
             return {"video_info": video_info}
         active_cid = page_cid if page_cid else video_info["cid"]
         audio_tag = bvid if not page_cid else f"{bvid}_p{active_cid}"
-        play_url = self.get_play_url(bvid, active_cid)
+        # Resolve page-specific bvid (may differ from URL bvid for ugc_season/collections)
+        page_bvid = bvid
+        if page_cid and video_info.get("pages"):
+            for p in video_info["pages"]:
+                if p["cid"] == page_cid and p.get("bvid"):
+                    page_bvid = p["bvid"]
+                    break
+        play_url = self.get_play_url(page_bvid, active_cid)
         audio_path = self.download_audio(play_url["audio_url"], audio_tag)
         result = {"video_info": video_info, "audio_path": str(audio_path.absolute())}
         emit("result", result)

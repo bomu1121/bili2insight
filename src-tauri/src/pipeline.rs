@@ -111,7 +111,10 @@ pub async fn run_asr(
 
 pub async fn refine_transcript(api_url: &str, api_key: &str, model: &str, transcript: &str) -> Result<String, anyhow::Error> {
     let api_url = if api_url.contains("/chat/completions") { api_url.to_string() } else if api_url.ends_with("/") { format!("{}v1/chat/completions", api_url) } else { format!("{}/v1/chat/completions", api_url) };
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(120))
+        .build()
+        .map_err(|e| anyhow::anyhow!("refine client build error: {}", e))?;
     let prompt = "Please correct any speech recognition errors in the following transcript. Fix misrecognized words, add proper punctuation, and correct formatting. Keep the original meaning and style. Output only the corrected transcript, no explanations.";
     let mut req = client.post(&api_url).json(&serde_json::json!({"model": model, "messages": [{"role": "system", "content": prompt}, {"role": "user", "content": transcript}], "temperature": 0.2}));
     if !api_key.is_empty() { req = req.header("Authorization", format!("Bearer {}", api_key)); }
