@@ -110,8 +110,8 @@ class BiliWorker:
     def _do_get_play_url(self, bvid: str, cid: int) -> dict:
         # Try multiple quality params to handle pages with limited quality options
         param_sets = [
-            {"bvid": bvid, "cid": cid, "qn": 0, "fnver": 0, "fnval": 4048, "fourk": 1},
-            {"bvid": bvid, "cid": cid, "qn": 0, "fnver": 0, "fnval": 4048},
+            {"bvid": bvid, "cid": cid, "qn": 64, "fnver": 0, "fnval": 4048},
+            {"bvid": bvid, "cid": cid, "qn": 64, "fnver": 0, "fnval": 4048},
         ]
         last_msg = None
         for attempt, params in enumerate(param_sets):
