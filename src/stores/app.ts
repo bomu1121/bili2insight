@@ -178,6 +178,7 @@ export const useAppStore = defineStore("app", () => {
       // Update running queue item
       const qIdx = queue.value.findIndex(q => q.status === 'running');
       if (qIdx >= 0) {
+        console.log('progress listener: updating queue[', qIdx, '] stage=', ev.payload.stage, 'progress=', ev.payload.progress, 'msg=', ev.payload.message?.slice(0,50));
         const q = [...queue.value];
         q[qIdx] = { ...q[qIdx], progress: ev.payload.progress, stageLabel: stageMap[ev.payload.stage] || ev.payload.stage, message: msgMap[ev.payload.message] || ev.payload.message };
         queue.value = q;
@@ -247,12 +248,13 @@ export const useAppStore = defineStore("app", () => {
         const updated = [...queue.value];
         updated[i] = { ...item, status: 'running' as const, stageLabel: '开始处理' };
         queue.value = updated;
-        console.log('processQueue: item', i, 'set to running');
+        console.log('processQueue: item', i, 'set to running, url=', item.url?.slice(0,50), 'cid=', item.pageInfo.cid, 'part=', item.pageInfo.part);
         try {
           const result = await runPipelineWithPage(
             item.url!, proxy.value || undefined, aiApiUrl.value || undefined, aiApiKey.value || undefined,
             aiModel.value || undefined, aiPrompt.value || undefined, item.pageInfo.cid,
           );
+          console.log('processQueue: item', i, 'DONE, bvid=', result.video_info.bvid, 'title=', result.video_info.title?.slice(0,40));
           const done = [...queue.value];
           done[i] = { ...done[i], status: 'done' as const, progress: 1, stageLabel: '完成', result };
           queue.value = done;

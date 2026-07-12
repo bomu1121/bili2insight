@@ -23,26 +23,33 @@ pub async fn preview_video(app: AppHandle, url: String, proxy: Option<String>, p
 pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai_api_url: Option<String>, ai_api_key: Option<String>, ai_model: Option<String>, ai_prompt: Option<String>, page_cid: Option<i64>) -> Result<crate::PipelineResult, String> {
     let output_dir = app.path().app_data_dir().map_err(|e| e.to_string())?.join("tasks");
     std::fs::create_dir_all(&output_dir).map_err(|e| e.to_string())?;
-    println!("=== run_pipeline CALLED ===");
+    let start = std::time::Instant::now();
+    println!("=== PIPELINE START [{:.0}s] url={} cid={:?} ===", start.elapsed().as_secs_f64(), url, page_cid);
 
+    println!("  [STAGE:download] calling bili_worker sidecar...");
     emit_progress(&app, "download", 0.05, "Getting video info and downloading audio...");
     let app_dl = app.clone();
     let video_info = pipeline::download_bili_audio(&app, &url, &output_dir, false, proxy.as_deref(), page_cid,
         move |s, p, m| { let _ = app_dl.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string() }); },
     ).await.map_err(|e| format!("Download failed: {}", e))?;
+    println!("  [STAGE:download] DONE, bvid={} title={}", video_info.bvid, video_info.title);
     emit_progress(&app, "download", 0.25, "Download complete");
 
     let audio_tag = if let Some(cid) = page_cid { format!("{}_p{}", video_info.bvid, cid) } else { video_info.bvid.clone() };
     let audio_path = output_dir.join(format!("{}.m4a", audio_tag));
+    println!("  [STAGE:ffmpeg] audio_tag={} audio_path={}", audio_tag, audio_path.display());
     emit_progress(&app, "ffmpeg", 0.30, "Converting audio format...");
     let wav_path = pipeline::extract_audio_wav(&app, &audio_path.to_string_lossy(), &output_dir).await.map_err(|e| format!("FFmpeg error: {}", e))?;
+    println!("  [STAGE:ffmpeg] DONE, wav_path={}", wav_path);
     emit_progress(&app, "ffmpeg", 0.40, "Audio conversion complete");
 
+    println!("  [STAGE:asr] starting speech recognition...");
     emit_progress(&app, "asr", 0.45, "Running speech recognition...");
     let app_asr = app.clone();
     let transcript = pipeline::run_asr(&app, &wav_path,
         move |s, p, m| { let _ = app_asr.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string() }); },
     ).await.map_err(|e| format!("ASR failed: {}", e))?;
+    println!("  [STAGE:asr] DONE, transcript_len={}", transcript.len());
     emit_progress(&app, "asr", 0.75, "Speech recognition complete");
 
     let ai_url = ai_api_url.unwrap_or_else(|| "https://api.deepseek.com".to_string());
@@ -50,17 +57,22 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
     let model = ai_model.unwrap_or_else(|| "deepseek-chat".to_string());
 
     let raw = transcript.clone();
+    println!("  [STAGE:refine] calling AI proofread, model={}", model);
     emit_progress(&app, "refine", 0.76, "AI proofreading transcript...");
     let transcript = pipeline::refine_transcript(&ai_url, &ai_key, &model, &transcript).await.map_err(|e| format!("Refine failed: {}", e))?;
+    println!("  [STAGE:refine] DONE, refined_len={}", transcript.len());
     emit_progress(&app, "refine", 0.80, "Transcript proofread");
 
     let prompt = ai_prompt.unwrap_or_else(|| "Please analyze the following video transcript...".to_string());
+    println!("  [STAGE:ai] calling AI insights, prompt_len={}", prompt.len());
     emit_progress(&app, "ai", 0.81, "Extracting insights with AI...");
     let (insights, ai_raw) = pipeline::extract_insights(&ai_url, &ai_key, &model, &prompt, &transcript, &video_info.title).await.map_err(|e| format!("AI analysis failed: {}", e))?;
+    println!("  [STAGE:ai] DONE, ai_raw_len={}", ai_raw.len());
     emit_progress(&app, "ai", 0.95, "AI insights ready");
 
     let ai_req = format!("SYSTEM: {}\n\nUSER: Video title: {}\n\nTranscript:\n{}", prompt, video_info.title, transcript);
     let markdown = export::generate_markdown(&video_info, &transcript, &insights);
+    println!("=== PIPELINE END [{:.1}s] ===", start.elapsed().as_secs_f64());
     emit_progress(&app, "done", 1.0, "Complete");
     let _ = std::fs::remove_file(&audio_path);
     let _ = std::fs::remove_file(&wav_path);

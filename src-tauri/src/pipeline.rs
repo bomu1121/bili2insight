@@ -9,54 +9,36 @@ pub async fn download_bili_audio(
     app: &AppHandle, url: &str, output_dir: &Path, preview_only: bool, proxy: Option<&str>, page_cid: Option<i64>,
     progress: impl Fn(&str, f64, &str) + Send + 'static,
 ) -> Result<VideoInfo, anyhow::Error> {
-    let mut last_err: Option<anyhow::Error> = None;
-    for attempt in 0..3 {
-        if attempt > 0 {
-            progress("retry", 0.0, &format!("Retrying WBI keys ({}/3)...", attempt + 1));
-            std::thread::sleep(std::time::Duration::from_secs(1));
-        }
-        let mut cmd = app.shell().sidecar("bili_worker")
-            .map_err(|e| anyhow::anyhow!("bili_worker sidecar not found: {}", e))?;
-        cmd = cmd.args(["--url", url, "--output-dir", output_dir.to_str().unwrap_or(".")]);
-        if preview_only { cmd = cmd.arg("--preview-only"); }
-        if let Some(cid) = page_cid { cmd = cmd.args(["--cid", &cid.to_string()]); }
-        if let Some(p) = proxy { cmd = cmd.args(["--proxy", p]); }
-        let out = match cmd.output().await {
-            Ok(o) => o,
-            Err(e) => { last_err = Some(anyhow::anyhow!("bili_worker failed: {}", e)); continue; }
-        };
-        if !out.status.success() {
-            let stdout = String::from_utf8_lossy(&out.stdout);
-            let stderr = String::from_utf8_lossy(&out.stderr);
-            last_err = Some(anyhow::anyhow!("bili_worker failed: stdout={}, stderr={}", stdout, stderr));
-            continue;
-        }
-        let stdout = String::from_utf8(out.stdout)?;
-        let mut video_info: Option<VideoInfo> = None;
-        let mut has_error = false;
-        for line in stdout.lines() {
-            if let Ok(val) = serde_json::from_str::<Value>(line) {
-                match val["type"].as_str() {
-                    Some("progress") => { let s = val["stage"].as_str().unwrap_or(""); let m = val["message"].as_str().unwrap_or(""); progress(s, 0.1, m); }
-                    Some("result") => {
-                        if let Some(vi) = val["video_info"].as_object() {
-                            let pages: Vec<VideoPageInfo> = vi.get("pages").and_then(|p| p.as_array()).map(|a| a.iter().filter_map(|p| Some(VideoPageInfo { page: p.get("page")?.as_i64()?, part: p.get("part")?.as_str().unwrap_or("").to_string(), cid: p.get("cid")?.as_i64()?, duration: p.get("duration").and_then(|d| d.as_i64()).unwrap_or(0) })).collect()).unwrap_or_default();
-                            video_info = Some(VideoInfo { cid: vi["cid"].as_i64().unwrap_or(0), bvid: vi["bvid"].as_str().unwrap_or("").to_string(), title: vi["title"].as_str().unwrap_or("").to_string(), description: vi["description"].as_str().unwrap_or("").to_string(), duration: vi["duration"].as_i64().unwrap_or(0), cover: vi["cover"].as_str().unwrap_or("").to_string(), uploader: vi["uploader"].as_str().unwrap_or("").to_string(), uploader_uid: vi["uploader_uid"].as_i64().unwrap_or(0), pubdate: vi["pubdate"].as_i64().unwrap_or(0), pages });
-                        }
+    let mut cmd = app.shell().sidecar("bili_worker")
+        .map_err(|e| anyhow::anyhow!("bili_worker sidecar not found: {}", e))?;
+    cmd = cmd.args(["--url", url, "--output-dir", output_dir.to_str().unwrap_or(".")]);
+    if preview_only { cmd = cmd.arg("--preview-only"); }
+    if let Some(cid) = page_cid { cmd = cmd.args(["--cid", &cid.to_string()]); }
+    if let Some(p) = proxy { cmd = cmd.args(["--proxy", p]); }
+    let out = cmd.output().await.map_err(|e| anyhow::anyhow!("bili_worker failed: {}", e))?;
+    if !out.status.success() {
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        return Err(anyhow::anyhow!("bili_worker failed: stdout={}, stderr={}", stdout, stderr));
+    }
+    let stdout = String::from_utf8(out.stdout)?;
+    let mut video_info: Option<VideoInfo> = None;
+    for line in stdout.lines() {
+        if let Ok(val) = serde_json::from_str::<Value>(line) {
+            match val["type"].as_str() {
+                Some("progress") => { let s = val["stage"].as_str().unwrap_or(""); let m = val["message"].as_str().unwrap_or(""); progress(s, 0.1, m); }
+                Some("result") => {
+                    if let Some(vi) = val["video_info"].as_object() {
+                        let pages: Vec<VideoPageInfo> = vi.get("pages").and_then(|p| p.as_array()).map(|a| a.iter().filter_map(|p| Some(VideoPageInfo { page: p.get("page")?.as_i64()?, part: p.get("part")?.as_str().unwrap_or("").to_string(), cid: p.get("cid")?.as_i64()?, duration: p.get("duration").and_then(|d| d.as_i64()).unwrap_or(0) })).collect()).unwrap_or_default();
+                        video_info = Some(VideoInfo { cid: vi["cid"].as_i64().unwrap_or(0), bvid: vi["bvid"].as_str().unwrap_or("").to_string(), title: vi["title"].as_str().unwrap_or("").to_string(), description: vi["description"].as_str().unwrap_or("").to_string(), duration: vi["duration"].as_i64().unwrap_or(0), cover: vi["cover"].as_str().unwrap_or("").to_string(), uploader: vi["uploader"].as_str().unwrap_or("").to_string(), uploader_uid: vi["uploader_uid"].as_i64().unwrap_or(0), pubdate: vi["pubdate"].as_i64().unwrap_or(0), pages });
                     }
-                    Some("error") => {
-                        let msg = val["message"].as_str().unwrap_or("unknown");
-                        last_err = Some(anyhow::anyhow!("{}", msg));
-                        has_error = true;
-                    }
-                    _ => {}
                 }
+                Some("error") => return Err(anyhow::anyhow!("{}", val["message"].as_str().unwrap_or("unknown"))),
+                _ => {}
             }
         }
-        if has_error { continue; }
-        return video_info.ok_or_else(|| anyhow::anyhow!("No video info in worker output"));
     }
-    Err(last_err.unwrap_or_else(|| anyhow::anyhow!("bili_worker failed after 3 attempts")))
+    video_info.ok_or_else(|| anyhow::anyhow!("No video info in worker output"))
 }
 
 pub async fn extract_audio_wav(
