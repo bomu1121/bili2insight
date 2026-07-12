@@ -125,8 +125,8 @@ class BiliWorker:
         emit("progress", {"stage": "play_url", "message": f"Requesting play URL for bvid={bvid} cid={cid}"})
         param_sets = [
             {"bvid": bvid, "cid": cid, "qn": 0, "fnver": 0, "fnval": 4048},
+            {"bvid": bvid, "cid": cid, "qn": 0, "fnver": 0, "fnval": 0},
             {"bvid": bvid, "cid": cid, "qn": 80, "fnver": 0, "fnval": 4048},
-            {"bvid": bvid, "cid": cid, "qn": 64, "fnver": 0, "fnval": 4048},
         ]
         last_msg = None
         for attempt, params in enumerate(param_sets):
@@ -161,14 +161,25 @@ class BiliWorker:
         if code != 0:
             emit("progress", {"stage": "play_url", "message": f"Legacy API response: code={code} msg={data.get('message')}"})
         else:
-            dash = data.get("data", {}).get("dash", {})
+            d = data.get("data", {})
+            dash = d.get("dash", {})
+            # Try DASH format first
             audio_streams = sorted([a for a in dash.get("audio", [])], key=lambda x: x.get("bandwidth", 0), reverse=True)
+            audio_url = None; bandwidth = 0
             if audio_streams:
                 audio = audio_streams[0]
                 audio_url = audio.get("baseUrl") or audio.get("base_url") or audio.get("url", "")
-                if audio_url:
-                    emit("progress", {"stage": "play_url", "message": f"Legacy play URL OK ({audio.get('bandwidth', 0)//1000}kbps)"})
-                    return {"audio_url": audio_url, "bandwidth": audio.get("bandwidth", 0)}
+                bandwidth = audio.get("bandwidth", 0)
+            # Fallback: try durl format
+            if not audio_url:
+                durl_list = d.get("durl", [])
+                if durl_list:
+                    audio_url = durl_list[0].get("url", "")
+                    bandwidth = 0
+                    emit("progress", {"stage": "play_url", "message": "Legacy: using non-DASH durl format"})
+            if audio_url:
+                emit("progress", {"stage": "play_url", "message": f"Legacy play URL OK ({bandwidth//1000}kbps)"})
+                return {"audio_url": audio_url, "bandwidth": bandwidth}
         raise RuntimeError(f"Play URL error: {last_msg}")
 
     def get_play_url(self, bvid: str, cid: int) -> dict:
