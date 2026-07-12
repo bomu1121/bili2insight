@@ -40,12 +40,6 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
     println!("=== PIPELINE START [{:.0}s] url={} cid={:?} ===", start.elapsed().as_secs_f64(), url, page_cid);
 
     println!("  [STAGE:download] calling bili_worker sidecar...");
-    let audio_tag = if let (Some(ref b), Some(cid)) = (&bvid, page_cid) { format!("{}_p{}", b, cid) } else if let Some(ref b) = bvid { b.clone() } else { String::new() };
-    let audio_path = output_dir.join(format!("{}.m4a", audio_tag));
-    if audio_path.exists() && page_cid.is_some() {
-        println!("  [pipeline] audio file already exists, skipping download: {}", audio_path.display());
-        emit_progress(&app, "download", 0.25, "Audio already downloaded");
-    } else {
     emit_progress(&app, "download", 0.05, "Getting video info and downloading audio...");
     let app_dl = app.clone();
     let video_info = pipeline::download_bili_audio(&app, &url, &output_dir, false, proxy.as_deref(), page_cid,

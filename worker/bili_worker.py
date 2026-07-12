@@ -247,6 +247,10 @@ class BiliWorker:
 
     def download_audio(self, audio_url: str, filename: str) -> Path:
         output_path = self.output_dir / f"{filename}.m4a"
+        if output_path.exists():
+            size_mb = output_path.stat().st_size / 1024 / 1024
+            emit("progress", {"stage": "download", "message": f"Audio already exists ({size_mb:.1f}MB), skipping download"})
+            return output_path
         emit("progress", {"stage": "download", "message": "Downloading audio..."})
         headers = {"Referer": "https://www.bilibili.com/"}
         with self.client.stream("GET", audio_url, headers=headers) as resp:
