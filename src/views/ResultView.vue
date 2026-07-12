@@ -5,8 +5,6 @@ import { ArrowBackOutline, CopyOutline, DownloadOutline, DocumentTextOutline } f
 import { useRoute, useRouter } from "vue-router";
 import { useAppStore } from "../stores/app";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { createDiscreteApi } from "naive-ui";
-const { message } = createDiscreteApi(["message"]);
 
 const route = useRoute();
 const router = useRouter();
