@@ -138,6 +138,24 @@ class BiliWorker:
                 continue
             emit("progress", {"stage": "play_url", "message": f"Play URL OK ({audio.get('bandwidth', 0)//1000}kbps)"})
             return {"audio_url": audio_url, "bandwidth": audio.get("bandwidth", 0)}
+        # Fallback: try non-WBI endpoint (legacy API)
+        emit("progress", {"stage": "play_url", "message": "WBI endpoints all failed, trying legacy playurl..."})
+        import urllib.parse as _up
+        legacy_params = {"bvid": bvid, "cid": cid, "qn": 0, "fnval": 4048, "platform": "web"}
+        legacy_url = f"https://api.bilibili.com/x/player/playurl?{_up.urlencode(legacy_params)}"
+        resp = self.client.get(legacy_url); data = resp.json()
+        code = data.get("code", -1)
+        if code != 0:
+            emit("progress", {"stage": "play_url", "message": f"Legacy API response: code={code} msg={data.get('message')}"})
+        else:
+            dash = data.get("data", {}).get("dash", {})
+            audio_streams = sorted([a for a in dash.get("audio", [])], key=lambda x: x.get("bandwidth", 0), reverse=True)
+            if audio_streams:
+                audio = audio_streams[0]
+                audio_url = audio.get("baseUrl") or audio.get("base_url") or audio.get("url", "")
+                if audio_url:
+                    emit("progress", {"stage": "play_url", "message": f"Legacy play URL OK ({audio.get('bandwidth', 0)//1000}kbps)"})
+                    return {"audio_url": audio_url, "bandwidth": audio.get("bandwidth", 0)}
         raise RuntimeError(f"Play URL error: {last_msg}")
 
     def get_play_url(self, bvid: str, cid: int) -> dict:
