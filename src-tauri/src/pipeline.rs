@@ -26,6 +26,7 @@ pub async fn download_bili_audio(
     };
     if !out.status.success() {
         let stdout = String::from_utf8_lossy(&out.stdout);
+        println!("  [sidecar] FAILED stdout="{}"", stdout);
         let stderr = String::from_utf8_lossy(&out.stderr);
         return Err(anyhow::anyhow!("bili_worker failed: stdout={}, stderr={}", stdout, stderr));
     }
