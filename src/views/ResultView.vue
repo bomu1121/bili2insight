@@ -50,7 +50,6 @@ async function copyContent() {
 }
 
 async function exportFile() {
-<n-button size="small" @click="showLog = true"><template #icon><n-icon><DocumentTextOutline /></n-icon></template>日志</n-button>
   if (!item.value?.result) return;
   try {
     const { save } = await import("@tauri-apps/plugin-dialog");
@@ -74,6 +73,7 @@ async function exportFile() {
       <div class="result-actions">
         <n-button size="small" @click="copyContent"><template #icon><n-icon><CopyOutline /></n-icon></template>复制</n-button>
         <n-button size="small" @click="exportFile"><template #icon><n-icon><DownloadOutline /></n-icon></template>导出</n-button>
+        <n-button size="small" @click="showLog = true"><template #icon><n-icon><DocumentTextOutline /></n-icon></template>日志</n-button>
       </div>
     </div>
 
