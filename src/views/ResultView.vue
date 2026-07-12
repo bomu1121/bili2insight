@@ -81,13 +81,15 @@ async function exportFile() {
       <n-text depth="3">未找到结果</n-text>
     </div>
 
-    <div v-else class="result-body">
+    <div v-else class="result-scroll">
+      <div class="result-body">
       <div class="ref-line">
         <span class="ref-bracket">【</span>{{ item.pageInfo.part }}<span class="ref-bracket">】</span>
-        <span class="ref-source">{{ item.source === 'url' ? 'B站链接' : item.source === 'fav' ? '收藏夹' : '本地文件' }}</span>
+        <span class="ref-source">{{ item.source === 'url' ? 'B站链接' : item.source === 'fav' ? '收藏夹' : '本地文件' }} &middot; <a :href="item.url" target="_blank" class="ref-link">{{ item.url }}</a></span>
       </div>
       <n-divider />
       <div class="md-preview" v-html="renderMarkdown(aiContent)" />
+    </div>
     </div>
     <n-drawer v-model:show="showLog" width="620"><n-drawer-content title="流水线日志" closable>
       <div class="log-console" v-if="item">
@@ -109,14 +111,17 @@ async function exportFile() {
 }
 .result-actions { display: flex; gap: 6px; flex-shrink: 0; }
 .result-empty { flex: 1; display: flex; align-items: center; justify-content: center; }
-.result-body { flex: 1; overflow-y: auto; padding: 20px 28px; max-width: 780px; margin: 0 auto; width: 100%; scrollbar-width: thin; scrollbar-color: #c0c0c0 transparent; }
-.result-body::-webkit-scrollbar { width: 6px; }
-.result-body::-webkit-scrollbar-track { background: transparent; }
-.result-body::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius: 3px; }
-.result-body::-webkit-scrollbar-thumb:hover { background: #a0a0a0; }
+.result-scroll { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #c0c0c0 transparent; }
+.result-body { padding: 20px 28px; max-width: 780px; margin: 0 auto; width: 100%; }
+.result-scroll::-webkit-scrollbar { width: 6px; }
+.result-scroll::-webkit-scrollbar-track { background: transparent; }
+.result-scroll::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius: 3px; }
+.result-scroll::-webkit-scrollbar-thumb:hover { background: #a0a0a0; }
 .ref-line { font-size: 13px; color: #666; line-height: 1.7; padding: 8px 0; word-break: break-all; }
 .ref-bracket { color: #999; }
 .ref-source { color: #bbb; font-size: 11px; margin-left: 8px; }
+.ref-link { color: #888; text-decoration: none; word-break: break-all; }
+.ref-link:hover { color: #666; }
 .md-preview { line-height: 1.8; color: #333; }
 .md-preview :deep(h1) { font-size: 20px; margin: 14px 0 10px; color: #111; }
 .md-preview :deep(h2) { font-size: 16px; margin: 12px 0 8px; color: #222; }
