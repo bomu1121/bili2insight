@@ -90,7 +90,11 @@ class BiliWorker:
             self.sub_key = _wbi_sub_key
             emit("progress", {"stage": "wbi_keys", "message": "Using cached WBI keys"})
             return
-        self.img_key, self.sub_key = get_cached_wbi_keys(self.client)
+        try:
+            self.img_key, self.sub_key = get_cached_wbi_keys(self.client)
+        except Exception as _e:
+            emit("progress", {"stage": "wbi_keys", "message": f"Cache read failed: {_e}"})
+            self.img_key = ""; self.sub_key = ""
         if self.img_key and self.sub_key:
             emit("progress", {"stage": "wbi_keys", "message": "WBI keys loaded from cache"})
             return
@@ -244,29 +248,18 @@ class BiliWorker:
         output_path = self.output_dir / f"{filename}.m4a"
         emit("progress", {"stage": "download", "message": "Downloading audio..."})
         headers = {"Referer": "https://www.bilibili.com/"}
-        last_err = None
-        for attempt in range(3):
-            if attempt > 0:
-                delay = 2 ** attempt
-                emit("progress", {"stage": "download", "message": f"Retrying download ({attempt+1}/3) in {delay}s..."})
-                time.sleep(delay)
-            try:
-                with self.client.stream("GET", audio_url, headers=headers) as resp:
-                    resp.raise_for_status()
-                    total = int(resp.headers.get("Content-Length", 0)); downloaded = 0
-                    with open(output_path, "wb") as f:
-                        for chunk in resp.iter_bytes(chunk_size=8192):
-                            f.write(chunk); downloaded += len(chunk)
-                            if total > 0 and downloaded % (512 * 1024) < 8192:
-                                pct = int(downloaded / total * 100)
-                                emit("progress", {"stage": "download", "message": f"Downloading... {pct}%"})
-                size_mb = output_path.stat().st_size / 1024 / 1024
-                emit("progress", {"stage": "download", "message": f"Download done ({size_mb:.1f}MB)"})
-                return output_path
-            except Exception as e:
-                last_err = e
-                emit("progress", {"stage": "download", "message": f"Download attempt {attempt+1} failed: {e}"})
-        raise last_err
+        with self.client.stream("GET", audio_url, headers=headers) as resp:
+            resp.raise_for_status()
+            total = int(resp.headers.get("Content-Length", 0)); downloaded = 0
+            with open(output_path, "wb") as f:
+                for chunk in resp.iter_bytes(chunk_size=8192):
+                    f.write(chunk); downloaded += len(chunk)
+                    if total > 0 and downloaded % (512 * 1024) < 8192:
+                        pct = int(downloaded / total * 100)
+                        emit("progress", {"stage": "download", "message": f"Downloading... {pct}%"})
+        size_mb = output_path.stat().st_size / 1024 / 1024
+        emit("progress", {"stage": "download", "message": f"Download done ({size_mb:.1f}MB)"})
+        return output_path
 
     def run(self, preview_only: bool = False, page_cid: int = None) -> dict:
         bvid = self.parse_bvid()

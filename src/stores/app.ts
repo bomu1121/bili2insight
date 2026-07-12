@@ -265,7 +265,7 @@ export const useAppStore = defineStore("app", () => {
         }
         // Delay to let PyInstaller sidecar cleanup complete before next item
         if (i < queue.value.length - 1) {
-          console.log('processQueue: waiting 3s for sidecar cleanup...');
+          console.log('processQueue: waiting 5s for sidecar cleanup...');
           await new Promise(r => setTimeout(r, 3000));
         }
       }
