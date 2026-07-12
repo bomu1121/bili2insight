@@ -41,6 +41,14 @@ class BiliWorker:
             transport = httpx.HTTPTransport(proxy=proxy, retries=5)
             mounts = {"http://": transport, "https://": transport}
         self.client = httpx.Client(limits=limits, timeout=30, headers=headers, mounts=mounts, follow_redirects=True)
+        # Set B? cookies (matches Bili23 guest session)
+        self.client.cookies.update({
+            "_uuid": "9aa29b56d9ab460aa302190a9c6bd3bc",
+            "buvid3": "69ca2dea4883434eb00a85b2a09418ba",
+            "buvid4": "9c5608fae91c48bfb65eaa1807fb78e7",
+            "CURRENT_FNVAL": "4048",
+            "CURRENT_QUALITY": "0",
+        })
         self.img_key = ""; self.sub_key = ""
 
     def _retry(self, fn, name: str, max_retries: int = 3):
