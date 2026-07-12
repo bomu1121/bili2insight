@@ -11,6 +11,7 @@ const route = useRoute();
 const router = useRouter();
 const store = useAppStore();
 const { message } = createDiscreteApi(["message"]);
+const showLog = ref(false);
 
 const itemId = computed(() => route.params.id as string);
 const item = computed(() => store.queue.find(q => q.id === itemId.value));
