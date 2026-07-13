@@ -198,7 +198,7 @@ export const useAppStore = defineStore("app", () => {
       try {
         const info = await previewVideo(val, proxy.value||undefined);
         preview.value = info;
-        if (info.pages && info.pages.length > 1) {
+        if (info.pages && info.pages.length > 0) {
             const matchIdx = info.pages.findIndex(p => p.cid === info.cid);
             selectedPages.value = new Set([matchIdx >= 0 ? matchIdx : 0]);
         }
