@@ -23,7 +23,7 @@ watch(url, (val) => {
     try {
       const info = await store.previewVideoFn(val);
       store.preview = info;
-      if (info.pages && info.pages.length > 1) {
+      if (info.pages && info.pages.length > 0) {
         const matchIdx = info.pages.findIndex(p => p.cid === info.cid);
         store.selectedPages = new Set([matchIdx >= 0 ? matchIdx : 0]);
       }
@@ -50,7 +50,11 @@ function addToQueue() {
   const sel: number[] = [];
   store.selectedPages.forEach(i => { if (i < pages.length) sel.push(i); });
   if (sel.length === 0) { message.warning("请至少选择一个分P"); return; }
-  sel.forEach(i => store.addQueueItem({ url: url.value, pageInfo: pages[i] }));
+  sel.forEach(i => {
+  const page = { ...pages[i] };
+  if (pages.length === 1 && store.preview) page.part = store.preview.title;
+  store.addQueueItem({ url: url.value, pageInfo: page });
+});
   message.success(`已加入 ${sel.length} 个视频到队列`);
   url.value = ""; store.preview = null;
 }
