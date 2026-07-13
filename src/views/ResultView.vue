@@ -44,7 +44,7 @@ function renderMarkdown(text: string) {
 async function copyContent() {
   if (!item.value) return;
   try {
-    await writeText(`【${item.value.pageInfo.part}】\n\n${aiContent.value}`);
+    await writeText(`【${item.value.pageInfo.part}】 ${item.value.url}\n\n${aiContent.value}`);
     message.success("已复制");
   } catch (e: any) { message.error("复制失败: " + String(e)); }
 }
