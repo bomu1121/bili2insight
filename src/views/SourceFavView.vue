@@ -47,7 +47,7 @@ function addSelectedToQueue() {
     if (i < store.favVideos.length) sel.push(store.favVideos[i]);
   });
   if (sel.length === 0) {
-    message.warning('Please select at least one video');
+    message.warning('请至少选择一个视频');
     return;
   }
   sel.forEach((v: any) => {
@@ -58,7 +58,7 @@ function addSelectedToQueue() {
       source: 'fav'
     });
   });
-  message.success('Added ' + sel.length + ' videos to queue');
+  message.success('已添加 ' + sel.length + ' 个视频到处理队列');
 }
 
 const fmtDur = (sec: number) => {
@@ -71,23 +71,23 @@ const fmtDur = (sec: number) => {
 <template>
   <div class="source-root">
     <div class="source-bar">
-      <n-button text @click="router.push('/')"><template #icon><n-icon><ArrowBackOutline /></n-icon></template>Back</n-button>
-      <n-text strong style="font-size:15px;">Bilibili Favorites</n-text>
+      <n-button text @click="router.push('/')"><template #icon><n-icon><ArrowBackOutline /></n-icon></template>返回</n-button>
+      <n-text strong style="font-size:15px;">B站收藏夹</n-text>
     </div>
 
     <div class="source-body">
       <!-- Not logged in -->
       <div v-if="!store.isLoggedIn" class="fav-empty">
         <n-icon size="48" color="#ccc"><FolderOpenOutline /></n-icon>
-        <n-text depth="3" style="margin-top:12px;">Please login to Bilibili to access favorites</n-text>
-        <n-button type="primary" @click="store.startLogin()" style="margin-top:16px;">Login</n-button>
+        <n-text depth="3" style="margin-top:12px;">请先登录B站账号以访问收藏夹</n-text>
+        <n-button type="primary" @click="store.startLogin()" style="margin-top:16px;">登录</n-button>
       </div>
 
       <template v-else>
         <!-- Folder list -->
         <div v-if="showFolders">
           <div class="fav-bar">
-            <n-input v-model:value="folderSearch" placeholder="Search folders..." size="small" clearable style="width:220px;" />
+            <n-input v-model:value="folderSearch" placeholder="搜索收藏夹..." size="small" clearable style="width:220px;" />
             <n-button size="small" @click="store.loadFavFolders()" :loading="store.favLoading">
               <template #icon><n-icon><RefreshOutline /></n-icon></template>
             </n-button>
@@ -98,13 +98,13 @@ const fmtDur = (sec: number) => {
                 <div class="folder-icon"><n-icon size="22" :color="f.collected ? '#f0a020' : '#00aeec'"><FolderOpenOutline /></n-icon></div>
                 <div class="folder-info">
                   <n-text style="font-size:14px;font-weight:500;">{{ f.title }}</n-text>
-                  <n-text depth="3" style="font-size:12px;">{{ f.count }} videos{{ f.collected ? ' . Collected' : '' }}</n-text>
+                  <n-text depth="3" style="font-size:12px;">{{ f.count }} 个视频{{ f.collected ? ' · 已收藏' : '' }}</n-text>
                 </div>
                 <span class="folder-arrow">&rarr;</span>
               </div>
             </div>
-            <div v-else-if="!store.favLoading" class="fav-empty">
-              <n-text depth="3">No folders found</n-text>
+            <div v-else class="fav-empty">
+              <n-text depth="3">暂无收藏夹</n-text>
             </div>
           </n-spin>
         </div>
@@ -112,15 +112,15 @@ const fmtDur = (sec: number) => {
         <!-- Videos in a folder -->
         <div v-else>
           <div class="fav-bar">
-            <n-button text @click="backToFolders"><template #icon><n-icon><ArrowBackOutline /></n-icon></template>Folders</n-button>
+            <n-button text @click="backToFolders"><template #icon><n-icon><ArrowBackOutline /></n-icon></template>返回目录</n-button>
             <n-text style="font-size:14px;font-weight:500;flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 12px;">{{ store.favCurrentFolderTitle }}</n-text>
-            <n-text depth="3" style="font-size:12px;">{{ store.favTotal }} videos</n-text>
+            <n-text depth="3" style="font-size:12px;">共 {{ store.favTotal }} 个视频</n-text>
           </div>
           <n-spin :show="store.favLoadingVideos">
             <div v-if="store.favVideos.length > 0">
               <div class="page-header-row">
                 <n-checkbox :checked="store.favSelectedVideos.size === store.favVideos.length" @update:checked="store.selectAllFavVideos()">
-                  Select all ({{ store.favSelectedVideos.size }}/{{ store.favVideos.length }})
+                  全选 ({{ store.favSelectedVideos.size }}/{{ store.favVideos.length }})
                 </n-checkbox>
               </div>
               <div class="fav-video-list">
@@ -138,11 +138,11 @@ const fmtDur = (sec: number) => {
                 <n-pagination :page="store.favPage" :page-count="store.favTotalPages" @update:page="loadPage" size="small" />
               </div>
               <n-button type="primary" block @click="addSelectedToQueue" :disabled="store.favSelectedVideos.size === 0" style="margin-top:14px;">
-                <template #icon><n-icon><AddCircleOutline /></n-icon></template>Add to Queue
+                <template #icon><n-icon><AddCircleOutline /></n-icon></template>添加到处理队列
               </n-button>
             </div>
-            <div v-else-if="!store.favLoadingVideos" class="fav-empty">
-              <n-text depth="3">This folder is empty</n-text>
+            <div v-else class="fav-empty">
+              <n-text depth="3">此收藏夹为空</n-text>
             </div>
           </n-spin>
         </div>
