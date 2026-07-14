@@ -27,8 +27,6 @@ const aiContent = computed(() => {
   section = section.replace(/^### (Summary|Key Points|Tags)\s*\n?/gm, "");
   const transcriptIdx = section.indexOf("## Full Transcript");
   if (transcriptIdx !== -1) section = section.substring(0, transcriptIdx);
-  const sepIdx = section.indexOf("---");
-  if (sepIdx !== -1) section = section.substring(0, sepIdx);
   return section.trim();
 });
 
