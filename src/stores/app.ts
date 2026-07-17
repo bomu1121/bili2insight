@@ -139,11 +139,11 @@ const BUILTIN_TEMPLATES: PromptTemplate[] = [
 const STORAGE_KEY = "bili2insight-settings"; const SETTINGS_VERSION = 4;
 
 function loadSaved(): Record<string,any>|null { try { const r=localStorage.getItem(STORAGE_KEY); return r?JSON.parse(r):null; } catch(_){return null;} }
-function saveToDisk(d:Record<string,any>) { try{localStorage.setItem(STORAGE_KEY,JSON.stringify(d));}catch(_){} }
+function saveToDisk(d:Record<string,any>) { d.version = SETTINGS_VERSION; try{localStorage.setItem(STORAGE_KEY,JSON.stringify(d));}catch(_){} }
 
 export const useAppStore = defineStore("app", () => {
   const saved = loadSaved();
-  const ver = saved?.version === SETTINGS_VERSION ? saved : null;
+  const ver = saved;
 
   const url = ref("");
   const proxy = ref(ver?.proxy ?? "");

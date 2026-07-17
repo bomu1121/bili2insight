@@ -43,9 +43,20 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
     println!("  [STAGE:download] calling bili_worker sidecar...");
     emit_progress(&app, "download", 0.05, "Getting video info and downloading audio...");
     let app_dl = app.clone();
-    let video_info = pipeline::download_bili_audio(&app, &url, &output_dir, false, proxy.as_deref(), page_cid,
+    let mut video_info = pipeline::download_bili_audio(&app, &url, &output_dir, false, proxy.as_deref(), page_cid,
         move |s, p, m| { let _ = app_dl.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string() }); },
     ).await.map_err(|e| format!("Download failed: {}", e))?;
+    // If processing a specific page, override video_info with the page's part title
+    if let Some(cid) = page_cid {
+        if let Some(page) = video_info.pages.iter().find(|p| p.cid == cid) {
+            if !page.part.is_empty() {
+                println!("  [STAGE:download] page title override: cur={} new={}", video_info.title, page.part);
+                video_info.title = page.part.clone();
+                video_info.cid = page.cid;
+                video_info.duration = page.duration;
+            }
+        }
+    }
     println!("  [STAGE:download] DONE, bvid={} title={}", video_info.bvid, video_info.title);
     emit_progress(&app, "download", 0.25, "Download complete");
 
