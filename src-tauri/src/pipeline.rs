@@ -110,22 +110,11 @@ pub async fn extract_audio_wav(
     Ok(wav_path.to_string_lossy().to_string())
 }
 
-pub async fn run_asr(
-    app: &AppHandle, wav_path: &str, progress: impl Fn(&str, f64, &str) + Send + 'static,
+async fn run_asr_sherpa(
+    app: &AppHandle, wav_path: &str,
+    progress: impl Fn(&str, f64, &str) + Send + 'static,
 ) -> Result<String, anyhow::Error> {
-    let models_root = {
-        let resource_dir = app.path().resource_dir()
-            .map_err(|e| anyhow::anyhow!("resource_dir error: {}", e))?;
-        let path = resource_dir.join("models");
-        if path.exists() {
-            path
-        } else {
-            // dev mode fallback: look in src-tauri/resources/
-            let dev_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("resources").join("models");
-            if dev_path.exists() { dev_path } else { path }
-        }
-    };
+    let models_root = get_models_root(app)?;
     if !models_root.exists() {
         return Err(anyhow::anyhow!("ASR model directory not found: {}", models_root.display()));
     }
@@ -138,11 +127,71 @@ pub async fn run_asr(
         return Err(anyhow::anyhow!("ASR failed: {}", stderr));
     }
     let stdout = String::from_utf8(out.stdout)?;
-    let mut full_text = String::new();
     for line in stdout.lines() {
         if let Ok(val) = serde_json::from_str::<Value>(line) {
             match val["type"].as_str() {
                 Some("progress") => { let m = val["message"].as_str().unwrap_or(""); progress("asr", 0.5, m); }
+                Some("error") => return Err(anyhow::anyhow!("{}", val["message"].as_str().unwrap_or("unknown"))),
+                _ => {}
+            }
+        }
+    }
+    parse_asr_output(&stdout)
+}
+
+async fn run_asr_api(
+    app: &AppHandle, wav_path: &str,
+    api_url: &str, api_key: Option<&str>,
+    progress: impl Fn(&str, f64, &str) + Send + 'static,
+) -> Result<String, anyhow::Error> {
+    let mut cmd = app.shell().sidecar("asr_worker")
+        .map_err(|e| anyhow::anyhow!("asr_worker sidecar not found: {}", e))?;
+    cmd = cmd.args([
+        "--backend", "api",
+        "--wav", wav_path,
+        "--api-url", api_url,
+    ]);
+    if let Some(key) = api_key {
+        cmd = cmd.args(["--api-key", key]);
+    }
+    let out = cmd.output().await.map_err(|e| anyhow::anyhow!("ASR API failed: {}", e))?;
+    if !out.status.success() {
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        return Err(anyhow::anyhow!("ASR API failed: stdout={}, stderr={}", stdout, stderr));
+    }
+    let stdout = String::from_utf8(out.stdout)?;
+    for line in stdout.lines() {
+        if let Ok(val) = serde_json::from_str::<Value>(line) {
+            match val["type"].as_str() {
+                Some("progress") => { let m = val["message"].as_str().unwrap_or(""); progress("asr", 0.5, m); }
+                Some("error") => return Err(anyhow::anyhow!("{}", val["message"].as_str().unwrap_or("unknown"))),
+                _ => {}
+            }
+        }
+    }
+    parse_asr_output(&stdout)
+}
+
+pub async fn run_asr(
+    app: &AppHandle, wav_path: &str,
+    asr_model: &str, asr_api_url: Option<&str>, asr_api_key: Option<&str>,
+    progress: impl Fn(&str, f64, &str) + Send + 'static,
+) -> Result<String, anyhow::Error> {
+    match asr_model {
+        "mimo" | "mimo-api" => {
+            let url = asr_api_url.ok_or_else(|| anyhow::anyhow!("ASR API URL required for MiMo backend"))?;
+            run_asr_api(app, wav_path, url, asr_api_key, progress).await
+        }
+        _ => run_asr_sherpa(app, wav_path, progress).await,
+    }
+}
+
+fn parse_asr_output(stdout: &str) -> Result<String, anyhow::Error> {
+    let mut full_text = String::new();
+    for line in stdout.lines() {
+        if let Ok(val) = serde_json::from_str::<Value>(line) {
+            match val["type"].as_str() {
                 Some("result") => { if let Some(t) = val["text"].as_str() { full_text = t.to_string(); } }
                 Some("error") => return Err(anyhow::anyhow!("{}", val["message"].as_str().unwrap_or("unknown"))),
                 _ => {}
@@ -151,6 +200,20 @@ pub async fn run_asr(
     }
     if full_text.is_empty() { return Err(anyhow::anyhow!("No transcription result")); }
     Ok(full_text)
+}
+
+fn get_models_root(app: &AppHandle) -> Result<std::path::PathBuf, anyhow::Error> {
+    let resource_dir = app.path().resource_dir()
+        .map_err(|e| anyhow::anyhow!("resource_dir error: {}", e))?;
+    let path = resource_dir.join("models");
+    if path.exists() {
+        Ok(path)
+    } else {
+        // dev mode fallback: look in src-tauri/resources/
+        let dev_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("resources").join("models");
+        if dev_path.exists() { Ok(dev_path) } else { Ok(path) }
+    }
 }
 
 pub async fn refine_transcript(api_url: &str, api_key: &str, model: &str, transcript: &str) -> Result<String, anyhow::Error> {

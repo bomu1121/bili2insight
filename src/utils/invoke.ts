@@ -12,10 +12,11 @@ export async function downloadBatch(url: string, cids: number[], proxy?: string)
 export async function runPipelineWithPage(
   url: string, proxy?: string, aiApiUrl?: string, aiApiKey?: string,
   aiModel?: string, aiPrompt?: string, pageCid?: number,
+  asrModel?: string, asrApiUrl?: string, asrApiKey?: string,
 ): Promise<PipelineResult> {
   console.log("invoke run_pipeline", { url: url.slice(0,40), pageCid });
   try {
-    const r = await invoke<PipelineResult>("run_pipeline", { url, proxy: proxy || null, aiApiUrl: aiApiUrl || null, aiApiKey: aiApiKey || null, aiModel: aiModel || null, aiPrompt: aiPrompt || null, pageCid: pageCid ?? null });
+    const r = await invoke<PipelineResult>("run_pipeline", { url, proxy: proxy || null, aiApiUrl: aiApiUrl || null, aiApiKey: aiApiKey || null, aiModel: aiModel || null, aiPrompt: aiPrompt || null, pageCid: pageCid ?? null, asrModel: asrModel || null, asrApiUrl: asrApiUrl || null, asrApiKey: asrApiKey || null });
     console.log("invoke run_pipeline done");
     return r;
   } catch(e) { console.error("invoke run_pipeline FAILED:", e); throw e; }
@@ -24,8 +25,9 @@ export async function runPipelineWithPage(
 export async function runPipeline(
   url: string, proxy?: string, aiApiUrl?: string, aiApiKey?: string,
   aiModel?: string, aiPrompt?: string,
+  asrModel?: string, asrApiUrl?: string, asrApiKey?: string,
 ): Promise<PipelineResult> {
-  return invoke<PipelineResult>("run_pipeline", { url, proxy: proxy || null, aiApiUrl: aiApiUrl || null, aiApiKey: aiApiKey || null, aiModel: aiModel || null, aiPrompt: aiPrompt || null });
+  return invoke<PipelineResult>("run_pipeline", { url, proxy: proxy || null, aiApiUrl: aiApiUrl || null, aiApiKey: aiApiKey || null, aiModel: aiModel || null, aiPrompt: aiPrompt || null, asrModel: asrModel || null, asrApiUrl: asrApiUrl || null, asrApiKey: asrApiKey || null });
 }
 
 export async function saveResultToFile(result: PipelineResult, outputPath: string): Promise<void> {

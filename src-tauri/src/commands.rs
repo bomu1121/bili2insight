@@ -32,7 +32,9 @@ pub async fn download_batch(app: AppHandle, url: String, proxy: Option<String>, 
     Ok(video_info)
 }
 #[tauri::command]
-pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai_api_url: Option<String>, ai_api_key: Option<String>, ai_model: Option<String>, ai_prompt: Option<String>, page_cid: Option<i64>) -> Result<crate::PipelineResult, String> {
+pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai_api_url: Option<String>, ai_api_key: Option<String>, ai_model: Option<String>, ai_prompt: Option<String>, page_cid: Option<i64>,
+    asr_model: Option<String>, asr_api_url: Option<String>, asr_api_key: Option<String>,
+) -> Result<crate::PipelineResult, String> {
     let output_dir = app.path().app_data_dir().map_err(|e| e.to_string())?.join("tasks");
     std::fs::create_dir_all(&output_dir).map_err(|e| e.to_string())?;
     let start = std::time::Instant::now();
@@ -55,10 +57,12 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
     println!("  [STAGE:ffmpeg] DONE, wav_path={}", wav_path);
     emit_progress(&app, "ffmpeg", 0.40, "Audio conversion complete");
 
-    println!("  [STAGE:asr] starting speech recognition...");
+    let asr_model_val = asr_model.unwrap_or_else(|| "paraformer".to_string());
+    println!("  [STAGE:asr] starting speech recognition, model={}...", asr_model_val);
     emit_progress(&app, "asr", 0.45, "Running speech recognition...");
     let app_asr = app.clone();
     let transcript = pipeline::run_asr(&app, &wav_path,
+        &asr_model_val, asr_api_url.as_deref(), asr_api_key.as_deref(),
         move |s, p, m| { let _ = app_asr.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string() }); },
     ).await.map_err(|e| format!("ASR failed: {}", e))?;
     println!("  [STAGE:asr] DONE, transcript_len={}", transcript.len());

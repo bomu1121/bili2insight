@@ -1,4 +1,4 @@
-import { defineStore } from "pinia";
+﻿import { defineStore } from "pinia";
 import { ref, watch, computed } from "vue";
 import type { PipelineResult, PipelineProgress, VideoInfo, PageInfo, TaskState, QueueItem } from "../utils/types";
 import { runPipelineWithPage, saveResultToFile, previewVideo, fetchModels } from "../utils/invoke";
@@ -136,7 +136,7 @@ const BUILTIN_TEMPLATES: PromptTemplate[] = [
   { name: "信息溯源", prompt: PROMPT_TRACE, builtin: true },
 ];
 
-const STORAGE_KEY = "bili2insight-settings"; const SETTINGS_VERSION = 3;
+const STORAGE_KEY = "bili2insight-settings"; const SETTINGS_VERSION = 4;
 
 function loadSaved(): Record<string,any>|null { try { const r=localStorage.getItem(STORAGE_KEY); return r?JSON.parse(r):null; } catch(_){return null;} }
 function saveToDisk(d:Record<string,any>) { try{localStorage.setItem(STORAGE_KEY,JSON.stringify(d));}catch(_){} }
@@ -154,6 +154,12 @@ export const useAppStore = defineStore("app", () => {
   const customModels = ref<string[]>(ver?.customModels ?? []);
   const selectedTemplateIndex = ref(ver?.selectedTemplateIndex ?? 0);
   const customTemplates = ref<PromptTemplate[]>(ver?.customTemplates ?? []);
+
+  // --- ASR settings ---
+  type AsrModelOption = "paraformer" | "mimo";
+  const asrModel = ref<AsrModelOption>(ver?.asrModel ?? "paraformer");
+  const asrApiUrl = ref(ver?.asrApiUrl ?? "");
+  const asrApiKey = ref(ver?.asrApiKey ?? "");
 
   const allTemplates = computed(() => [...BUILTIN_TEMPLATES, ...customTemplates.value]);
   const aiPrompt = computed(() => {
@@ -216,10 +222,11 @@ export const useAppStore = defineStore("app", () => {
       version: SETTINGS_VERSION, proxy: proxy.value, aiApiUrl: aiApiUrl.value, aiApiKey: aiApiKey.value,
       aiModel: aiModel.value, selectedProvider: selectedProvider.value, customModels: customModels.value,
       selectedTemplateIndex: selectedTemplateIndex.value, customTemplates: customTemplates.value,
+      asrModel: asrModel.value, asrApiUrl: asrApiUrl.value, asrApiKey: asrApiKey.value,
     });
   }
 
-  watch([proxy, aiApiUrl, aiApiKey, aiModel, selectedProvider, selectedTemplateIndex, customTemplates], () => {
+  watch([proxy, aiApiUrl, aiApiKey, aiModel, selectedProvider, selectedTemplateIndex, customTemplates, asrModel, asrApiUrl, asrApiKey], () => {
     persistSettings();
   }, { deep: false });
 
@@ -526,7 +533,7 @@ async function checkLoginAfterAuth() {
         queue.value = updated;
         console.log('processQueue: item', i, 'set to running, url=', item.url?.slice(0,50), 'cid=', item.pageInfo.cid, 'part=', item.pageInfo.part);
         try {
-          const result = await runPipelineWithPage(item.url!, proxy.value || undefined, aiApiUrl.value || undefined, aiApiKey.value || undefined, aiModel.value || undefined, aiPrompt.value || undefined, item.pageInfo.cid,
+          const result = await runPipelineWithPage(item.url!, proxy.value || undefined, aiApiUrl.value || undefined, aiApiKey.value || undefined, aiModel.value || undefined, aiPrompt.value || undefined, item.pageInfo.cid, asrModel.value, asrApiUrl.value || undefined, asrApiKey.value || undefined,
           );
           console.log('processQueue: item', i, 'DONE, bvid=', result.video_info.bvid, 'title=', result.video_info.title?.slice(0,40));
           const done = [...queue.value];
@@ -583,6 +590,7 @@ async function checkLoginAfterAuth() {
         const res = await runPipelineWithPage(
           url.value, proxy.value||undefined, aiApiUrl.value||undefined, aiApiKey.value||undefined,
           aiModel.value||undefined, aiPrompt.value||undefined, tasks.value[ti].pageInfo.cid,
+          asrModel.value, asrApiUrl.value||undefined, asrApiKey.value||undefined,
         );
         tasks.value[ti].status = "done";
         tasks.value[ti].result = res;
@@ -660,7 +668,7 @@ async function checkLoginAfterAuth() {
 
   return {
     url, proxy, aiApiUrl, aiApiKey, aiModel, aiPrompt, selectedProvider, processing, progress, result, error,
-    preview, previewLoading, PROVIDERS, BUILTIN_TEMPLATES, allTemplates, selectedTemplateIndex, customTemplates, customModels,
+    preview, previewLoading, PROVIDERS, BUILTIN_TEMPLATES, allTemplates, selectedTemplateIndex, customTemplates, customModels, asrModel, asrApiUrl, asrApiKey,
     selectedPages, tasks, activeTaskIndex, videoPages, completedTasks, hasMultiPages, activeResultTab,
     activeResult, mergedMarkdown,
     init, cleanup, startPipeline, exportToFile, switchProvider, fetchModelList,

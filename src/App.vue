@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch, computed } from "vue";
 import { NInput, NButton, NSpace, NText, NIcon, NTabs, NTabPane, createDiscreteApi, NDrawer, NDrawerContent, NSelect } from "naive-ui";
 import { SettingsSharp, VideocamOutline, ListOutline, PlayOutline, TrashOutline, EyeOutline, CheckmarkCircle, CloseCircle, SyncOutline, PersonCircleOutline, LogOutOutline, RefreshOutline, PhonePortraitOutline, QrCodeOutline, ArrowForward } from "@vicons/ionicons5";
@@ -202,6 +202,18 @@ const tplPrompt = computed({
         <n-text depth="3" style="font-size:12px;">模型</n-text><n-select v-model:value="store.aiModel" :options="(store.customModels.length>0?store.customModels:store.PROVIDERS[store.selectedProvider].models).map(m=>({label:m,value:m}))" size="small" />
       </div>
       <div v-else><n-text depth="3" style="font-size:12px;">模型</n-text><n-input v-model:value="store.aiModel" size="small" /></div>
+      <div>
+        <n-text depth="3" style="font-size:12px;">ASR 语音识别模型</n-text>
+        <n-select v-model:value="store.asrModel" :options="[{label:'Paraformer (本地)',value:'paraformer'},{label:'MiMo-V2.5 (API)',value:'mimo'}]" size="small" style="margin-top:4px;" />
+      </div>
+      <div v-if="store.asrModel === 'mimo'">
+        <n-text depth="3" style="font-size:12px;">ASR API 地址</n-text>
+        <n-input v-model:value="store.asrApiUrl" placeholder="https://api.xiaomimimo.com/v1/chat/completions" size="small" style="margin-top:4px;" />
+      </div>
+      <div v-if="store.asrModel === 'mimo'">
+        <n-text depth="3" style="font-size:12px;">ASR API 密钥 (可选)</n-text>
+        <n-input v-model:value="store.asrApiKey" type="password" placeholder="可选，默认不传递" size="small" show-password-on="click" style="margin-top:4px;" />
+      </div>
       <div>
         <n-space justify="space-between" align="center"><n-text depth="3" style="font-size:12px;">提示词模版</n-text><n-button size="tiny" @click="store.addCustomTemplate()">+ 新增</n-button></n-space>
         <n-space style="margin-top:4px;flex-wrap:wrap;" :size="4">
