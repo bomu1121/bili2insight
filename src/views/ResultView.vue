@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed, ref } from "vue";
 import { NButton, NText, NIcon, NDivider, NDrawer, NDrawerContent } from "naive-ui";
 import { ArrowBackOutline, CopyOutline, DownloadOutline, DocumentTextOutline } from "@vicons/ionicons5";
@@ -93,6 +93,7 @@ async function exportFile() {
       <div class="log-console" v-if="item">
         <div class="log-block"><div class="log-tag info">视频信息</div><pre class="log-text">{{ JSON.stringify(item.result?.video_info, null, 2) }}</pre></div>
         <div class="log-block"><div class="log-tag success">AI 观点提炼</div><pre class="log-text">{{ JSON.stringify(item.result?.insights, null, 2) }}</pre></div>
+        <div class="log-block"><div class="log-tag warn">ASR 原始识别（未校对）</div><pre class="log-text">{{ item.result?.raw_transcript }}</pre></div>
         <div class="log-block"><div class="log-tag warn">AI 请求</div><pre class="log-text">{{ item.result?.ai_request }}</pre></div>
         <div class="log-block"><div class="log-tag">AI 原始响应</div><pre class="log-text">{{ item.result?.ai_raw_response }}</pre></div>
       </div>
