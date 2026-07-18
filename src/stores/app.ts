@@ -1,12 +1,10 @@
 ﻿import { defineStore } from "pinia";
 import { ref, watch, computed } from "vue";
 import type { PipelineResult, PipelineProgress, VideoInfo, PageInfo, TaskState, QueueItem } from "../utils/types";
+import { SETTINGS_VERSION, loadSaved, saveToDisk, type Provider, type PromptTemplate } from "./settings";
 import { runPipelineWithPage, saveResultToFile, previewVideo, fetchModels } from "../utils/invoke";
 import { runPipelineLocal } from "../utils/invoke";
 import { listen } from "@tauri-apps/api/event";
-
-export interface Provider { name: string; url: string; models: string[]; }
-export interface PromptTemplate { name: string; prompt: string; builtin: boolean; }
 
 const PROVIDERS: Provider[] = [
   { name: "DeepSeek", url: "https://api.deepseek.com", models: ["deepseek-chat", "deepseek-reasoner"] },
@@ -136,11 +134,6 @@ const BUILTIN_TEMPLATES: PromptTemplate[] = [
   { name: "技术文案提炼", prompt: PROMPT_TECH, builtin: true },
   { name: "信息溯源", prompt: PROMPT_TRACE, builtin: true },
 ];
-
-const STORAGE_KEY = "bili2insight-settings"; const SETTINGS_VERSION = 4;
-
-function loadSaved(): Record<string,any>|null { try { const r=localStorage.getItem(STORAGE_KEY); return r?JSON.parse(r):null; } catch(_){return null;} }
-function saveToDisk(d:Record<string,any>) { d.version = SETTINGS_VERSION; try{localStorage.setItem(STORAGE_KEY,JSON.stringify(d));}catch(_){} }
 
 export const useAppStore = defineStore("app", () => {
   const saved = loadSaved();
