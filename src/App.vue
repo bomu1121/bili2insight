@@ -1,7 +1,7 @@
 ﻿<script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch, computed } from "vue";
 import { NInput, NButton, NSpace, NText, NIcon, NTabs, NTabPane, createDiscreteApi, NDrawer, NDrawerContent, NSelect } from "naive-ui";
-import { SettingsSharp, VideocamOutline, ListOutline, PlayOutline, TrashOutline, EyeOutline, CheckmarkCircle, CloseCircle, SyncOutline, PersonCircleOutline, LogOutOutline, RefreshOutline, PhonePortraitOutline, QrCodeOutline, ArrowForward } from "@vicons/ionicons5";
+import { SettingsSharp, VideocamOutline, ListOutline, PlayOutline, TrashOutline, EyeOutline, CheckmarkCircle, CloseCircle, SyncOutline, PersonCircleOutline, LogOutOutline, RefreshOutline, PhonePortraitOutline, QrCodeOutline, ArrowForward, CopyOutline } from "@vicons/ionicons5";
 import { useRouter } from "vue-router";
 import { useAppStore } from "./stores/app";
 const { message } = createDiscreteApi(["message"]);
@@ -18,6 +18,10 @@ watch(() => store.error, (val) => { if (val) message.error(val); });
 function viewResult(id: string) { showQueue.value = false; router.push(`/result/${id}`); }
 function startProcessing() { store.processQueue(); }
 function clearDone() { store.queue = store.queue.filter(q => q.status !== "done" && q.status !== "error"); }
+async function copyAllTitles() {
+  const text = store.queue.map(q => q.pageInfo.part).join('\n');
+  try { await navigator.clipboard.writeText(text); } catch (_) {}
+}
 
 const templateOptions = computed(() => {
   const opts = store.allTemplates.map((t, i) => ({ label: t.name, value: i }));
@@ -112,6 +116,9 @@ const tplPrompt = computed({
             </n-button>
             <n-button size="small" @click="clearDone" :disabled="store.queue.filter(q=>q.status==='done'||q.status==='error').length===0">
               <template #icon><n-icon><TrashOutline /></n-icon></template>清除已完成
+            </n-button>
+            <n-button size="small" @click="copyAllTitles" :disabled="store.queue.length===0">
+              <template #icon><n-icon><CopyOutline /></n-icon></template>复制标题
             </n-button>
           </div>
           <div class="queue-list">

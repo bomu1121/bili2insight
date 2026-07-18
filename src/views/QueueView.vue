@@ -1,7 +1,7 @@
 ﻿<script setup lang="ts">
 import { computed } from "vue";
 import { NButton, NText, NIcon, NSpace, NSelect } from "naive-ui";
-import { ArrowBackOutline, TrashOutline, PlayOutline, EyeOutline, CheckmarkCircle, CloseCircle, SyncOutline } from "@vicons/ionicons5";
+import { ArrowBackOutline, TrashOutline, PlayOutline, EyeOutline, CheckmarkCircle, CloseCircle, SyncOutline, CopyOutline } from "@vicons/ionicons5";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/app";
 
@@ -29,6 +29,10 @@ const templateOptions = computed(() => {
 function startProcessing() { store.processQueue(); }
 function clearDone() { store.queue = store.queue.filter(q => q.status !== "done" && q.status !== "error"); }
 function viewResult(id: string) { router.push(`/result/${id}`); }
+async function copyAllTitles() {
+  const text = store.queue.map(q => q.pageInfo.part).join('\n');
+  try { await navigator.clipboard.writeText(text); } catch (_) {}
+}
 function updateItemTemplate(itemId: string, val: number) {
   const q = [...store.queue];
   const idx = q.findIndex(qi => qi.id === itemId);
@@ -49,6 +53,9 @@ function updateItemTemplate(itemId: string, val: number) {
         </n-button>
         <n-button size="small" @click="clearDone" :disabled="store.queue.filter(q=>q.status==='done'||q.status==='error').length===0">
           <template #icon><n-icon><TrashOutline /></n-icon></template>清除已完成
+        </n-button>
+        <n-button size="small" @click="copyAllTitles" :disabled="store.queue.length===0">
+          <template #icon><n-icon><CopyOutline /></n-icon></template>复制标题
         </n-button>
       </n-space>
     </div>
