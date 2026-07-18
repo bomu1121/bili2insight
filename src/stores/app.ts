@@ -638,11 +638,8 @@ async function checkLoginAfterAuth() {
           err[i] = { ...err[i], status: 'error' as const, error: String(e) };
           queue.value = err;
         }
-        // Delay to let PyInstaller sidecar cleanup complete before next item
-        if (i < queue.value.length - 1) {
-          console.log('processQueue: waiting 5s for sidecar cleanup...');
-          await new Promise(r => setTimeout(r, 3000));
-        }
+        // Brief yield to let the event loop breathe between items
+        await new Promise(r => setTimeout(r, 100));
       }
     } finally { isProcessing.value = false; }
   }
