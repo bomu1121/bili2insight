@@ -559,23 +559,23 @@ def _mode_fav_folders(client, cookies_arg):
     uname = user_data["data"]["uname"]
     face = user_data["data"].get("face", "")
 
-    # Get created folders
-    fav_url = f"https://api.bilibili.com/x/v3/fav/folder/created/list-all?up_mid={uid}"
-    resp = client.get(fav_url, cookies=cookies)
-    data = resp.json()
-    if data.get("code") != 0:
-        raise RuntimeError(f"Failed to get favorite folders: {data.get('message', 'unknown')}")
-
+    # Get created folders with pagination
     folders = []
-    for entry in data.get("data", {}).get("list", []):
-        folders.append({
-            "id": entry["id"],
-            "title": entry["title"],
-            "count": entry.get("media_count", 0),
-            "mid": entry.get("mid", uid),
-        })
-
-    # Also get collected folders
+    pn, ps = 1, 50
+    while True:
+        params = {"up_mid":uid,"pn":pn,"ps":ps,"platform":"web","web_location":"333.1387"}
+        fav_url = f"https://api.bilibili.com/x/v3/fav/folder/created/list?{urllib.parse.urlencode(params)}"
+        resp = client.get(fav_url, cookies=cookies)
+        data = resp.json()
+        if data.get("code")!=0:
+            raise RuntimeError(f"Failed to get favorite folders: {data.get("message")}")
+        page_list = data.get("data",{}).get("list",[])
+        if not page_list: break
+        for entry in page_list:
+            folders.append({"id":entry["id"],"title":entry["title"],"count":entry.get("media_count",0),"mid":entry.get("mid",uid)})
+        if len(page_list)<ps: break
+        pn+=1
+# Also get collected folders
     sub_url = f"https://api.bilibili.com/x/v3/fav/folder/collected/list?pn=1&ps=50&up_mid={uid}&platform=web&web_location=333.1387"
     try:
         resp = client.get(sub_url, cookies=cookies)
@@ -602,51 +602,35 @@ def _mode_fav_videos(client, cookies_arg, folder_id, page):
     cookies = _load_cookies(cookies_arg)
     if not cookies:
         raise RuntimeError("No cookies provided. Please login first.")
-
-    ps = 20
-    params = {
-        "media_id": folder_id,
-        "pn": page,
-        "ps": ps,
-        "keyword": "",
-        "order": "mtime",
-        "type": 0,
-        "tid": 0,
-        "platform": "web",
-        "web_location": "333.1387",
-    }
+    _apply_cookies_to_client(client, cookies)
+    ps = 40
+    params = {"media_id":folder_id,"pn":page,"ps":ps,"keyword":"","order":"mtime","type":0,"tid":0,"platform":"web","web_location":"333.1387"}
     query = urllib.parse.urlencode(params)
     url = f"https://api.bilibili.com/x/v3/fav/resource/list?{query}"
-    resp = client.get(url, cookies=cookies)
+    resp = client.get(url)
     data = resp.json()
-    if data.get("code") != 0:
-        raise RuntimeError(f"Failed to get favorite videos: {data.get('message', 'unknown')}")
-
-    info = data.get("data", {}).get("info", {})
-    total = info.get("media_count", 0)
-    medias = data.get("data", {}).get("medias", []) or []
-
+    if data.get("code")!=0:
+        raise RuntimeError(f"Failed to get favorite videos: {data.get("message")}")
+    db = data.get("data") or {}
+    info = db.get("info",{})
+    total = info.get("media_count",0)
+    medias = db.get("medias") or []
     videos = []
     for m in medias:
-        videos.append({
-            "bvid": m.get("bvid", ""),
-            "title": m.get("title", ""),
-            "cover": m.get("cover", ""),
-            "duration": m.get("duration", 0),
-            "uploader": m.get("upper", {}).get("name", ""),
-            "uploader_uid": m.get("upper", {}).get("mid", 0),
-            "cid": m.get("page", {}).get("cid", 0),
-            "pubdate": m.get("pubdate", 0),
-        })
+        upper=m.get("upper",0)
+        uname=upper.get("name","") if isinstance(upper,dict) else (str(upper) if upper else "")
+        uuid=upper.get("mid",0) if isinstance(upper,dict) else (upper if isinstance(upper,int) else 0)
+        page=m.get("page",0)
+        mc=page.get("cid",0) if isinstance(page,dict) else 0
+        videos.append({"bvid":m.get("bvid",""),"title":m.get("title",""),"cover":m.get("cover",""),"duration":m.get("duration",0),"uploader":uname,"uploader_uid":uuid,"cid":mc,"pubdate":m.get("pubdate",0)})
+    tp = (total+ps-1)//ps if total>0 else 0
+    emit("result",{"folder_id":folder_id,"page":page,"total":total,"total_pages":tp,"videos":videos})
 
-    total_pages = (total + ps - 1) // ps if total > 0 else 0
-    emit("result", {
-        "folder_id": folder_id,
-        "page": page,
-        "total": total,
-        "total_pages": total_pages,
-        "videos": videos,
-    })
+def _apply_cookies_to_client(client_obj, cookies: dict):
+    for key, value in cookies.items():
+        if value:
+            client_obj.cookies.set(name=key, value=str(value), domain=".bilibili.com", path="/")
+
 
 
 def _mode_check_login(client, cookies_arg):

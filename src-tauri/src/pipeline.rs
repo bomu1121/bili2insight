@@ -276,7 +276,7 @@ async fn run_bili_mode(app: &AppHandle, mode: &str, extra_args: &[(&str, &str)],
         cmd = cmd.args(["--proxy", p]);
     }
     println!("  [sidecar/mode] spawning bili_worker mode={}", mode);
-    let out = match tokio::time::timeout(std::time::Duration::from_secs(30), cmd.output()).await {
+    let out = match tokio::time::timeout(std::time::Duration::from_secs(60), cmd.output()).await {
         Ok(Ok(out)) => {
             println!("  [sidecar/mode] process exited, status={:?} stdout_len={}", out.status, out.stdout.len());
             out
@@ -290,7 +290,7 @@ async fn run_bili_mode(app: &AppHandle, mode: &str, extra_args: &[(&str, &str)],
         return Err(anyhow::anyhow!("bili_worker mode {} failed: stdout={}, stderr={}", mode, stdout, stderr));
     }
     let stdout = String::from_utf8(out.stdout)?;
-    println!("  [sidecar/mode] stdout [{}]: {}", mode, &stdout[..std::cmp::min(stdout.len(), 800)]);
+    println!("  [sidecar/mode] stdout [{}]: {}", mode, &stdout.chars().take(800).collect::<String>());
     let mut result: Option<serde_json::Value> = None;
     for line in stdout.lines() {
         if let Ok(val) = serde_json::from_str::<serde_json::Value>(line) {

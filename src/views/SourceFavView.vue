@@ -13,9 +13,6 @@ const showFolders = ref(true);
 const folderSearch = ref('');
 
 onMounted(async () => {
-  if (!store.isLoggedIn) {
-    await store.checkLoginStatus();
-  }
   if (store.isLoggedIn) {
     await store.loadFavFolders();
   }

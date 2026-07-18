@@ -11,7 +11,7 @@ const showSettings = ref(false);
 const showQueue = ref(false);
 const qrTab = ref("qr");
 
-onMounted(() => { store.init(); store.checkLoginStatus(); });
+onMounted(async () => { await store.init(); });
 onUnmounted(() => store.cleanup());
 watch(() => store.error, (val) => { if (val) message.error(val); });
 

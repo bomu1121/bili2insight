@@ -30,6 +30,15 @@ export async function runPipeline(
   return invoke<PipelineResult>("run_pipeline", { url, proxy: proxy || null, aiApiUrl: aiApiUrl || null, aiApiKey: aiApiKey || null, aiModel: aiModel || null, aiPrompt: aiPrompt || null, asrModel: asrModel || null, asrApiUrl: asrApiUrl || null, asrApiKey: asrApiKey || null });
 }
 
+export async function runPipelineLocal(
+  filePath: string, fileName: string,
+  aiApiUrl?: string, aiApiKey?: string,
+  aiModel?: string, aiPrompt?: string,
+  asrModel?: string, asrApiUrl?: string, asrApiKey?: string,
+): Promise<PipelineResult> {
+  return invoke<PipelineResult>("run_pipeline_local", { filePath, fileName, aiApiUrl: aiApiUrl || null, aiApiKey: aiApiKey || null, aiModel: aiModel || null, aiPrompt: aiPrompt || null, asrModel: asrModel || null, asrApiUrl: asrApiUrl || null, asrApiKey: asrApiKey || null });
+}
+
 export async function saveResultToFile(result: PipelineResult, outputPath: string): Promise<void> {
   return invoke("save_result_to_file", { result, outputPath });
 }

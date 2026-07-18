@@ -2,6 +2,7 @@
 import { ref, watch, computed } from "vue";
 import type { PipelineResult, PipelineProgress, VideoInfo, PageInfo, TaskState, QueueItem } from "../utils/types";
 import { runPipelineWithPage, saveResultToFile, previewVideo, fetchModels } from "../utils/invoke";
+import { runPipelineLocal } from "../utils/invoke";
 import { listen } from "@tauri-apps/api/event";
 
 export interface Provider { name: string; url: string; models: string[]; }
@@ -352,7 +353,16 @@ async function checkLoginAfterAuth() {
     try {
       let cookies: Record<string,string> = {};
       try {
-        const saved = localStorage.getItem('bili2insight-cookies');
+        // Read from persistent file first (matching upstream Bili23-Downloader),
+        // fall back to localStorage for backward compatibility.
+        let saved: string | null = null;
+        try {
+          const { invoke } = await import('@tauri-apps/api/core');
+          saved = await invoke<string>('read_cookies_file');
+        } catch(_) {}
+        if (!saved) {
+          saved = localStorage.getItem('bili2insight-cookies');
+        }
         if (saved) cookies = JSON.parse(saved);
       } catch(_) {}
       console.log("[login] checkLoginStatus: found cookies, keys:", Object.keys(cookies)); if (Object.keys(cookies).length === 0) {console.log("[login] checkLoginStatus: no cookies, not logged in"); isLoggedIn.value = false; return;
@@ -467,6 +477,7 @@ async function checkLoginAfterAuth() {
         queue.value = q;
       }
     });
+    await checkLoginStatus();
   }
   function cleanup() { if (unlisten) { unlisten(); unlisten = null; } }
 
@@ -533,8 +544,12 @@ async function checkLoginAfterAuth() {
         queue.value = updated;
         console.log('processQueue: item', i, 'set to running, url=', item.url?.slice(0,50), 'cid=', item.pageInfo.cid, 'part=', item.pageInfo.part);
         try {
-          const result = await runPipelineWithPage(item.url!, proxy.value || undefined, aiApiUrl.value || undefined, aiApiKey.value || undefined, aiModel.value || undefined, aiPrompt.value || undefined, item.pageInfo.cid, asrModel.value, asrApiUrl.value || undefined, asrApiKey.value || undefined,
-          );
+          let result: PipelineResult;
+          if (item.source === 'local') {
+            result = await runPipelineLocal(item.url!, item.pageInfo.part, aiApiUrl.value || undefined, aiApiKey.value || undefined, aiModel.value || undefined, aiPrompt.value || undefined, asrModel.value, asrApiUrl.value || undefined, asrApiKey.value || undefined);
+          } else {
+            result = await runPipelineWithPage(item.url!, proxy.value || undefined, aiApiUrl.value || undefined, aiApiKey.value || undefined, aiModel.value || undefined, aiPrompt.value || undefined, item.pageInfo.cid, asrModel.value, asrApiUrl.value || undefined, asrApiKey.value || undefined);
+          }
           console.log('processQueue: item', i, 'DONE, bvid=', result.video_info.bvid, 'title=', result.video_info.title?.slice(0,40));
           const done = [...queue.value];
           done[i] = { ...done[i], status: 'done' as const, progress: 1, stageLabel: '完成', result };

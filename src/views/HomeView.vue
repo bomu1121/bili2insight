@@ -40,11 +40,11 @@ function goToFav() {
         <div class="entry-arrow">→</div>
       </button>
 
-      <button class="entry-btn disabled" disabled>
+      <button class="entry-btn" @click="router.push('/source/local')">
         <div class="entry-icon local"><n-icon size="28"><CloudUploadOutline /></n-icon></div>
         <div class="entry-label">本地文件</div>
-        <div class="entry-desc">上传本地视频或音频文件</div>
-        <div class="entry-badge">即将支持</div>
+        <div class="entry-desc">选择本地音频或视频文件进行处理</div>
+        <div class="entry-arrow">→</div>
       </button>
     </div>
   </div>
