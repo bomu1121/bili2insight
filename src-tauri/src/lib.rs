@@ -68,6 +68,7 @@ struct PipelineProgress {
     stage: String,
     progress: f64,
     message: String,
+    queue_item_id: Option<String>,
 }
 
 

@@ -541,7 +541,8 @@ async function checkLoginAfterAuth() {
         task.message = msgMap[ev.payload.message] || ev.payload.message;
       }
       // Update running queue item
-      const qIdx = queue.value.findIndex(q => q.status === 'running');
+      const qId = ev.payload.queue_item_id;
+      const qIdx = qId ? queue.value.findIndex(q => q.id === qId) : queue.value.findIndex(q => q.status === 'running');
       if (qIdx >= 0) {
         console.log('progress listener: updating queue[', qIdx, '] stage=', ev.payload.stage, 'progress=', ev.payload.progress, 'msg=', ev.payload.message?.slice(0,50));
         const q = [...queue.value];
@@ -653,9 +654,9 @@ async function checkLoginAfterAuth() {
     try {
       let result: PipelineResult;
       if (item.source === 'local') {
-        result = await runPipelineLocal(item.url!, item.pageInfo.part, aiApiUrl.value || undefined, aiApiKey.value || undefined, aiModel.value || undefined, aiPrompt.value || undefined, asrModel.value, asrApiUrl.value || undefined, asrApiKey.value || undefined);
+        result = await runPipelineLocal(item.url!, item.pageInfo.part, aiApiUrl.value || undefined, aiApiKey.value || undefined, aiModel.value || undefined, aiPrompt.value || undefined, asrModel.value, asrApiUrl.value || undefined, asrApiKey.value || undefined, item.id);
       } else {
-        result = await runPipelineWithPage(item.url!, proxy.value || undefined, aiApiUrl.value || undefined, aiApiKey.value || undefined, aiModel.value || undefined, aiPrompt.value || undefined, item.pageInfo.cid, asrModel.value, asrApiUrl.value || undefined, asrApiKey.value || undefined);
+        result = await runPipelineWithPage(item.url!, proxy.value || undefined, aiApiUrl.value || undefined, aiApiKey.value || undefined, aiModel.value || undefined, aiPrompt.value || undefined, item.pageInfo.cid, asrModel.value, asrApiUrl.value || undefined, asrApiKey.value || undefined, item.id);
       }
       console.log('processQueue: item', idx, 'DONE, bvid=', result.video_info.bvid, 'title=', result.video_info.title?.slice(0,40));
       const done = [...queue.value];

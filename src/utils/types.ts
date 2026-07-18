@@ -31,6 +31,7 @@ export interface PipelineProgress {
   stage: string;
   progress: number;
   message: string;
+  queue_item_id?: string;
 }
 
 export interface PageInfo {
