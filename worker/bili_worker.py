@@ -622,6 +622,8 @@ def _mode_fav_videos(client, cookies_arg, folder_id, page):
     medias = db.get("medias") or []
     videos = []
     for m in medias:
+        if not isinstance(m, dict):
+            continue
         upper=m.get("upper",0)
         uname=upper.get("name","") if isinstance(upper,dict) else (str(upper) if upper else "")
         uuid=upper.get("mid",0) if isinstance(upper,dict) else (upper if isinstance(upper,int) else 0)
