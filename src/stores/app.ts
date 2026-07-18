@@ -569,7 +569,7 @@ async function checkLoginAfterAuth() {
     previewLoading.value = true;
     previewTimer = setTimeout(async () => {
       try {
-        const info = await previewVideo(val, proxy.value||undefined);
+        const info = await previewVideoFn(val);
         preview.value = info;
         if (info.pages && info.pages.length > 0) {
             const matchIdx = info.pages.findIndex(p => p.cid === info.cid);
@@ -588,7 +588,28 @@ async function checkLoginAfterAuth() {
     selectedPages.value = s;
   }
   // ---------- Preview (exposed for HomeView) ----------
+  const PREVIEW_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  const previewCache = new Map<string, { data: VideoInfo; ts: number }>();
+
+  function clearPreviewCache() {
+    previewCache.clear();
+  }
+
   async function previewVideoFn(val: string) {
+    if (!val.includes("bilibili.com")) return await previewVideo(val, proxy.value || undefined);
+    const cached = previewCache.get(val);
+    if (cached && Date.now() - cached.ts < PREVIEW_CACHE_TTL) {
+      console.log("preview: cache hit for", val.slice(0, 50));
+      return cached.data;
+    }
+    console.log("preview: cache miss, fetching", val.slice(0, 50));
+    const info = await previewVideo(val, proxy.value || undefined);
+    previewCache.set(val, { data: info, ts: Date.now() });
+    return info;
+  }
+
+  async function refreshPreview(val: string) {
+    previewCache.delete(val);
     return await previewVideo(val, proxy.value || undefined);
   }
 
@@ -767,6 +788,7 @@ async function checkLoginAfterAuth() {
     selectTemplate, addCustomTemplate, deleteCustomTemplate, updateTemplatePrompt, updateTemplateName, persistSettings,
     togglePage, selectAllPages,
     queue, isProcessing, queueCount, previewVideoFn, addQueueItem, processQueue,
+    refreshPreview, clearPreviewCache,
     // Login
     showLogin, qrUrl, qrcodeKey, qrPolling, qrStatusMessage, qrStatus, loginError, isLoggedIn, loginUname, loginUid, loginFace, cookiesSaved, cookiesFilePath, initCookiesPath,
     startLogin, pollQr, stopPolling, cancelLogin, checkLoginStatus, doLogout, checkLoginAfterAuth,

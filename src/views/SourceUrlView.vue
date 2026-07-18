@@ -2,6 +2,7 @@
 import { ref, watch, computed, onUnmounted } from "vue";
 import { NInput, NButton, NText, NIcon, NCheckbox, createDiscreteApi } from "naive-ui";
 import { AddCircleOutline, ArrowBackOutline } from "@vicons/ionicons5";
+import { RefreshOutline } from "@vicons/ionicons5";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/app";
 import type { PageInfo } from "../utils/types";
@@ -79,10 +80,15 @@ const fmtDur = (sec: number) => {
 
       <div v-if="store.preview" class="preview-section">
         <div class="preview-card">
+          <div class="preview-card-top">
           <img v-if="store.preview.cover" :src="store.preview.cover" referrerpolicy="no-referrer" class="preview-img" />
           <div class="preview-info">
             <n-text strong style="font-size:15px;">{{ store.preview.title }}</n-text>
             <n-text depth="3" style="font-size:12px;">{{ store.preview.uploader }} &middot; {{ fmtDur(store.preview.duration) }} &middot; {{ videoPages.length }} 个分P</n-text>
+          </div>
+            <n-button text size="tiny" @click="async () => { store.previewLoading = true; try { const info = await store.refreshPreview(url); store.preview = info; } catch(e:any){store.error=String(e)} finally { store.previewLoading = false } }" title="刷新预览（绕过缓存）">
+              <template #icon><n-icon size="16"><RefreshOutline /></n-icon></template>
+            </n-button>
           </div>
         </div>
 
@@ -115,6 +121,7 @@ const fmtDur = (sec: number) => {
 .preview-loading { font-size: 13px; color: #999; padding: 8px 0; }
 .preview-section { display: flex; flex-direction: column; gap: 10px; }
 .preview-card { display: flex; gap: 12px; align-items: center; background: #fafafa; border-radius: 10px; padding: 12px; }
+.preview-card-top { display: flex; gap: 12px; align-items: center; width: 100%; }
 .preview-img { width: 120px; height: 68px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
 .preview-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .page-section { background: #fafafa; border-radius: 10px; padding: 10px 14px; }
