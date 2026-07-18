@@ -626,37 +626,52 @@ async function checkLoginAfterAuth() {
 
   async function processQueue() {
     if (isProcessing.value) return;
-    console.log("processQueue started", queue.value.length, "items");
     isProcessing.value = true;
+    const CONCURRENCY = 2;
     try {
-      for (let i = 0; i < queue.value.length; i++) {
-        const item = queue.value[i];
-        if (item.status !== 'pending') continue;
-        const updated = [...queue.value];
-        updated[i] = { ...item, status: 'running' as const, stageLabel: '开始处理' };
-        const startTime = performance.now();
-        queue.value = updated;
-        console.log('processQueue: item', i, 'set to running, url=', item.url?.slice(0,50), 'cid=', item.pageInfo.cid, 'part=', item.pageInfo.part);
-        try {
-          let result: PipelineResult;
-          if (item.source === 'local') {
-            result = await runPipelineLocal(item.url!, item.pageInfo.part, aiApiUrl.value || undefined, aiApiKey.value || undefined, aiModel.value || undefined, aiPrompt.value || undefined, asrModel.value, asrApiUrl.value || undefined, asrApiKey.value || undefined);
-          } else {
-            result = await runPipelineWithPage(item.url!, proxy.value || undefined, aiApiUrl.value || undefined, aiApiKey.value || undefined, aiModel.value || undefined, aiPrompt.value || undefined, item.pageInfo.cid, asrModel.value, asrApiUrl.value || undefined, asrApiKey.value || undefined);
-          }
-          console.log('processQueue: item', i, 'DONE, bvid=', result.video_info.bvid, 'title=', result.video_info.title?.slice(0,40));
-          const done = [...queue.value];
-          done[i] = { ...done[i], status: 'done' as const, progress: 1, stageLabel: '完成', result, elapsedMs: Math.round(performance.now() - startTime) };
-          queue.value = done;
-        } catch (e: any) {
-          const err = [...queue.value];
-          err[i] = { ...err[i], status: 'error' as const, error: String(e), elapsedMs: Math.round(performance.now() - startTime) };
-          queue.value = err;
+      const pendingItems = queue.value.filter(q => q.status === 'pending');
+      console.log("processQueue started", pendingItems.length, "pending, concurrency=", CONCURRENCY);
+      for (let bi = 0; bi < pendingItems.length; bi += CONCURRENCY) {
+        const batch = pendingItems.slice(bi, bi + CONCURRENCY);
+        await Promise.allSettled(batch.map(item => processQueueItem(item)));
+        // Brief yield to let the event loop breathe between batches
+        if (bi + CONCURRENCY < pendingItems.length) {
+          await new Promise(r => setTimeout(r, 100));
         }
-        // Brief yield to let the event loop breathe between items
-        await new Promise(r => setTimeout(r, 100));
       }
     } finally { isProcessing.value = false; }
+  }
+
+  async function processQueueItem(item: QueueItem) {
+    const idx = queue.value.findIndex(q => q.id === item.id);
+    if (idx < 0) return;
+    const updated = [...queue.value];
+    updated[idx] = { ...item, status: 'running' as const, stageLabel: '开始处理' };
+    const startTime = performance.now();
+    queue.value = updated;
+    console.log('processQueue: item', idx, 'set to running, url=', item.url?.slice(0,50), 'cid=', item.pageInfo.cid, 'part=', item.pageInfo.part);
+    try {
+      let result: PipelineResult;
+      if (item.source === 'local') {
+        result = await runPipelineLocal(item.url!, item.pageInfo.part, aiApiUrl.value || undefined, aiApiKey.value || undefined, aiModel.value || undefined, aiPrompt.value || undefined, asrModel.value, asrApiUrl.value || undefined, asrApiKey.value || undefined);
+      } else {
+        result = await runPipelineWithPage(item.url!, proxy.value || undefined, aiApiUrl.value || undefined, aiApiKey.value || undefined, aiModel.value || undefined, aiPrompt.value || undefined, item.pageInfo.cid, asrModel.value, asrApiUrl.value || undefined, asrApiKey.value || undefined);
+      }
+      console.log('processQueue: item', idx, 'DONE, bvid=', result.video_info.bvid, 'title=', result.video_info.title?.slice(0,40));
+      const done = [...queue.value];
+      const doneIdx = done.findIndex(q => q.id === item.id);
+      if (doneIdx >= 0) {
+        done[doneIdx] = { ...done[doneIdx], status: 'done' as const, progress: 1, stageLabel: '完成', result, elapsedMs: Math.round(performance.now() - startTime) };
+        queue.value = done;
+      }
+    } catch (e: any) {
+      const err = [...queue.value];
+      const errIdx = err.findIndex(q => q.id === item.id);
+      if (errIdx >= 0) {
+        err[errIdx] = { ...err[errIdx], status: 'error' as const, error: String(e), elapsedMs: Math.round(performance.now() - startTime) };
+        queue.value = err;
+      }
+    }
   }
 
     function selectAllPages() {
