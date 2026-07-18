@@ -216,12 +216,8 @@ fn get_models_root(app: &AppHandle) -> Result<std::path::PathBuf, anyhow::Error>
     }
 }
 
-pub async fn refine_transcript(api_url: &str, api_key: &str, model: &str, transcript: &str) -> Result<String, anyhow::Error> {
+pub async fn refine_transcript(client: &reqwest::Client, api_url: &str, api_key: &str, model: &str, transcript: &str) -> Result<String, anyhow::Error> {
     let api_url = if api_url.contains("/chat/completions") { api_url.to_string() } else if api_url.ends_with("/") { format!("{}v1/chat/completions", api_url) } else { format!("{}/v1/chat/completions", api_url) };
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(120))
-        .build()
-        .map_err(|e| anyhow::anyhow!("refine client build error: {}", e))?;
     let prompt = "Please correct any speech recognition errors in the following transcript. Fix misrecognized words, add proper punctuation, and correct formatting. Keep the original meaning and style. Output only the corrected transcript, no explanations.";
     let mut req = client.post(&api_url).json(&serde_json::json!({"model": model, "messages": [{"role": "system", "content": prompt}, {"role": "user", "content": transcript}], "temperature": 0.2}));
     if !api_key.is_empty() { req = req.header("Authorization", format!("Bearer {}", api_key)); }
@@ -233,9 +229,8 @@ pub async fn refine_transcript(api_url: &str, api_key: &str, model: &str, transc
     Ok(content)
 }
 
-pub async fn extract_insights(api_url: &str, api_key: &str, model: &str, prompt: &str, transcript: &str, title: &str) -> Result<(InsightResult, String), anyhow::Error> {
+pub async fn extract_insights(client: &reqwest::Client, api_url: &str, api_key: &str, model: &str, prompt: &str, transcript: &str, title: &str) -> Result<(InsightResult, String), anyhow::Error> {
     let api_url = if api_url.contains("/chat/completions") { api_url.to_string() } else if api_url.ends_with("/") { format!("{}v1/chat/completions", api_url) } else { format!("{}/v1/chat/completions", api_url) };
-    let client = reqwest::Client::new();
     let user_content = format!("Video title: {}\n\nTranscript:\n{}", title, transcript);
     let mut req = client.post(&api_url).json(&serde_json::json!({"model": model, "messages": [{"role": "system", "content": prompt}, {"role": "user", "content": user_content}], "temperature": 0.3}));
     if !api_key.is_empty() { req = req.header("Authorization", format!("Bearer {}", api_key)); }
@@ -250,10 +245,9 @@ pub async fn extract_insights(api_url: &str, api_key: &str, model: &str, prompt:
     }), raw))
 }
 
-pub async fn fetch_models(api_url: &str, api_key: &str) -> Result<Vec<String>, anyhow::Error> {
+pub async fn fetch_models(client: &reqwest::Client, api_url: &str, api_key: &str) -> Result<Vec<String>, anyhow::Error> {
     let base = api_url.trim_end_matches("/chat/completions").trim_end_matches('/');
     let models_url = format!("{}/models", base);
-    let client = reqwest::Client::new();
     let mut req = client.get(&models_url);
     if !api_key.is_empty() { req = req.header("Authorization", format!("Bearer {}", api_key)); }
     let resp = req.send().await?;

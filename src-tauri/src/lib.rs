@@ -111,6 +111,12 @@ pub struct PipelineResult {
     pub ai_raw_response: String,
 }
 
+pub struct AppState {
+    pub http_client: reqwest::Client,
+}
+
+use tauri::Manager;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -142,7 +148,12 @@ pub fn run() {
             commands::sms_login,
         ])
         .setup(|app| {
-            let _app_handle = app.handle().clone();
+            let http_client = reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(120))
+                .pool_max_idle_per_host(4)
+                .build()
+                .expect("Failed to create HTTP client");
+            app.manage(AppState { http_client });
             Ok(())
         })
         .run(tauri::generate_context!())

@@ -2,6 +2,7 @@ use crate::PipelineProgress;
 use crate::pipeline;
 use crate::export;
 use crate::VideoInfo;
+use crate::AppState;
 use tauri::{AppHandle, Emitter, Manager};
 use std::path::PathBuf;
 
@@ -90,14 +91,15 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
     let raw = transcript.clone();
     println!("  [STAGE:refine] calling AI proofread, model={}", model);
     emit_progress(&app, "refine", 0.76, "AI proofreading transcript...");
-    let transcript = pipeline::refine_transcript(&ai_url, &ai_key, &model, &transcript).await.map_err(|e| format!("Refine failed: {}", e))?;
+    let client = app.state::<crate::AppState>().http_client.clone();
+    let transcript = pipeline::refine_transcript(&client, &ai_url, &ai_key, &model, &transcript).await.map_err(|e| format!("Refine failed: {}", e))?;
     println!("  [STAGE:refine] DONE, refined_len={}", transcript.len());
     emit_progress(&app, "refine", 0.80, "Transcript proofread");
 
     let prompt = ai_prompt.unwrap_or_else(|| "Please analyze the following video transcript...".to_string());
     println!("  [STAGE:ai] calling AI insights, prompt_len={}", prompt.len());
     emit_progress(&app, "ai", 0.81, "Extracting insights with AI...");
-    let (insights, ai_raw) = pipeline::extract_insights(&ai_url, &ai_key, &model, &prompt, &transcript, &video_info.title).await.map_err(|e| format!("AI analysis failed: {}", e))?;
+    let (insights, ai_raw) = pipeline::extract_insights(&client, &ai_url, &ai_key, &model, &prompt, &transcript, &video_info.title).await.map_err(|e| format!("AI analysis failed: {}", e))?;
     println!("  [STAGE:ai] DONE, ai_raw_len={}", ai_raw.len());
     emit_progress(&app, "ai", 0.95, "AI insights ready");
 
@@ -156,14 +158,15 @@ pub async fn run_pipeline_local(app: AppHandle, file_path: String, file_name: St
     let raw = transcript.clone();
     println!("  [STAGE:refine] calling AI proofread, model={}", model);
     emit_progress(&app, "refine", 0.66, "AI proofreading transcript...");
-    let transcript = pipeline::refine_transcript(&ai_url, &ai_key, &model, &transcript).await.map_err(|e| format!("Refine failed: {}", e))?;
+    let client = app.state::<crate::AppState>().http_client.clone();
+    let transcript = pipeline::refine_transcript(&client, &ai_url, &ai_key, &model, &transcript).await.map_err(|e| format!("Refine failed: {}", e))?;
     println!("  [STAGE:refine] DONE, refined_len={}", transcript.len());
     emit_progress(&app, "refine", 0.75, "Transcript proofread");
 
     let prompt = ai_prompt.unwrap_or_else(|| "Please analyze the following video transcript...".to_string());
     println!("  [STAGE:ai] calling AI insights, prompt_len={}", prompt.len());
     emit_progress(&app, "ai", 0.76, "Extracting insights with AI...");
-    let (insights, ai_raw) = pipeline::extract_insights(&ai_url, &ai_key, &model, &prompt, &transcript, &video_info.title).await.map_err(|e| format!("AI analysis failed: {}", e))?;
+    let (insights, ai_raw) = pipeline::extract_insights(&client, &ai_url, &ai_key, &model, &prompt, &transcript, &video_info.title).await.map_err(|e| format!("AI analysis failed: {}", e))?;
     println!("  [STAGE:ai] DONE, ai_raw_len={}", ai_raw.len());
     emit_progress(&app, "ai", 0.95, "AI insights ready");
 
@@ -177,8 +180,9 @@ pub async fn run_pipeline_local(app: AppHandle, file_path: String, file_name: St
 
 #[tauri::command]
 #[allow(dead_code)]
-pub async fn fetch_ai_models(api_url: String, api_key: String) -> Result<Vec<String>, String> {
-    pipeline::fetch_models(&api_url, &api_key).await.map_err(|e| format!("Fetch failed: {}", e))
+pub async fn fetch_ai_models(app: AppHandle, api_url: String, api_key: String) -> Result<Vec<String>, String> {
+    let client = app.state::<crate::AppState>().http_client.clone();
+    pipeline::fetch_models(&client, &api_url, &api_key).await.map_err(|e| format!("Fetch failed: {}", e))
 }
 
 #[tauri::command]
