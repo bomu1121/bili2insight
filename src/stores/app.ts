@@ -163,6 +163,13 @@ export const useAppStore = defineStore("app", () => {
     return customTemplates.value[ci]?.prompt ?? "";
   });
 
+  function resolvePrompt(templateIndex?: number): string {
+    const idx = templateIndex ?? selectedTemplateIndex.value;
+    if (idx < BUILTIN_TEMPLATES.length) return BUILTIN_TEMPLATES[idx].prompt;
+    const ci = idx - BUILTIN_TEMPLATES.length;
+    return customTemplates.value[ci]?.prompt ?? "";
+  }
+
   // ---------- Pipeline state ----------
   const processing = ref(false);
   const progress = ref<PipelineProgress | null>(null);
@@ -608,7 +615,7 @@ async function checkLoginAfterAuth() {
   }
 
   // ---------- Queue management ----------
-  function addQueueItem(input: { url: string; pageInfo: PageInfo; source?: string }) {
+  function addQueueItem(input: { url: string; pageInfo: PageInfo; source?: string; templateIndex?: number }) {
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     queue.value = [...queue.value, {
       id,
@@ -619,6 +626,7 @@ async function checkLoginAfterAuth() {
       progress: 0,
       stageLabel: '等待中',
       message: '',
+      templateIndex: input.templateIndex,
       result: null,
       error: '',
       createdAt: Date.now(),
@@ -650,13 +658,14 @@ async function checkLoginAfterAuth() {
     updated[idx] = { ...item, status: 'running' as const, stageLabel: '开始处理' };
     const startTime = performance.now();
     queue.value = updated;
+    const prompt = resolvePrompt(item.templateIndex);
     console.log('processQueue: item', idx, 'set to running, url=', item.url?.slice(0,50), 'cid=', item.pageInfo.cid, 'part=', item.pageInfo.part);
     try {
       let result: PipelineResult;
       if (item.source === 'local') {
-        result = await runPipelineLocal(item.url!, item.pageInfo.part, aiApiUrl.value || undefined, aiApiKey.value || undefined, aiModel.value || undefined, aiPrompt.value || undefined, asrModel.value, asrApiUrl.value || undefined, asrApiKey.value || undefined, item.id);
+        result = await runPipelineLocal(item.url!, item.pageInfo.part, aiApiUrl.value || undefined, aiApiKey.value || undefined, aiModel.value || undefined, prompt || undefined, asrModel.value, asrApiUrl.value || undefined, asrApiKey.value || undefined, item.id);
       } else {
-        result = await runPipelineWithPage(item.url!, proxy.value || undefined, aiApiUrl.value || undefined, aiApiKey.value || undefined, aiModel.value || undefined, aiPrompt.value || undefined, item.pageInfo.cid, asrModel.value, asrApiUrl.value || undefined, asrApiKey.value || undefined, item.id);
+        result = await runPipelineWithPage(item.url!, proxy.value || undefined, aiApiUrl.value || undefined, aiApiKey.value || undefined, aiModel.value || undefined, prompt || undefined, item.pageInfo.cid, asrModel.value, asrApiUrl.value || undefined, asrApiKey.value || undefined, item.id);
       }
       console.log('processQueue: item', idx, 'DONE, bvid=', result.video_info.bvid, 'title=', result.video_info.title?.slice(0,40));
       const done = [...queue.value];
@@ -791,7 +800,7 @@ async function checkLoginAfterAuth() {
   return {
     url, proxy, aiApiUrl, aiApiKey, aiModel, aiPrompt, selectedProvider, processing, progress, result, error,
     preview, previewLoading, PROVIDERS, BUILTIN_TEMPLATES, allTemplates, selectedTemplateIndex, customTemplates, customModels, asrModel, asrApiUrl, asrApiKey,
-    selectedPages, tasks, activeTaskIndex, videoPages, completedTasks, hasMultiPages, activeResultTab,
+    resolvePrompt, selectedPages, tasks, activeTaskIndex, videoPages, completedTasks, hasMultiPages, activeResultTab,
     activeResult, mergedMarkdown,
     init, cleanup, startPipeline, exportToFile, switchProvider, fetchModelList,
     selectTemplate, addCustomTemplate, deleteCustomTemplate, updateTemplatePrompt, updateTemplateName, persistSettings,

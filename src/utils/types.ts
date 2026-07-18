@@ -118,4 +118,5 @@ export interface QueueItem {
   error: string;
   createdAt: number;
   elapsedMs?: number;
+  templateIndex?: number; // undefined = use settings default
 }

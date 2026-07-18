@@ -19,6 +19,19 @@ function viewResult(id: string) { showQueue.value = false; router.push(`/result/
 function startProcessing() { store.processQueue(); }
 function clearDone() { store.queue = store.queue.filter(q => q.status !== "done" && q.status !== "error"); }
 
+const templateOptions = computed(() => {
+  const opts = store.allTemplates.map((t, i) => ({ label: t.name, value: i }));
+  return [{ label: `默认（${store.allTemplates[store.selectedTemplateIndex]?.name ?? ""}）`, value: -1 }, ...opts];
+});
+
+function updateItemTemplate(itemId: string, val: number) {
+  const q = [...store.queue];
+  const idx = q.findIndex(qi => qi.id === itemId);
+  if (idx < 0) return;
+  q[idx] = { ...q[idx], templateIndex: val >= 0 ? val : undefined };
+  store.queue = q;
+}
+
 const fmtElapsed = (ms: number) => {
   if (ms < 1000) return `${ms}ms`;
   if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
@@ -103,21 +116,39 @@ const tplPrompt = computed({
           </div>
           <div class="queue-list">
             <div v-for="item in store.queue" :key="item.id" class="q-item" :class="{ running: item.status === 'running', done: item.status === 'done', error: item.status === 'error' }">
-              <span class="q-s">
-                <n-icon v-if="item.status === 'done'" color="#18a058" size="16"><CheckmarkCircle /></n-icon>
-                <n-icon v-else-if="item.status === 'error'" color="#d03050" size="16"><CloseCircle /></n-icon>
-                <n-icon v-else-if="item.status === 'running'" color="#2080f0" size="16" class="spinning"><SyncOutline /></n-icon>
-                <span v-else style="color:#ccc;font-size:14px;">&#9679;</span>
-              </span>
-              <div class="q-info">
-                <n-text style="font-size:13px;">{{ item.pageInfo.part }}</n-text>
-                <n-text depth="3" style="font-size:11px;">P{{ item.pageInfo.page }} &middot; {{ item.status === 'done' ? '完成' : item.status === 'error' ? '失败' : item.status === 'running' ? item.stageLabel : '等待中' }}</n-text>
-                <n-text v-if="item.elapsedMs" depth="3" style="font-size:10px;">耗时 {{ fmtElapsed(item.elapsedMs) }}</n-text>
-                <div class="q-bar" v-if="item.status === 'running'"><div class="q-fill" :style="{ width: Math.round(item.progress*100)+'%' }"></div></div>
+              <div class="q-row1">
+                <span class="q-s">
+                  <n-icon v-if="item.status === 'done'" color="#18a058" size="16"><CheckmarkCircle /></n-icon>
+                  <n-icon v-else-if="item.status === 'error'" color="#d03050" size="16"><CloseCircle /></n-icon>
+                  <n-icon v-else-if="item.status === 'running'" color="#2080f0" size="16" class="spinning"><SyncOutline /></n-icon>
+                  <span v-else style="color:#ccc;font-size:14px;">&#9679;</span>
+                </span>
+                <span class="q-title" :title="item.pageInfo.part">{{ item.pageInfo.part }}</span>
+                <div class="q-meta">
+                  <span class="q-dur">{{ (item.pageInfo.duration ? String(Math.floor(item.pageInfo.duration/60)).padStart(2,'0') + ':' + String(item.pageInfo.duration%60).padStart(2,'0') : '') }}</span>
+                  <span v-if="item.status !== 'done'" class="q-tag" :style="{ color: item.status === 'error' ? '#d03050' : item.status === 'running' ? '#2080f0' : '#999' }">
+                    {{ item.status === 'error' ? '失败' : item.status === 'running' ? item.stageLabel : '等待' }}
+                  </span>
+                  <span class="q-elapsed">{{ item.elapsedMs ? fmtElapsed(item.elapsedMs) : '' }}</span>
+                </div>
+                <div class="q-action">
+                  <n-select
+                    v-if="item.status === 'pending'"
+                    :value="item.templateIndex ?? -1"
+                    :options="templateOptions"
+                    size="tiny"
+                    :consistent-menu-width="false"
+                    class="q-tpl-select"
+                    @update:value="(v: number) => updateItemTemplate(item.id, v)"
+                  />
+                  <n-button v-if="item.status === 'done'" size="tiny" text @click="viewResult(item.id)" style="padding:0 4px;">
+                    <template #icon><n-icon size="16"><EyeOutline /></n-icon></template>
+                  </n-button>
+                </div>
               </div>
-              <n-button v-if="item.status === 'done'" size="tiny" text @click="viewResult(item.id)">
-                <template #icon><n-icon size="16"><EyeOutline /></n-icon></template>
-              </n-button>
+              <div v-if="item.status === 'running'" class="q-row2">
+                <div class="q-bar"><div class="q-fill" :style="{ width: Math.round(item.progress*100)+'%' }"></div></div>
+              </div>
             </div>
           </div>
         </div>
@@ -257,13 +288,23 @@ const tplPrompt = computed({
 .queue-drawer{display:flex;flex-direction:column;gap:10px}
 .queue-actions{display:flex;gap:8px;margin-bottom:4px}
 .queue-list{display:flex;flex-direction:column;gap:6px}
-.q-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid #eee;background:#fff;transition:background .2s}
+.q-item{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:8px;border:1px solid #eee;background:#fff;transition:background .2s;overflow:hidden;min-width:0}
 .q-item.running{background:#f0f7ff;border-color:#c8ddf8}
 .q-item.done{background:#f6ffed;border-color:#c8e8b8}
 .q-item.error{background:#fff2f0;border-color:#f0c8c0}
+.q-row1{display:flex;align-items:center;gap:10px;min-height:22px;min-width:0;width:100%}
+.q-row2{padding-left:28px;padding-right:0}
 .q-s{flex-shrink:0;width:20px;display:flex;align-items:center;justify-content:center}
-.q-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-.q-bar{width:100%;height:3px;background:#eee;border-radius:2px;overflow:hidden;margin-top:2px}
+.q-title{flex:1;min-width:0;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.q-meta{flex-shrink:0;display:flex;align-items:center;gap:6px}
+.q-dur{font-size:11px;color:#999}
+.q-tag{font-size:11px}
+.q-elapsed{font-size:10px;color:#aaa}
+.q-action{flex-shrink:0;display:flex;align-items:center}
+.q-tpl-select{width:72px}
+.q-tpl-select .n-base-selection{--n-height:24px;font-size:11px}
+.q-tpl-select .n-base-selection-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.q-bar{height:4px;background:#eee;border-radius:2px;overflow:hidden}
 .q-fill{height:100%;background:#2080f0;border-radius:2px;transition:width .3s ease}
 
 .login-body{display:flex;flex-direction:column;align-items:center;padding:20px 0;gap:16px}
