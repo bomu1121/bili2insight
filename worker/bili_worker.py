@@ -5,6 +5,7 @@ if sys.stdout is not None: sys.stdout.reconfigure(encoding="utf-8")
 if sys.stderr is not None: sys.stderr.reconfigure(encoding="utf-8")
 
 import json, re, time, argparse, hashlib, urllib.parse, logging, tempfile, pathlib
+import concurrent.futures
 from functools import reduce
 from pathlib import Path
 import httpx
@@ -139,11 +140,15 @@ class BiliWorker:
     def get_video_info(self, bvid: str) -> dict:
         emit("progress", {"stage": "video_info", "message": "Fetching video info..."})
         params = {"bvid": bvid}
-        # Fetch from BOTH endpoints to compare cids
+        # Fetch from BOTH endpoints in parallel to save round-trip time
         url_nw = f"https://api.bilibili.com/x/web-interface/view?bvid={bvid}"
-        resp_nw = self.client.get(url_nw); data_nw = resp_nw.json()
         url_wb = f"https://api.bilibili.com/x/web-interface/wbi/view?{self.sign_wbi(params)}"
-        resp_wb = self.client.get(url_wb); data_wb = resp_wb.json()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            future_nw = executor.submit(lambda: self.client.get(url_nw).json())
+            future_wb = executor.submit(lambda: self.client.get(url_wb).json())
+            concurrent.futures.wait([future_nw, future_wb])
+            data_nw = future_nw.result()
+            data_wb = future_wb.result()
         cids_nw = [p.get("cid") for p in (data_nw.get("data", {}).get("pages", []) if data_nw.get("code") == 0 else [])]
         cids_wb = [p.get("cid") for p in (data_wb.get("data", {}).get("pages", []) if data_wb.get("code") == 0 else [])]
         emit("progress", {"stage": "video_info", "message": f"Non-WBI cids: {cids_nw}"})
