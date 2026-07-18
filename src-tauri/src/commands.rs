@@ -2,6 +2,7 @@ use crate::PipelineProgress;
 use crate::pipeline;
 use crate::export;
 use crate::VideoInfo;
+use crate::history::{HistoryEntry, HistoryListResult, HistoryState};
 use tauri::{AppHandle, Emitter, Manager};
 use std::path::PathBuf;
 
@@ -105,11 +106,40 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
 
     let ai_req = format!("SYSTEM: {}\n\nUSER: Video title: {}\n\nTranscript:\n{}", prompt, video_info.title, transcript);
     let markdown = export::generate_markdown(&video_info, &transcript, &insights);
-    println!("=== PIPELINE END [{:.1}s] ===", start.elapsed().as_secs_f64());
-    emit_progress(&app, "done", 1.0, "Complete", queue_item_id.as_deref());
-    let _ = std::fs::remove_file(&audio_path);
-    let _ = std::fs::remove_file(&wav_path);
-    Ok(crate::PipelineResult { raw_transcript: raw, video_info, transcript, insights, markdown, ai_request: ai_req, ai_raw_response: ai_raw })
+   println!("=== PIPELINE END [{:.1}s] ===", start.elapsed().as_secs_f64());
+   emit_progress(&app, "done", 1.0, "Complete", queue_item_id.as_deref());
+    let hs = app.state::<HistoryState>();
+    if let Ok(mut store) = hs.0.lock() {
+        let id = uuid::Uuid::new_v4().to_string();
+        let full_json = serde_json::to_string(&crate::PipelineResult {
+            raw_transcript: raw.clone(),
+            video_info: video_info.clone(),
+            transcript: transcript.clone(),
+            insights: insights.clone(),
+            markdown: markdown.clone(),
+            ai_request: ai_req.clone(),
+            ai_raw_response: ai_raw.clone(),
+        }).unwrap_or_default();
+        let _ = store.add(crate::history::HistoryEntry {
+            id,
+            created_at: chrono::Utc::now().timestamp_millis(),
+            source: "url".to_string(),
+            url: url.clone(),
+            title: video_info.title.clone(),
+            bvid: video_info.bvid.clone(),
+            uploader: video_info.uploader.clone(),
+            duration: video_info.duration,
+            cover: video_info.cover.clone(),
+            summary: insights.summary.chars().take(300).collect(),
+            elapsed_ms: start.elapsed().as_millis() as i64,
+            template_name: String::new(),
+            status: "done".to_string(),
+            error_msg: String::new(),
+        }, &full_json);
+    }
+   let _ = std::fs::remove_file(&audio_path);
+   let _ = std::fs::remove_file(&wav_path);
+   Ok(crate::PipelineResult { raw_transcript: raw, video_info, transcript, insights, markdown, ai_request: ai_req, ai_raw_response: ai_raw })
 }
 
 #[tauri::command]
@@ -173,10 +203,39 @@ pub async fn run_pipeline_local(app: AppHandle, file_path: String, file_name: St
 
     let ai_req = format!("SYSTEM: {}\n\nUSER: Video title: {}\n\nTranscript:\n{}", prompt, video_info.title, transcript);
     let markdown = crate::export::generate_markdown(&video_info, &transcript, &insights);
-    println!("=== PIPELINE LOCAL END [{:.1}s] ===", start.elapsed().as_secs_f64());
-    emit_progress(&app, "done", 1.0, "Complete", queue_item_id.as_deref());
-    let _ = std::fs::remove_file(&wav_path);
-    Ok(crate::PipelineResult { raw_transcript: raw, video_info, transcript, insights, markdown, ai_request: ai_req, ai_raw_response: ai_raw })
+   println!("=== PIPELINE LOCAL END [{:.1}s] ===", start.elapsed().as_secs_f64());
+   emit_progress(&app, "done", 1.0, "Complete", queue_item_id.as_deref());
+    let hs = app.state::<HistoryState>();
+    if let Ok(mut store) = hs.0.lock() {
+        let id = uuid::Uuid::new_v4().to_string();
+        let full_json = serde_json::to_string(&crate::PipelineResult {
+            raw_transcript: raw.clone(),
+            video_info: video_info.clone(),
+            transcript: transcript.clone(),
+            insights: insights.clone(),
+            markdown: markdown.clone(),
+            ai_request: ai_req.clone(),
+            ai_raw_response: ai_raw.clone(),
+        }).unwrap_or_default();
+        let _ = store.add(crate::history::HistoryEntry {
+            id,
+            created_at: chrono::Utc::now().timestamp_millis(),
+            source: "local".to_string(),
+            url: file_path.clone(),
+            title: file_name.clone(),
+            bvid: String::new(),
+            uploader: String::new(),
+            duration: 0,
+            cover: String::new(),
+            summary: insights.summary.chars().take(300).collect(),
+            elapsed_ms: start.elapsed().as_millis() as i64,
+            template_name: String::new(),
+            status: "done".to_string(),
+            error_msg: String::new(),
+        }, &full_json);
+    }
+   let _ = std::fs::remove_file(&wav_path);
+   Ok(crate::PipelineResult { raw_transcript: raw, video_info, transcript, insights, markdown, ai_request: ai_req, ai_raw_response: ai_raw })
 }
 
 #[tauri::command]
@@ -273,5 +332,37 @@ pub async fn sms_send(app: AppHandle, cid: String, tel: String, token: String, c
 
 #[tauri::command]
 pub async fn sms_login(app: AppHandle, cid: String, tel: String, code: String, captcha_key: String, cookies_file: Option<String>, proxy: Option<String>) -> Result<serde_json::Value, String> {
-    pipeline::sms_login_flow(&app, &cid, &tel, &code, &captcha_key, cookies_file.as_deref(), proxy.as_deref()).await.map_err(|e| format!("SMS login failed: {}", e))
+   pipeline::sms_login_flow(&app, &cid, &tel, &code, &captcha_key, cookies_file.as_deref(), proxy.as_deref()).await.map_err(|e| format!("SMS login failed: {}", e))
+}
+
+// --- History commands ---
+
+#[tauri::command]
+pub fn history_list(state: tauri::State<'_, HistoryState>, page: u32, page_size: u32, search: Option<String>) -> Result<HistoryListResult, String> {
+    let store = state.0.lock().map_err(|e| format!("Lock error: {}", e))?;
+    Ok(store.list(page, page_size, search.as_deref()))
+}
+
+#[tauri::command]
+pub fn history_get_result(state: tauri::State<'_, HistoryState>, id: String) -> Result<String, String> {
+    let store = state.0.lock().map_err(|e| format!("Lock error: {}", e))?;
+    store.get_result(&id).ok_or_else(|| "Result not found".to_string())
+}
+
+#[tauri::command]
+pub fn history_delete(state: tauri::State<'_, HistoryState>, id: String) -> Result<bool, String> {
+    let mut store = state.0.lock().map_err(|e| format!("Lock error: {}", e))?;
+    store.delete(&id).map_err(|e| format!("Delete error: {}", e))
+}
+
+#[tauri::command]
+pub fn history_clear(state: tauri::State<'_, HistoryState>) -> Result<usize, String> {
+    let mut store = state.0.lock().map_err(|e| format!("Lock error: {}", e))?;
+    store.clear().map_err(|e| format!("Clear error: {}", e))
+}
+
+#[tauri::command]
+pub fn history_add(state: tauri::State<'_, HistoryState>, entry: HistoryEntry, full_result_json: String) -> Result<(), String> {
+    let mut store = state.0.lock().map_err(|e| format!("Lock error: {}", e))?;
+    store.add(entry, &full_result_json).map_err(|e| format!("Add error: {}", e))
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { NIcon } from "naive-ui";
-import { VideocamOutline, FolderOpenOutline, CloudUploadOutline } from "@vicons/ionicons5";
+import { VideocamOutline, FolderOpenOutline, CloudUploadOutline, TimeOutline } from "@vicons/ionicons5";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/app";
 import { createDiscreteApi } from "naive-ui";
@@ -30,21 +30,28 @@ function goToFav() {
         <div class="entry-icon url"><n-icon size="28"><VideocamOutline /></n-icon></div>
         <div class="entry-label">B站链接</div>
         <div class="entry-desc">粘贴视频地址，自动解析并加入队列</div>
-        <div class="entry-arrow">→</div>
+        <div class="entry-arrow">&rarr;</div>
       </button>
 
       <button class="entry-btn" @click="goToFav()">
         <div class="entry-icon fav"><n-icon size="28"><FolderOpenOutline /></n-icon></div>
         <div class="entry-label">B站收藏夹</div>
         <div class="entry-desc">登录B站账号，批量导入收藏视频</div>
-        <div class="entry-arrow">→</div>
+        <div class="entry-arrow">&rarr;</div>
       </button>
 
       <button class="entry-btn" @click="router.push('/source/local')">
         <div class="entry-icon local"><n-icon size="28"><CloudUploadOutline /></n-icon></div>
         <div class="entry-label">本地文件</div>
         <div class="entry-desc">选择本地音频或视频文件进行处理</div>
-        <div class="entry-arrow">→</div>
+        <div class="entry-arrow">&rarr;</div>
+      </button>
+
+      <button class="entry-btn" @click="router.push('/history')">
+        <div class="entry-icon history"><n-icon size="28"><TimeOutline /></n-icon></div>
+        <div class="entry-label">历史记录</div>
+        <div class="entry-desc">查看已处理视频的 AI 观点和文稿</div>
+        <div class="entry-arrow">&rarr;</div>
       </button>
     </div>
   </div>
@@ -67,6 +74,7 @@ function goToFav() {
 .entry-icon.url { background: #e8f4fd; color: #00aeec; }
 .entry-icon.fav { background: #fef3e8; color: #f0a020; }
 .entry-icon.local { background: #e8f8e8; color: #18a058; }
+.entry-icon.history { background: #f0e8fd; color: #7c3aed; }
 .entry-label { font-size: 17px; font-weight: 600; color: #222; flex: 1; }
 .entry-desc { font-size: 12px; color: #aaa; }
 .entry-arrow { font-size: 18px; color: #ccc; flex-shrink: 0; }

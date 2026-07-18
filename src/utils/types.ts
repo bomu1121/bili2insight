@@ -120,3 +120,30 @@ export interface QueueItem {
   elapsedMs?: number;
   templateIndex?: number; // undefined = use settings default
 }
+
+/** Lightweight history entry for listing — mirrors Rust HistoryEntry. */
+export interface HistoryEntry {
+  id: string;
+  created_at: number;
+  source: string;
+  url: string;
+  title: string;
+  bvid: string;
+  uploader: string;
+  duration: number;
+  cover: string;
+  summary: string;
+  elapsed_ms: number;
+  template_name: string;
+  status: string;
+  error_msg: string;
+}
+
+/** Response from history_list Tauri command. */
+export interface HistoryListResult {
+  entries: HistoryEntry[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}

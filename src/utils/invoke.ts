@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { PipelineResult, VideoInfo, QrGenerateResult, QrPollResult, LoginCheckResult, FavFoldersResult, FavVideosResult } from "./types";
+import type { HistoryListResult } from "./types";
 
 export async function previewVideo(url: string, proxy?: string): Promise<VideoInfo> {
   return invoke<VideoInfo>("preview_video", { url, proxy: proxy || null, pageCid: null });
@@ -60,4 +61,20 @@ export async function favWatchLater(cookiesJson: string, page: number, proxy?: s
 }
 export async function favHistory(cookiesJson: string, page: number, proxy?: string): Promise<any> {
     return invoke("fav_history", { cookiesJson, page, proxy: proxy || null });
+}
+
+export async function fetchHistoryList(page: number, pageSize: number, search?: string): Promise<HistoryListResult> {
+    return invoke<HistoryListResult>("history_list", { page, pageSize, search: search || null });
+}
+
+export async function getHistoryResult(id: string): Promise<string> {
+    return invoke<string>("history_get_result", { id });
+}
+
+export async function deleteHistoryItem(id: string): Promise<boolean> {
+    return invoke<boolean>("history_delete", { id });
+}
+
+export async function clearHistory(): Promise<number> {
+    return invoke<number>("history_clear");
 }

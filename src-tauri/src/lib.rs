@@ -1,6 +1,7 @@
 mod commands;
 mod pipeline;
 mod export;
+mod history;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct QrGenerateResult {
@@ -145,18 +146,30 @@ pub fn run() {
             commands::get_cookies_path,
             commands::read_cookies_file,
             commands::sms_captcha,
-            commands::sms_send,
-            commands::sms_login,
-        ])
-        .setup(|app| {
-            let http_client = reqwest::Client::builder()
-                .timeout(std::time::Duration::from_secs(120))
-                .pool_max_idle_per_host(4)
-                .build()
-                .expect("Failed to create HTTP client");
-            app.manage(AppState { http_client });
-            Ok(())
-        })
+           commands::sms_send,
+           commands::sms_login,
+            commands::history_list,
+            commands::history_get_result,
+            commands::history_delete,
+            commands::history_clear,
+            commands::history_add,
+       ])
+       .setup(|app| {
+           let http_client = reqwest::Client::builder()
+               .timeout(std::time::Duration::from_secs(120))
+               .pool_max_idle_per_host(4)
+               .build()
+               .expect("Failed to create HTTP client");
+           app.manage(AppState { http_client });
+            let history_data_dir = app.path().app_data_dir()
+                .map_err(|e| format!("app_data_dir: {}", e))
+                .unwrap_or_default()
+                .join("history");
+            app.manage(crate::history::HistoryState(
+                std::sync::Mutex::new(crate::history::HistoryStore::load(history_data_dir))
+            ));
+           Ok(())
+       })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
