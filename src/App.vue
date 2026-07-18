@@ -18,6 +18,7 @@ watch(() => store.error, (val) => { if (val) message.error(val); });
 function viewResult(id: string) { showQueue.value = false; router.push(`/result/${id}`); }
 function startProcessing() { store.processQueue(); }
 function clearDone() { store.queue = store.queue.filter(q => q.status !== "done" && q.status !== "error"); }
+function stopProcessing() { store.cancelQueue(); }
 async function copyAllTitles() {
   const text = store.queue.map(q => q.pageInfo.part).join('\n');
   try { await navigator.clipboard.writeText(text); } catch (_) {}
@@ -113,6 +114,9 @@ const tplPrompt = computed({
           <div class="queue-actions">
             <n-button size="small" type="primary" @click="startProcessing" :disabled="store.isProcessing || store.queue.filter(q=>q.status==='pending').length===0">
               <template #icon><n-icon><PlayOutline /></n-icon></template>开始处理
+            </n-button>
+            <n-button v-if="store.isProcessing" size="small" type="warning" @click="stopProcessing">
+              <template #icon><n-icon><CloseCircle /></n-icon></template>停止
             </n-button>
             <n-button size="small" @click="clearDone" :disabled="store.queue.filter(q=>q.status==='done'||q.status==='error').length===0">
               <template #icon><n-icon><TrashOutline /></n-icon></template>清除已完成

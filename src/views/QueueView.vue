@@ -1,7 +1,7 @@
 ﻿<script setup lang="ts">
 import { computed } from "vue";
 import { NButton, NText, NIcon, NSpace, NSelect } from "naive-ui";
-import { ArrowBackOutline, TrashOutline, PlayOutline, EyeOutline, CheckmarkCircle, CloseCircle, SyncOutline, CopyOutline } from "@vicons/ionicons5";
+import { ArrowBackOutline, TrashOutline, PlayOutline, EyeOutline, CheckmarkCircle, CloseCircle, SyncOutline, CopyOutline, StopCircleOutline } from "@vicons/ionicons5";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/app";
 
@@ -27,6 +27,7 @@ const templateOptions = computed(() => {
 });
 
 function startProcessing() { store.processQueue(); }
+function stopProcessing() { store.cancelQueue(); }
 function clearDone() { store.queue = store.queue.filter(q => q.status !== "done" && q.status !== "error"); }
 function viewResult(id: string) { router.push(`/result/${id}`); }
 async function copyAllTitles() {
@@ -50,6 +51,9 @@ function updateItemTemplate(itemId: string, val: number) {
       <n-space :size="8">
         <n-button size="small" @click="startProcessing" :disabled="store.isProcessing || store.queue.filter(q=>q.status==='pending').length===0">
           <template #icon><n-icon><PlayOutline /></n-icon></template>开始处理
+        </n-button>
+        <n-button v-if="store.isProcessing" size="small" type="warning" @click="stopProcessing">
+          <template #icon><n-icon><StopCircleOutline /></n-icon></template>停止
         </n-button>
         <n-button size="small" @click="clearDone" :disabled="store.queue.filter(q=>q.status==='done'||q.status==='error').length===0">
           <template #icon><n-icon><TrashOutline /></n-icon></template>清除已完成

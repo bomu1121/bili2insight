@@ -187,6 +187,7 @@ export const useAppStore = defineStore("app", () => {
   // ---------- Queue state ----------
   const queue = ref<QueueItem[]>([]);
   const isProcessing = ref(false);
+  let abortController: AbortController | null = null;
   const queueCount = computed(() => queue.value.length);
 
   const videoPages = computed<PageInfo[]>(() => preview.value?.pages ?? []);
@@ -590,10 +591,13 @@ async function checkLoginAfterAuth() {
   }
   // ---------- Preview (exposed for HomeView) ----------
   const PREVIEW_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  const PREVIEW_CACHE_MAX = 20;
   const previewCache = new Map<string, { data: VideoInfo; ts: number }>();
+  const _previewCacheKeys: string[] = []; // LRU order: most recent at end
 
   function clearPreviewCache() {
     previewCache.clear();
+    _previewCacheKeys.length = 0;
   }
 
   async function previewVideoFn(val: string) {
@@ -606,6 +610,11 @@ async function checkLoginAfterAuth() {
     console.log("preview: cache miss, fetching", val.slice(0, 50));
     const info = await previewVideo(val, proxy.value || undefined);
     previewCache.set(val, { data: info, ts: Date.now() });
+    if (_previewCacheKeys.length >= PREVIEW_CACHE_MAX) {
+      const oldest = _previewCacheKeys.shift();
+      if (oldest) previewCache.delete(oldest);
+    }
+    _previewCacheKeys.push(val);
     return info;
   }
 
@@ -633,27 +642,69 @@ async function checkLoginAfterAuth() {
     }];
   }
 
-  async function processQueue() {
-    if (isProcessing.value) return;
-    isProcessing.value = true;
-    const CONCURRENCY = 2;
-    try {
-      const pendingItems = queue.value.filter(q => q.status === 'pending');
-      console.log("processQueue started", pendingItems.length, "pending, concurrency=", CONCURRENCY);
-      for (let bi = 0; bi < pendingItems.length; bi += CONCURRENCY) {
-        const batch = pendingItems.slice(bi, bi + CONCURRENCY);
-        await Promise.allSettled(batch.map(item => processQueueItem(item)));
-        // Brief yield to let the event loop breathe between batches
-        if (bi + CONCURRENCY < pendingItems.length) {
-          await new Promise(r => setTimeout(r, 100));
-        }
-      }
-    } finally { isProcessing.value = false; }
+  function cancelQueue() {
+    if (abortController) { abortController.abort(); isProcessing.value = false; abortController = null; }
   }
 
-  async function processQueueItem(item: QueueItem) {
+  function cancelQueueItem(id: string) {
+    const q = queue.value;
+    const idx = q.findIndex(qi => qi.id === id && qi.status === 'pending');
+    if (idx >= 0) {
+      const u = [...q];
+      u[idx] = { ...u[idx], status: 'error' as const, error: '已取消', stageLabel: '取消' };
+      queue.value = u;
+    }
+  }
+
+  async function processQueue() {
+    if (isProcessing.value) return;
+    abortController = new AbortController();
+    isProcessing.value = true;
+    const CONCURRENCY = 2;
+    const signal = abortController.signal;
+    const slots: (Promise<void> | null)[] = Array(CONCURRENCY).fill(null);
+
+    const fillSlot = (i: number) => {
+      const pending = queue.value.filter(q => q.status === 'pending');
+      if (pending.length === 0 || signal.aborted) return false;
+      const item = pending[0];
+      slots[i] = processQueueItem(item, signal).finally(() => { slots[i] = null; });
+      return true;
+    };
+
+    console.log("processQueue started, concurrency=", CONCURRENCY, "pending=", queue.value.filter(q => q.status === 'pending').length);
+
+    while (true) {
+      let anyFilled = false;
+      for (let i = 0; i < CONCURRENCY; i++) {
+        if (!slots[i]) anyFilled = fillSlot(i) || anyFilled;
+      }
+
+      if (signal.aborted) break;
+
+      const pendingCount = queue.value.filter(q => q.status === 'pending').length;
+      if (pendingCount === 0 && slots.every(s => s === null)) break;
+
+      // Wait for at least one slot to free, then fill again
+      const active = slots.filter(Boolean) as Promise<void>[];
+      if (active.length > 0) {
+        try { await Promise.race(active); } catch (_) { /* slot handles errors internally */ }
+      } else if (pendingCount === 0) {
+        break;
+      } else {
+        await new Promise(r => setTimeout(r, 200));
+      }
+    }
+
+    console.log("processQueue finished");
+    isProcessing.value = false;
+    abortController = null;
+  }
+
+  async function processQueueItem(item: QueueItem, signal?: AbortSignal) {
     const idx = queue.value.findIndex(q => q.id === item.id);
     if (idx < 0) return;
+    if (signal?.aborted) return;
     const updated = [...queue.value];
     updated[idx] = { ...item, status: 'running' as const, stageLabel: '开始处理' };
     const startTime = performance.now();
@@ -661,12 +712,14 @@ async function checkLoginAfterAuth() {
     const prompt = resolvePrompt(item.templateIndex);
     console.log('processQueue: item', idx, 'set to running, url=', item.url?.slice(0,50), 'cid=', item.pageInfo.cid, 'part=', item.pageInfo.part);
     try {
+      if (signal?.aborted) return;
       let result: PipelineResult;
       if (item.source === 'local') {
         result = await runPipelineLocal(item.url!, item.pageInfo.part, aiApiUrl.value || undefined, aiApiKey.value || undefined, aiModel.value || undefined, prompt || undefined, asrModel.value, asrApiUrl.value || undefined, asrApiKey.value || undefined, item.id);
       } else {
         result = await runPipelineWithPage(item.url!, proxy.value || undefined, aiApiUrl.value || undefined, aiApiKey.value || undefined, aiModel.value || undefined, prompt || undefined, item.pageInfo.cid, asrModel.value, asrApiUrl.value || undefined, asrApiKey.value || undefined, item.id);
       }
+      if (signal?.aborted) return;
       console.log('processQueue: item', idx, 'DONE, bvid=', result.video_info.bvid, 'title=', result.video_info.title?.slice(0,40));
       const done = [...queue.value];
       const doneIdx = done.findIndex(q => q.id === item.id);
@@ -675,6 +728,7 @@ async function checkLoginAfterAuth() {
         queue.value = done;
       }
     } catch (e: any) {
+      if (signal?.aborted) return;
       const err = [...queue.value];
       const errIdx = err.findIndex(q => q.id === item.id);
       if (errIdx >= 0) {
@@ -807,6 +861,7 @@ async function checkLoginAfterAuth() {
     togglePage, selectAllPages,
     queue, isProcessing, queueCount, previewVideoFn, addQueueItem, processQueue,
     refreshPreview, clearPreviewCache,
+    cancelQueue, cancelQueueItem,
     // Login
     showLogin, qrUrl, qrcodeKey, qrPolling, qrStatusMessage, qrStatus, loginError, isLoggedIn, loginUname, loginUid, loginFace, cookiesSaved, cookiesFilePath, initCookiesPath,
     startLogin, pollQr, stopPolling, cancelLogin, checkLoginStatus, doLogout, checkLoginAfterAuth,
