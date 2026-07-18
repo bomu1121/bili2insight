@@ -231,6 +231,27 @@ pub async fn fav_get_folders(app: AppHandle, cookies_json: String, proxy: Option
 }
 
 #[tauri::command]
+pub async fn fav_get_follow_list(app: AppHandle, cookies_json: String, follow_type: i64, page: i64, proxy: Option<String>) -> Result<serde_json::Value, String> {
+    pipeline::fav_get_follow_list_flow(&app, &cookies_json, follow_type, page, proxy.as_deref()).await.map_err(|e| format!("Get follow list failed: {}", e))
+}
+
+#[tauri::command]
+pub async fn fav_collected_videos(app: AppHandle, cookies_json: String, folder_id: i64, mid: i64, page: i64, proxy: Option<String>) -> Result<crate::FavVideosResult, String> {
+    let val = pipeline::fav_collected_videos_flow(&app, &cookies_json, folder_id, mid, page, proxy.as_deref()).await.map_err(|e| format!("Collected videos failed: {}", e))?;
+    Ok(serde_json::from_value(val).map_err(|e| format!("Parse error: {}", e))?)
+}
+
+#[tauri::command]
+pub async fn fav_watch_later(app: AppHandle, cookies_json: String, page: i64, proxy: Option<String>) -> Result<serde_json::Value, String> {
+    pipeline::fav_watch_later_flow(&app, &cookies_json, page, proxy.as_deref()).await.map_err(|e| format!("Watch later failed: {}", e))
+}
+
+#[tauri::command]
+pub async fn fav_history(app: AppHandle, cookies_json: String, page: i64, proxy: Option<String>) -> Result<serde_json::Value, String> {
+    pipeline::fav_history_flow(&app, &cookies_json, page, proxy.as_deref()).await.map_err(|e| format!("History failed: {}", e))
+}
+
+#[tauri::command]
 pub async fn fav_get_videos(app: AppHandle, cookies_json: String, folder_id: i64, page: i64, proxy: Option<String>) -> Result<crate::FavVideosResult, String> {
     pipeline::fav_get_videos_flow(&app, &cookies_json, folder_id, page, proxy.as_deref()).await.map_err(|e| format!("Get videos failed: {}", e))
 }

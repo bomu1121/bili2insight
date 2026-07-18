@@ -1,16 +1,24 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
-import { NButton, NText, NIcon, NCheckbox, NSpin, NPagination, NInput, createDiscreteApi } from 'naive-ui';
-import { ArrowBackOutline, AddCircleOutline, FolderOpenOutline, RefreshOutline } from '@vicons/ionicons5';
-import { useRouter } from 'vue-router';
-import { useAppStore } from '../stores/app';
+import { ref, onMounted, computed, watch } from "vue";
+import { NButton, NText, NIcon, NCheckbox, NSpin, NPagination, NInput, createDiscreteApi, NTabs, NTabPane } from "naive-ui";
+import { ArrowBackOutline, AddCircleOutline, FolderOpenOutline, RefreshOutline, PlayCircleOutline, TimeOutline, BookmarkOutline, TvOutline } from "@vicons/ionicons5";
+import { useRouter } from "vue-router";
+import { useAppStore } from "../stores/app";
 
 const store = useAppStore();
 const router = useRouter();
-const { message } = createDiscreteApi(['message']);
+const { message } = createDiscreteApi(["message"]);
 
+const activeTab = ref<"folders" | "collected" | "follow" | "watchlater" | "history">("folders");
+watch(activeTab, (tab) => {
+  if (tab === "watchlater" && store.watchLaterItems.length === 0) {
+    store.loadWatchLater(1);
+  } else if (tab === "history" && store.historyItems.length === 0) {
+    store.loadHistory(1);
+  }
+});
 const showFolders = ref(true);
-const folderSearch = ref('');
+const folderSearch = ref("");
 
 onMounted(async () => {
   if (store.isLoggedIn) {
@@ -24,65 +32,65 @@ const filteredFolders = computed(() => {
   return store.favFolders.filter((f: any) => f.title.toLowerCase().includes(q));
 });
 
+const createdFolders = computed(() => store.favFolders.filter((f: any) => !f.collected));
+const collectedFolders = computed(() => store.favFolders.filter((f: any) => f.collected));
+
 function openFolder(folder: any) {
   showFolders.value = false;
   store.openFavFolder(folder);
 }
-
 function backToFolders() {
   showFolders.value = true;
   store.favVideos = [];
+  store.favIsCollected = false;
 }
-
-async function loadPage(page: number) {
-  await store.loadFavVideos(store.favCurrentFolderId, page);
+async function loadPage(p: number) {
+  if (store.favIsCollected) {
+    await store.loadCollectedVideos(store.favCurrentFolderId, store.favCurrentFolderMid, p);
+  } else {
+    await store.loadFavVideos(store.favCurrentFolderId, p);
+  }
 }
-
 function addSelectedToQueue() {
   const sel: any[] = [];
-  store.favSelectedVideos.forEach((i: number) => {
-    if (i < store.favVideos.length) sel.push(store.favVideos[i]);
-  });
-  if (sel.length === 0) {
-    message.warning('请至少选择一个视频');
-    return;
-  }
+  store.favSelectedVideos.forEach((i: number) => { if (i < store.favVideos.length) sel.push(store.favVideos[i]); });
+  if (sel.length === 0) { message.warning("请至少选择一个视频"); return; }
   sel.forEach((v: any) => {
-    const url = 'https://www.bilibili.com/video/' + v.bvid;
-    store.addQueueItem({
-      url,
-      pageInfo: { page: 1, part: v.title, cid: v.cid, duration: v.duration },
-      source: 'fav'
-    });
+    store.addQueueItem({ url: "https://www.bilibili.com/video/" + v.bvid, pageInfo: { page: 1, part: v.title, cid: v.cid, duration: v.duration }, source: "fav" });
   });
-  message.success('已添加 ' + sel.length + ' 个视频到处理队列');
+  message.success("已添加 " + sel.length + " 个视频到处理队列");
 }
-
-const fmtDur = (sec: number) => {
+function fmtDur(sec: number) {
   const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
-  return h > 0 ? String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0') : String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
-};
-
+  return h > 0 ? String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0") : String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+}
 </script>
 
 <template>
   <div class="source-root">
     <div class="source-bar">
       <n-button text @click="router.push('/')"><template #icon><n-icon><ArrowBackOutline /></n-icon></template>返回</n-button>
-      <n-text strong style="font-size:15px;">B站收藏夹</n-text>
+      <n-text strong style="font-size:15px;">B站收藏</n-text>
     </div>
 
     <div class="source-body">
-      <!-- Not logged in -->
       <div v-if="!store.isLoggedIn" class="fav-empty">
         <n-icon size="48" color="#ccc"><FolderOpenOutline /></n-icon>
-        <n-text depth="3" style="margin-top:12px;">请先登录B站账号以访问收藏夹</n-text>
-        <n-button type="primary" @click="store.startLogin()" style="margin-top:16px;">登录</n-button>
+        <n-text depth="3" style="margin-top:12px;">请先登录B站账号以访问收藏</n-text>
       </div>
 
       <template v-else>
-        <!-- Folder list -->
-        <div v-if="showFolders">
+        <!-- Tab bar -->
+        <n-tabs v-model:value="activeTab" type="line" size="small" v-if="showFolders">
+          <n-tab-pane name="folders" tab="收藏夹"></n-tab-pane>
+          <n-tab-pane name="collected" tab="订阅合集"></n-tab-pane>
+          <n-tab-pane name="follow" tab="追番追剧"></n-tab-pane>
+          <n-tab-pane name="watchlater" tab="稍后再看"></n-tab-pane>
+          <n-tab-pane name="history" tab="历史记录"></n-tab-pane>
+        </n-tabs>
+
+        <!-- Tab: 收藏夹 -->
+        <div v-if="showFolders && activeTab==='folders'">
           <div class="fav-bar">
             <n-input v-model:value="folderSearch" placeholder="搜索收藏夹..." size="small" clearable style="width:220px;" />
             <n-button size="small" @click="store.loadFavFolders()" :loading="store.favLoading">
@@ -90,35 +98,111 @@ const fmtDur = (sec: number) => {
             </n-button>
           </div>
           <n-spin :show="store.favLoading">
-            <div class="folder-grid" v-if="filteredFolders.length > 0">
-              <div v-for="f in filteredFolders" :key="f.id" class="folder-card" @click="openFolder(f)">
-                <div class="folder-icon"><n-icon size="22" :color="f.collected ? '#f0a020' : '#00aeec'"><FolderOpenOutline /></n-icon></div>
+            <div class="folder-grid" v-if="createdFolders.length > 0">
+              <div v-for="f in createdFolders" :key="f.id" class="folder-card" @click="openFolder(f)">
+                <div class="folder-icon"><n-icon size="22" color="#00aeec"><FolderOpenOutline /></n-icon></div>
                 <div class="folder-info">
                   <n-text style="font-size:14px;font-weight:500;">{{ f.title }}</n-text>
-                  <n-text depth="3" style="font-size:12px;">{{ f.count }} 个视频{{ f.collected ? ' · 已收藏' : '' }}</n-text>
+                  <n-text depth="3" style="font-size:12px;">{{ f.count }} 个视频</n-text>
                 </div>
                 <span class="folder-arrow">&rarr;</span>
               </div>
             </div>
-            <div v-else class="fav-empty">
-              <n-text depth="3">暂无收藏夹</n-text>
-            </div>
+            <div v-else class="fav-empty"><n-text depth="3">暂无收藏夹</n-text></div>
           </n-spin>
         </div>
 
-        <!-- Videos in a folder -->
-        <div v-else>
+        <!-- Tab: 订阅合集 -->
+        <div v-if="showFolders && activeTab==='collected'">
+          <n-spin :show="store.favLoading">
+            <div class="folder-grid" v-if="collectedFolders.length > 0">
+              <div v-for="f in collectedFolders" :key="f.id" class="folder-card" @click="openFolder(f)">
+                <div class="folder-icon"><n-icon size="22" color="#f0a020"><BookmarkOutline /></n-icon></div>
+                <div class="folder-info">
+                  <n-text style="font-size:14px;font-weight:500;">{{ f.title }}</n-text>
+                  <n-text depth="3" style="font-size:12px;">{{ f.count }} 个视频</n-text>
+                </div>
+                <span class="folder-arrow">&rarr;</span>
+              </div>
+            </div>
+            <div v-else class="fav-empty"><n-text depth="3">暂无订阅合集</n-text></div>
+          </n-spin>
+        </div>
+
+        <!-- Tab: 追番追剧 -->
+        <div v-if="showFolders && activeTab==='follow'">
+          <div class="fav-bar">
+            <n-button size="small" :type="store.followType===1?'primary':'default'" @click="store.loadFollowList(1,1)">追番</n-button>
+            <n-button size="small" :type="store.followType===2?'primary':'default'" @click="store.loadFollowList(2,1)">追剧</n-button>
+          </div>
+          <n-spin :show="store.followLoading">
+            <div v-if="store.followItems.length>0" class="follow-list">
+              <div v-for="item in store.followItems" :key="item.season_id" class="follow-card" @click="store.addQueueItem({url:item.url,pageInfo:{page:1,part:item.title,cid:0,duration:0},source:'fav'});message.success('已添加: '+item.title)">
+                <img v-if="item.cover" :src="item.cover" class="follow-cover" referrerpolicy="no-referrer" />
+                <div class="follow-info">
+                  <n-text style="font-size:13px;font-weight:500;">{{ item.title }}</n-text>
+                  <n-text depth="3" style="font-size:11px;">{{ item.type }}{{ item.area?' · '+item.area:'' }} · {{ item.new_ep||item.progress }}</n-text>
+                  <n-text depth="3" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ item.desc }}</n-text>
+                </div>
+              </div>
+            </div>
+            <div v-else class="fav-empty"><n-text depth="3">点击"追番"或"追剧"加载</n-text></div>
+          </n-spin>
+        </div>
+
+        <!-- Tab: 稍后再看 -->
+        <div v-if="showFolders && activeTab==='watchlater'">
+          <n-spin :show="store.watchLaterLoading">
+            <div v-if="store.watchLaterItems.length>0">
+              <div class="fav-video-list">
+                <div v-for="(v,i) in store.watchLaterItems" :key="i" class="fav-video-row" @click="store.addQueueItem({url:'https://www.bilibili.com/video/'+v.bvid,pageInfo:{page:1,part:v.title,cid:v.cid,duration:v.duration},source:'fav'});message.success('已添加')">
+                  <img v-if="v.cover" :src="v.cover" class="fav-thumb" referrerpolicy="no-referrer" />
+                  <div class="fav-video-info">
+                    <n-text style="font-size:13px;">{{ v.title }}</n-text>
+                    <n-text depth="3" style="font-size:11px;">{{ v.uploader }} · {{ fmtDur(v.duration) }}</n-text>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-else-if="store.watchLaterItems.length===0" class="fav-empty"><n-text depth="3">点击上方标签自动加载</n-text></div>
+          </n-spin>
+          <div class="fav-pagination" v-if="store.watchLaterTotalPages > 1">
+            <n-pagination :page="store.watchLaterPage" :page-count="store.watchLaterTotalPages" @update:page="(p:number)=>store.loadWatchLater(p)" size="small" />
+          </div>
+        </div>
+
+        <!-- Tab: 历史记录 -->
+        <div v-if="showFolders && activeTab==='history'">
+          <n-spin :show="store.historyLoading">
+            <div v-if="store.historyItems.length>0">
+              <div class="fav-video-list">
+                <div v-for="(v,i) in store.historyItems" :key="i" class="fav-video-row" @click="store.addQueueItem({url:'https://www.bilibili.com/video/'+v.bvid,pageInfo:{page:1,part:v.title,cid:v.cid,duration:v.duration},source:'fav'});message.success('已添加')">
+                  <img v-if="v.cover" :src="v.cover" class="fav-thumb" referrerpolicy="no-referrer" />
+                  <div class="fav-video-info">
+                    <n-text style="font-size:13px;">{{ v.title }}</n-text>
+                    <n-text depth="3" style="font-size:11px;">{{ v.uploader }} · {{ fmtDur(v.duration) }}</n-text>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-else-if="store.historyItems.length===0" class="fav-empty"><n-text depth="3">点击上方标签自动加载</n-text></div>
+          </n-spin>
+          <div class="fav-pagination" v-if="store.historyTotalPages > 1">
+            <n-pagination :page="store.historyPage" :page-count="store.historyTotalPages" @update:page="(p:number)=>store.loadHistory(p)" size="small" />
+          </div>
+        </div>
+
+        <!-- Folder content (videos) -->
+        <div v-if="!showFolders">
           <div class="fav-bar">
             <n-button text @click="backToFolders"><template #icon><n-icon><ArrowBackOutline /></n-icon></template>返回目录</n-button>
             <n-text style="font-size:14px;font-weight:500;flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 12px;">{{ store.favCurrentFolderTitle }}</n-text>
-            <n-text depth="3" style="font-size:12px;">共 {{ store.favTotal }} 个视频</n-text>
+            <n-text depth="3" style="font-size:12px;">共{{ store.favTotal }} 个视频</n-text>
           </div>
           <n-spin :show="store.favLoadingVideos">
             <div v-if="store.favVideos.length > 0">
               <div class="page-header-row">
-                <n-checkbox :checked="store.favSelectedVideos.size === store.favVideos.length" @update:checked="store.selectAllFavVideos()">
-                  全选 ({{ store.favSelectedVideos.size }}/{{ store.favVideos.length }})
-                </n-checkbox>
+                <n-checkbox :checked="store.favSelectedVideos.size === store.favVideos.length" @update:checked="store.selectAllFavVideos()">全选 ({{ store.favSelectedVideos.size }}/{{ store.favVideos.length }})</n-checkbox>
               </div>
               <div class="fav-video-list">
                 <div v-for="(v, i) in store.favVideos" :key="i" class="fav-video-row" :class="{ sel: store.favSelectedVideos.has(i) }" @click="store.toggleFavVideo(i)">
@@ -126,21 +210,19 @@ const fmtDur = (sec: number) => {
                   <img v-if="v.cover" :src="v.cover" class="fav-thumb" referrerpolicy="no-referrer" />
                   <div class="fav-video-info">
                     <n-text style="font-size:13px;">{{ v.title }}</n-text>
-                    <n-text depth="3" style="font-size:11px;">{{ v.uploader }} . {{ fmtDur(v.duration) }}</n-text>
+                    <n-text depth="3" style="font-size:11px;">{{ v.uploader }} · {{ fmtDur(v.duration) }}</n-text>
                   </div>
                 </div>
               </div>
               <n-text v-if="store.loginError" depth="3" type="error" style="font-size:12px;display:block;margin:8px 0;">{{ store.loginError }}</n-text>
               <div class="fav-pagination" v-if="store.favTotalPages > 1">
-                <n-pagination :page="store.favPage" :page-count="store.favTotalPages" @update:page="loadPage" size="small" />
+                <n-pagination :page="store.favPage" :page-count="store.favTotalPages" @update:page="(p:number) => { if (store.favIsCollected) store.loadCollectedVideos(store.favCurrentFolderId, store.favCurrentFolderMid, p); else store.loadFavVideos(store.favCurrentFolderId, p); }" size="small" />
               </div>
               <n-button type="primary" block @click="addSelectedToQueue" :disabled="store.favSelectedVideos.size === 0" style="margin-top:14px;">
                 <template #icon><n-icon><AddCircleOutline /></n-icon></template>添加到处理队列
               </n-button>
             </div>
-            <div v-else class="fav-empty">
-              <n-text depth="3">此收藏夹为空</n-text>
-            </div>
+            <div v-else class="fav-empty"><n-text depth="3">此收藏夹为空</n-text></div>
           </n-spin>
         </div>
       </template>
@@ -151,28 +233,26 @@ const fmtDur = (sec: number) => {
 <style scoped>
 .source-root { display: flex; flex-direction: column; height: 100%; }
 .source-bar { display: flex; align-items: center; gap: 12px; padding: 12px 20px; background: #fff; border-bottom: 1px solid #eee; flex-shrink: 0; }
-.source-body { flex: 1; padding: 24px; max-width: 780px; margin: 0 auto; width: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+.source-body { flex: 1; padding: 10px 20px; max-width: 820px; margin: 0 auto; width: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
 .fav-empty { display: flex; flex-direction: column; align-items: center; padding: 60px 0; text-align: center; }
-.fav-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.fav-bar { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
 .folder-grid { display: flex; flex-direction: column; gap: 6px; }
-.folder-card {
-  display: flex; align-items: center; gap: 14px; padding: 14px 16px;
-  background: #fff; border: 1px solid #eee; border-radius: 10px;
-  cursor: pointer; transition: all .15s;
-}
+.folder-card { display: flex; align-items: center; gap: 14px; padding: 12px 14px; background: #fff; border: 1px solid #eee; border-radius: 10px; cursor: pointer; transition: all .15s; }
 .folder-card:hover { border-color: #00aeec; box-shadow: 0 2px 12px rgba(0,174,236,.08); }
-.folder-icon { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: #f5f7fa; border-radius: 8px; flex-shrink: 0; }
+.folder-icon { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: #f5f7fa; border-radius: 8px; flex-shrink: 0; }
 .folder-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .folder-arrow { color: #ccc; flex-shrink: 0; font-size: 16px; }
 .page-header-row { margin-bottom: 4px; }
-.fav-video-list { display: flex; flex-direction: column; gap: 4px; max-height: 400px; overflow-y: auto; }
-.fav-video-row {
-  display: flex; align-items: center; gap: 10px; padding: 8px 10px;
-  border-radius: 6px; cursor: pointer; transition: background .15s;
-}
+.fav-video-list { display: flex; flex-direction: column; gap: 4px; max-height: 420px; overflow-y: auto; }
+.fav-video-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; cursor: pointer; transition: background .15s; }
 .fav-video-row:hover { background: #f5f5f5; }
 .fav-video-row.sel { background: #e8f4fd; }
 .fav-thumb { width: 80px; height: 45px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
 .fav-video-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .fav-pagination { display: flex; justify-content: center; margin-top: 12px; }
+.follow-list { display: flex; flex-direction: column; gap: 8px; }
+.follow-card { display: flex; gap: 12px; padding: 10px; border-radius: 8px; border: 1px solid #eee; cursor: pointer; transition: all .15s; }
+.follow-card:hover { border-color: #00aeec; }
+.follow-cover { width: 72px; height: 96px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
+.follow-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 </style>

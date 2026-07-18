@@ -50,3 +50,14 @@ export async function favGetFolders(cookiesJson: string, proxy?: string): Promis
 export async function favGetVideos(cookiesJson: string, folderId: number, page: number, proxy?: string): Promise<FavVideosResult> { return invoke<FavVideosResult>("fav_get_videos", { cookiesJson, folderId, page, proxy: proxy || null }); }
 
 export async function fetchModels(apiUrl: string, apiKey: string): Promise<string[]> { return invoke<string[]>('fetch_ai_models', { apiUrl, apiKey }); }
+
+export async function favGetFollowList(cookiesJson: string, followType: number, page: number, proxy?: string): Promise<any> {
+    return invoke("fav_get_follow_list", { cookiesJson, followType, page, proxy: proxy || null });
+}
+
+export async function favWatchLater(cookiesJson: string, page: number, proxy?: string): Promise<any> {
+    return invoke("fav_watch_later", { cookiesJson, page, proxy: proxy || null });
+}
+export async function favHistory(cookiesJson: string, page: number, proxy?: string): Promise<any> {
+    return invoke("fav_history", { cookiesJson, page, proxy: proxy || null });
+}

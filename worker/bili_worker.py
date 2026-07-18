@@ -632,6 +632,108 @@ def _apply_cookies_to_client(client_obj, cookies: dict):
             client_obj.cookies.set(name=key, value=str(value), domain=".bilibili.com", path="/")
 
 
+def _mode_fav_follow_list(client, cookies_arg, follow_type, page):
+    cookies = _load_cookies(cookies_arg)
+    if not cookies:
+        raise RuntimeError("No cookies provided.")
+    _apply_cookies_to_client(client, cookies)
+    nav_data = client.get("https://api.bilibili.com/x/web-interface/nav").json()
+    uid = nav_data["data"]["mid"]
+    try:
+        img_key, sub_key = get_cached_wbi_keys(client)
+    except Exception:
+        img_key, sub_key = "", ""
+    ps = 24
+    params = {"vmid":uid,"type":follow_type,"pn":page,"ps":ps,"playform":"web","follow_status":0,"web_location":"333.1387"}
+    if img_key and sub_key:
+        mixin_key = __import__("functools").reduce(lambda s,i:s+(img_key+sub_key)[i], mixinKeyEncTab,"")[:32]
+        params["wts"] = round(__import__("time").time())
+        params = dict(sorted(params.items()))
+        params = {k:"".join(filter(lambda ch:ch not in "!'()*",str(v))) for k,v in params.items()}
+        query_str = __import__("urllib.parse").urlencode(params)
+        wbi_sign = __import__("hashlib").md5((query_str+mixin_key).encode()).hexdigest()
+        params["w_rid"] = wbi_sign
+    url = f"https://api.bilibili.com/x/space/bangumi/follow/list?{urllib.parse.urlencode(params)}"
+    data = client.get(url).json()
+    if data.get("code")!=0:
+        raise RuntimeError(f"Failed to get follow list: {data.get('message')}")
+    items = []
+    for entry in data.get("data",{}).get("list",[]):
+        items.append({"title":entry.get("title",""),"season_id":entry.get("season_id",0),"url":f"https://www.bilibili.com/bangumi/play/ss{entry.get('season_id','')}","cover":entry.get("cover",""),"type":entry.get("season_type_name",""),"area":entry["areas"][0]["name"] if entry.get("areas") else "","new_ep":entry.get("new_ep",{}).get("index_show",""),"progress":entry.get("progress",""),"desc":entry.get("evaluate","")})
+    total = data.get("data",{}).get("total",0)
+    tp = (total+ps-1)//ps if total>0 else 0
+    emit("result",{"follow_type":follow_type,"page":page,"total":total,"total_pages":tp,"items":items})
+
+def _mode_fav_collected_videos(client, cookies_arg, season_id, mid, page):
+    cookies = _load_cookies(cookies_arg)
+    if not cookies:
+        raise RuntimeError("No cookies provided.")
+    _apply_cookies_to_client(client, cookies)
+    ps = 30
+    params = {"mid":mid,"season_id":season_id,"sort_reverse":"false","page_size":ps,"page_num":page,"web_location":"333.1387"}
+    url = f"https://api.bilibili.com/x/polymer/web-space/seasons_archives_list?{urllib.parse.urlencode(params)}"
+    data = client.get(url).json()
+    if data.get("code")!=0:
+        raise RuntimeError(f"Failed: {data.get('message')}")
+    archives = data.get("data",{}).get("archives") or []
+    videos = []
+    for a in archives:
+        videos.append({"bvid":a.get("bvid",""),"title":a.get("title",""),"cover":a.get("cover",""),"duration":a.get("duration",0),"cid":a.get("cid",0),"uploader":a.get("owner",{}).get("name",""),"uploader_uid":a.get("owner",{}).get("mid",0),"pubdate":a.get("pubdate",0)})
+    total = data.get("data",{}).get("page",{}).get("total",0)
+    tp = (total+ps-1)//ps if total>0 else 0
+    emit("result",{"folder_id":int(season_id),"page":page,"total":total,"total_pages":tp,"videos":videos})
+
+
+
+def _mode_fav_watch_later(client, cookies_arg, page):
+    cookies = _load_cookies(cookies_arg)
+    if not cookies:
+        raise RuntimeError("No cookies provided.")
+    _apply_cookies_to_client(client, cookies)
+    try:
+        img_key, sub_key = get_cached_wbi_keys(client)
+    except Exception:
+        img_key, sub_key = "", ""
+    ps = 20
+    params = {"pn":page,"ps":ps,"viewed":0,"key":"","asc":False,"need_split":True,"web_location":"333.881"}
+    if img_key and sub_key:
+        mixin_key = __import__("functools").reduce(lambda s,i:s+(img_key+sub_key)[i], mixinKeyEncTab,"")[:32]
+        params["wts"] = round(__import__("time").time())
+        params = dict(sorted(params.items()))
+        params = {k:"".join(filter(lambda ch:ch not in "!'()*",str(v))) for k,v in params.items()}
+        qs = __import__("urllib.parse").urlencode(params)
+        params["w_rid"] = __import__("hashlib").md5((qs+mixin_key).encode()).hexdigest()
+    url = f"https://api.bilibili.com/x/v2/history/toview/web?{urllib.parse.urlencode(params)}"
+    data = client.get(url).json()
+    if data.get("code")!=0:
+        raise RuntimeError(f"Failed: {data.get('message')}")
+    lst = data.get("data",{}).get("list") or []
+    items = [{"bvid":e["bvid"],"title":e["title"],"cover":e.get("pic",""),"duration":e.get("duration",0),"cid":e.get("cid",0),"uploader":e.get("owner",{}).get("name",""),"pubdate":e.get("pubdate",0)} for e in lst]
+    total = data.get("data",{}).get("count",0)
+    tp = (total+ps-1)//ps if total>0 else 0
+    emit("result",{"page":page,"total":total,"total_pages":tp,"items":items})
+
+def _mode_fav_history(client, cookies_arg, page):
+    cookies = _load_cookies(cookies_arg)
+    if not cookies:
+        raise RuntimeError("No cookies provided.")
+    _apply_cookies_to_client(client, cookies)
+    ps = 20
+    params = {"pn":page,"keyword":"","business":"archive","add_time_start":0,"add_time_end":0,"arc_max_duration":0,"arc_min_duration":0,"device_type":0,"web_location":"333.1391"}
+    url = f"https://api.bilibili.com/x/web-interface/history/search?{urllib.parse.urlencode(params)}"
+    data = client.get(url).json()
+    if data.get("code")!=0:
+        raise RuntimeError(f"Failed: {data.get('message')}")
+    lst = data.get("data",{}).get("list") or []
+    items = []
+    for e in lst:
+        h = e.get("history",{})
+        items.append({"bvid":h.get("bvid",""),"title":e.get("title",""),"cover":e.get("cover",""),"duration":e.get("duration",0),"cid":h.get("cid",0),"uploader":e.get("author_name",""),"pubdate":e.get("view_at",0)})
+    total = data.get("data",{}).get("page",{}).get("total",0)
+    tp = (total+ps-1)//ps if total>0 else 0
+    emit("result",{"page":page,"total":total,"total_pages":tp,"items":items})
+
+
 
 def _mode_check_login(client, cookies_arg):
     """Check if current cookies are valid."""
@@ -661,6 +763,8 @@ def main():
     parser.add_argument("--cookies-file", default=None, help="Path to save cookies after login")
     parser.add_argument("--folder-id", type=int, default=None, help="Favorite folder ID")
     parser.add_argument("--page", type=int, default=1, help="Page number for listing")
+    parser.add_argument("--mid", type=int, default=0, help="User ID")
+    parser.add_argument("--follow-type", default="1", help="Follow type: 1=anime, 2=drama")
     parser.add_argument("--cids", default=None, help="Comma-separated cids for batch download")
     parser.add_argument("--preview-only", action="store_true")
     parser.add_argument("--cid", type=int, default=None)
@@ -691,6 +795,14 @@ def main():
                 emit("error", {"message": "--folder-id is required for fav_videos mode"})
                 sys.exit(1)
             _mode_fav_videos(mode_client, args.cookies, args.folder_id, args.page)
+        elif args.mode == "fav_collected_videos":
+            _mode_fav_collected_videos(mode_client, args.cookies, args.folder_id, args.mid, args.page)
+        elif args.mode == "fav_watch_later":
+            _mode_fav_watch_later(mode_client, args.cookies, args.page)
+        elif args.mode == "fav_history":
+            _mode_fav_history(mode_client, args.cookies, args.page)
+        elif args.mode == "fav_follow_list":
+            _mode_fav_follow_list(mode_client, args.cookies, int(args.follow_type) if args.follow_type else 1, args.page)
         elif args.mode == "sms_captcha":
             _mode_sms_captcha(mode_client)
         elif args.mode == "sms_send":

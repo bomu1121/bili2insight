@@ -251,12 +251,30 @@ export const useAppStore = defineStore("app", () => {
   const favLoading = ref(false);
   const favCurrentFolderId = ref(0);
   const favCurrentFolderTitle = ref('');
+  const favIsCollected = ref(false);
+  const favCurrentFolderMid = ref(0);
   const favVideos = ref<any[]>([]);
   const favPage = ref(1);
   const favTotalPages = ref(0);
   const favTotal = ref(0);
   const favLoadingVideos = ref(false);
   const favSelectedVideos = ref<Set<number>>(new Set());
+  const followItems = ref<any[]>([]);
+  const followLoading = ref(false);
+  const followType = ref(1); // 1=anime, 2=drama
+  const followPage = ref(1);
+  const followTotalPages = ref(0);
+  const followTotal = ref(0);
+  const watchLaterItems = ref<any[]>([]);
+  const watchLaterLoading = ref(false);
+  const watchLaterPage = ref(1);
+  const watchLaterTotalPages = ref(0);
+  const historyItems = ref<any[]>([]);
+  const historyLoading = ref(false);
+  const historyPage = ref(1);
+  const historyTotalPages = ref(0);
+
+
 
   const cookiesFilePath = ref('');
   async function initCookiesPath() {
@@ -406,13 +424,28 @@ async function checkLoginAfterAuth() {
     } finally { favLoading.value = false; }
   }
 
+  async function loadCollectedVideos(seasonId: number, mid: number, page: number) {
+    favLoadingVideos.value = true;
+    try {
+      const ck = JSON.stringify(cookiesSaved.value);
+      const { invoke } = await import('@tauri-apps/api/core');
+      const r = await invoke<any>('fav_collected_videos', { cookiesJson: ck, folderId: seasonId, mid, page, proxy: proxy.value || undefined });
+      favVideos.value = r.videos;
+      favPage.value = page;
+      favTotalPages.value = r.total_pages;
+      favTotal.value = r.total;
+      favCurrentFolderId.value = seasonId;
+    } catch(e:any){ loginError.value = String(e); }
+    finally { favLoadingVideos.value = false; }
+  }
+
   async function loadFavVideos(folderId: number, page: number) {
     favLoadingVideos.value = true;
     try {
       const cookiesStr = JSON.stringify(cookiesSaved.value); console.log("FAV loadFavVideos: folder=" + folderId + " page=" + page + " hasCookies=" + Object.keys(cookiesSaved.value || {}).length); const { favGetVideos } = await import('../utils/invoke');
       const result = await favGetVideos(cookiesStr, folderId, page, proxy.value || undefined);
       favVideos.value = result.videos; console.log("FAV loadFavVideos OK:", result.videos.length, "videos, total=", result.total);
-      favPage.value = result.page;
+      favPage.value = page;
       favTotalPages.value = result.total_pages;
       favTotal.value = result.total;
       favCurrentFolderId.value = folderId;
@@ -420,11 +453,57 @@ async function checkLoginAfterAuth() {
     finally { favLoadingVideos.value = false; }
   }
 
+  
+  async function loadFollowList(fType: number, page: number) {
+    followLoading.value = true;
+    try {
+      const cookiesStr = JSON.stringify(cookiesSaved.value);
+      const { favGetFollowList } = await import('../utils/invoke');
+      const result = await favGetFollowList(cookiesStr, fType, page, proxy.value || undefined);
+      followItems.value = result.items;
+      followPage.value = result.page;
+      followTotalPages.value = result.total_pages;
+      followTotal.value = result.total;
+      followType.value = fType;
+    } catch (e: any) { loginError.value = String(e); }
+    finally { followLoading.value = false; }
+  }
+
+  
+  async function loadWatchLater(page: number) {
+    watchLaterLoading.value = true;
+    try {
+      const ck = JSON.stringify(cookiesSaved.value);
+      const { favWatchLater } = await import("../utils/invoke");
+      const r = await favWatchLater(ck, page, proxy.value || undefined);
+      watchLaterItems.value = r.items; watchLaterPage.value = r.page;
+      watchLaterTotalPages.value = r.total_pages;
+    } catch(e:any){ loginError.value = String(e); }
+    finally { watchLaterLoading.value = false; }
+  }
+  async function loadHistory(page: number) {
+    historyLoading.value = true;
+    try {
+      const ck = JSON.stringify(cookiesSaved.value);
+      const { favHistory } = await import("../utils/invoke");
+      const r = await favHistory(ck, page, proxy.value || undefined);
+      historyItems.value = r.items; historyPage.value = r.page;
+      historyTotalPages.value = r.total_pages;
+    } catch(e:any){ loginError.value = String(e); }
+    finally { historyLoading.value = false; }
+  }
+
   function openFavFolder(folder: any) {
     favCurrentFolderId.value = folder.id;
     favCurrentFolderTitle.value = folder.title;
     favSelectedVideos.value = new Set();
-    loadFavVideos(folder.id, 1);
+    favIsCollected.value = !!folder.collected;
+    favCurrentFolderMid.value = folder.mid || 0;
+    if (folder.collected) {
+      loadCollectedVideos(folder.id, folder.mid, 1);
+    } else {
+      loadFavVideos(folder.id, 1);
+    }
   }
 
   function toggleFavVideo(idx: number) {
@@ -694,7 +773,7 @@ async function checkLoginAfterAuth() {
     showLogin, qrUrl, qrcodeKey, qrPolling, qrStatusMessage, qrStatus, loginError, isLoggedIn, loginUname, loginUid, loginFace, cookiesSaved, cookiesFilePath, initCookiesPath,
     startLogin, pollQr, stopPolling, cancelLogin, checkLoginStatus, doLogout, checkLoginAfterAuth,
     // Favorites
-    favFolders, favLoading, favCurrentFolderId, favCurrentFolderTitle, favVideos, favPage, favTotalPages, favTotal, favLoadingVideos, favSelectedVideos,
-    loadFavFolders, loadFavVideos, openFavFolder, toggleFavVideo, selectAllFavVideos, addFavVideosToQueue,
+    favFolders, favLoading, favCurrentFolderId, favCurrentFolderTitle, favIsCollected, favCurrentFolderMid, favVideos, favPage, favTotalPages, favTotal, favLoadingVideos, favSelectedVideos,
+    loadFavFolders, loadFavVideos, loadCollectedVideos, openFavFolder, toggleFavVideo, selectAllFavVideos, addFavVideosToQueue, followItems, followLoading, followType, followPage, followTotalPages, followTotal, loadFollowList, watchLaterItems, watchLaterLoading, watchLaterPage, watchLaterTotalPages, loadWatchLater, historyItems, historyLoading, historyPage, historyTotalPages, loadHistory,
   };
 });

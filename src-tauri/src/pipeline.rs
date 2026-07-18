@@ -338,6 +338,29 @@ pub async fn fav_get_videos_flow(app: &AppHandle, cookies_json: &str, folder_id:
     Ok(serde_json::from_value(val)?)
 }
 
+pub async fn fav_get_follow_list_flow(app: &AppHandle, cookies_json: &str, follow_type: i64, page: i64, proxy: Option<&str>) -> Result<serde_json::Value, anyhow::Error> {
+    let ft = follow_type.to_string();
+    let pg = page.to_string();
+    run_bili_mode(app, "fav_follow_list", &[("--cookies", cookies_json), ("--follow-type", &ft), ("--page", &pg)], proxy).await
+}
+
+pub async fn fav_collected_videos_flow(app: &AppHandle, cookies_json: &str, folder_id: i64, mid: i64, page: i64, proxy: Option<&str>) -> Result<serde_json::Value, anyhow::Error> {
+    let fid = folder_id.to_string();
+    let m = mid.to_string();
+    let pg = page.to_string();
+    run_bili_mode(app, "fav_collected_videos", &[("--cookies", cookies_json), ("--folder-id", &fid), ("--mid", &m), ("--page", &pg)], proxy).await
+}
+
+pub async fn fav_watch_later_flow(app: &AppHandle, cookies_json: &str, page: i64, proxy: Option<&str>) -> Result<serde_json::Value, anyhow::Error> {
+    let pg = page.to_string();
+    run_bili_mode(app, "fav_watch_later", &[("--cookies", cookies_json), ("--page", &pg)], proxy).await
+}
+
+pub async fn fav_history_flow(app: &AppHandle, cookies_json: &str, page: i64, proxy: Option<&str>) -> Result<serde_json::Value, anyhow::Error> {
+    let pg = page.to_string();
+    run_bili_mode(app, "fav_history", &[("--cookies", cookies_json), ("--page", &pg)], proxy).await
+}
+
 pub async fn sms_captcha_flow(app: &AppHandle, proxy: Option<&str>) -> Result<serde_json::Value, anyhow::Error> {
     run_bili_mode(app, "sms_captcha", &[], proxy).await
 }
