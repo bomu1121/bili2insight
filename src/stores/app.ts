@@ -620,6 +620,7 @@ async function checkLoginAfterAuth() {
         if (item.status !== 'pending') continue;
         const updated = [...queue.value];
         updated[i] = { ...item, status: 'running' as const, stageLabel: '开始处理' };
+        const startTime = performance.now();
         queue.value = updated;
         console.log('processQueue: item', i, 'set to running, url=', item.url?.slice(0,50), 'cid=', item.pageInfo.cid, 'part=', item.pageInfo.part);
         try {
@@ -631,11 +632,11 @@ async function checkLoginAfterAuth() {
           }
           console.log('processQueue: item', i, 'DONE, bvid=', result.video_info.bvid, 'title=', result.video_info.title?.slice(0,40));
           const done = [...queue.value];
-          done[i] = { ...done[i], status: 'done' as const, progress: 1, stageLabel: '完成', result };
+          done[i] = { ...done[i], status: 'done' as const, progress: 1, stageLabel: '完成', result, elapsedMs: Math.round(performance.now() - startTime) };
           queue.value = done;
         } catch (e: any) {
           const err = [...queue.value];
-          err[i] = { ...err[i], status: 'error' as const, error: String(e) };
+          err[i] = { ...err[i], status: 'error' as const, error: String(e), elapsedMs: Math.round(performance.now() - startTime) };
           queue.value = err;
         }
         // Brief yield to let the event loop breathe between items

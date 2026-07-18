@@ -13,6 +13,14 @@ const fmtDur = (sec: number) => {
   return h > 0 ? `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}` : `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 };
 
+const fmtElapsed = (ms: number) => {
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  const m = Math.floor(ms / 60000);
+  const s = Math.round((ms % 60000) / 1000);
+  return `${m}m${s}s`;
+};
+
 function startProcessing() { store.processQueue(); }
 function clearDone() { store.queue = store.queue.filter(q => q.status !== "done" && q.status !== "error"); }
 function viewResult(id: string) { router.push(`/result/${id}`); }
@@ -55,6 +63,7 @@ function viewResult(id: string) { router.push(`/result/${id}`); }
         <span class="q-label" :style="{ color: item.status === 'error' ? '#d03050' : item.status === 'done' ? '#18a058' : '#666' }">
           {{ item.status === 'error' ? '失败' : item.status === 'done' ? '完成' : item.status === 'running' ? item.stageLabel : '等待' }}
         </span>
+        <span v-if="item.elapsedMs" class="q-elapsed">{{ fmtElapsed(item.elapsedMs) }}</span>
         <n-button v-if="item.status === 'done'" size="tiny" text @click="viewResult(item.id)" style="margin-left:6px;">
           <template #icon><n-icon size="16"><EyeOutline /></n-icon></template>
         </n-button>
@@ -81,6 +90,7 @@ function viewResult(id: string) { router.push(`/result/${id}`); }
 .q-progress { width: 72px; height: 4px; background: #eee; border-radius: 2px; overflow: hidden; flex-shrink: 0; }
 .q-bar-fill { height: 100%; border-radius: 2px; transition: width .3s ease; }
 .q-label { font-size: 11px; width: 40px; text-align: right; flex-shrink: 0; }
+.q-elapsed { font-size: 10px; color: #aaa; flex-shrink: 0; width: 48px; text-align: right; }
 @keyframes spin { from { transform: rotate(0) } to { transform: rotate(360deg) } }
 .spinning { animation: spin 1s linear infinite; }
 </style>

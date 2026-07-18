@@ -116,4 +116,5 @@ export interface QueueItem {
   result: PipelineResult | null;
   error: string;
   createdAt: number;
+  elapsedMs?: number;
 }

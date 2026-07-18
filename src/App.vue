@@ -19,6 +19,14 @@ function viewResult(id: string) { showQueue.value = false; router.push(`/result/
 function startProcessing() { store.processQueue(); }
 function clearDone() { store.queue = store.queue.filter(q => q.status !== "done" && q.status !== "error"); }
 
+const fmtElapsed = (ms: number) => {
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  const m = Math.floor(ms / 60000);
+  const s = Math.round((ms % 60000) / 1000);
+  return `${m}m${s}s`;
+};
+
 // SMS state
 const smsPhone = ref("");
 const smsCode = ref("");
@@ -104,6 +112,7 @@ const tplPrompt = computed({
               <div class="q-info">
                 <n-text style="font-size:13px;">{{ item.pageInfo.part }}</n-text>
                 <n-text depth="3" style="font-size:11px;">P{{ item.pageInfo.page }} &middot; {{ item.status === 'done' ? '完成' : item.status === 'error' ? '失败' : item.status === 'running' ? item.stageLabel : '等待中' }}</n-text>
+                <n-text v-if="item.elapsedMs" depth="3" style="font-size:10px;">耗时 {{ fmtElapsed(item.elapsedMs) }}</n-text>
                 <div class="q-bar" v-if="item.status === 'running'"><div class="q-fill" :style="{ width: Math.round(item.progress*100)+'%' }"></div></div>
               </div>
               <n-button v-if="item.status === 'done'" size="tiny" text @click="viewResult(item.id)">
