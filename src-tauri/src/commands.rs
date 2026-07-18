@@ -2,7 +2,6 @@ use crate::PipelineProgress;
 use crate::pipeline;
 use crate::export;
 use crate::VideoInfo;
-use crate::AppState;
 use tauri::{AppHandle, Emitter, Manager};
 use std::path::PathBuf;
 

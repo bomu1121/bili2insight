@@ -2,7 +2,9 @@ use crate::{VideoInfo, VideoPageInfo};
 use crate::InsightResult;
 use std::path::Path;
 use tauri::{AppHandle, Manager};
+use std::sync::atomic::{AtomicBool, Ordering};
 use tauri_plugin_shell::ShellExt;
+
 use serde_json::Value;
 
 pub async fn download_bili_audio(
@@ -183,7 +185,7 @@ pub async fn run_asr(
             let url = asr_api_url.ok_or_else(|| anyhow::anyhow!("ASR API URL required for MiMo backend"))?;
             run_asr_api(app, wav_path, url, asr_api_key, progress).await
         }
-        _ => run_asr_sherpa(app, wav_path, progress).await,
+        _ => run_asr_sherpa_daemon(app, wav_path, progress).await,
     }
 }
 
@@ -201,6 +203,95 @@ fn parse_asr_output(stdout: &str) -> Result<String, anyhow::Error> {
     if full_text.is_empty() { return Err(anyhow::anyhow!("No transcription result")); }
     Ok(full_text)
 }
+// --- ASR Daemon (long-lived process, model loaded once) ---
+const ASR_DAEMON_PORT: u16 = 9876;
+static ASR_DAEMON_STARTED: AtomicBool = AtomicBool::new(false);
+
+async fn ensure_asr_daemon(app: &AppHandle) -> Result<(), anyhow::Error> {
+    // Quick health check if daemon was previously started
+    if ASR_DAEMON_STARTED.load(Ordering::Relaxed) {
+        let client = app.state::<crate::AppState>().http_client.clone();
+        if let Ok(resp) = client.get(format!("http://127.0.0.1:{}/health", ASR_DAEMON_PORT)).send().await {
+            if resp.status().is_success() {
+                return Ok(());
+            }
+        }
+        // Daemon died, will restart
+        ASR_DAEMON_STARTED.store(false, Ordering::Relaxed);
+    }
+
+    let models_root = get_models_root(app)?;
+    if !models_root.exists() {
+        return Err(anyhow::anyhow!("ASR model directory not found: {}", models_root.display()));
+    }
+
+    let (mut rx, _child) = app.shell().sidecar("asr_worker")
+        .map_err(|e| anyhow::anyhow!("asr_worker sidecar not found: {}", e))?
+        .args(["--daemon", "--model", "paraformer", "--models-dir", models_root.to_str().unwrap_or("")])
+        .spawn()
+        .map_err(|e| anyhow::anyhow!("Failed to spawn ASR daemon: {}", e))?;
+
+    // The _child is intentionally leaked - the daemon runs independently.
+    // We signal shutdown via HTTP /shutdown endpoint.
+    std::mem::forget(_child);
+
+    // Wait for "ready" message from daemon stdout (30s timeout)
+    for _ in 0..30 {
+        if let Some(event) = rx.recv().await {
+            if let tauri_plugin_shell::process::CommandEvent::Stdout(line) = event {
+                let line_str = String::from_utf8_lossy(&line);
+                if line_str.contains("\"ready\"") {
+                    ASR_DAEMON_STARTED.store(true, Ordering::Relaxed);
+                    println!("[asr-daemon] Ready on port {}", ASR_DAEMON_PORT);
+                    return Ok(());
+                }
+            }
+        } else {
+            break;
+        }
+    }
+    Err(anyhow::anyhow!("ASR daemon failed to start within 30s"))
+}
+
+pub async fn shutdown_asr_daemon(app: &AppHandle) {
+    if ASR_DAEMON_STARTED.swap(false, Ordering::Relaxed) {
+        let client = app.state::<crate::AppState>().http_client.clone();
+        let _ = client.post(format!("http://127.0.0.1:{}/shutdown", ASR_DAEMON_PORT)).send().await;
+        println!("[asr-daemon] Shut down");
+    }
+}
+
+async fn run_asr_sherpa_daemon(
+    app: &AppHandle, wav_path: &str,
+    progress: impl Fn(&str, f64, &str) + Send + 'static,
+) -> Result<String, anyhow::Error> {
+    ensure_asr_daemon(app).await?;
+    let client = app.state::<crate::AppState>().http_client.clone();
+
+    let resp = client
+        .post(format!("http://127.0.0.1:{}/recognize", ASR_DAEMON_PORT))
+        .json(&serde_json::json!({"wav_path": wav_path}))
+        .send()
+        .await
+        .map_err(|e| anyhow::anyhow!("ASR daemon request failed: {}", e))?;
+
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let body = resp.text().await.unwrap_or_default();
+        return Err(anyhow::anyhow!("ASR daemon error {}: {}", status, body));
+    }
+
+    let json: Value = resp.json().await
+        .map_err(|e| anyhow::anyhow!("ASR daemon response parse error: {}", e))?;
+
+    let text = json["text"].as_str().unwrap_or("").to_string();
+    if text.is_empty() && json.get("error").is_some() {
+        return Err(anyhow::anyhow!("{}", json["error"].as_str().unwrap_or("unknown")));
+    }
+    progress("asr", 0.75, "Speech recognition complete");
+    Ok(text)
+}
+
 
 fn get_models_root(app: &AppHandle) -> Result<std::path::PathBuf, anyhow::Error> {
     let resource_dir = app.path().resource_dir()
