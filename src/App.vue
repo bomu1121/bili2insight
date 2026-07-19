@@ -1,14 +1,16 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch, computed } from "vue";
 import { NInput, NButton, NSpace, NText, NIcon, NTabs, NTabPane, createDiscreteApi, NDrawer, NDrawerContent, NSelect } from "naive-ui";
 import { SettingsSharp, VideocamOutline, ListOutline, PlayOutline, TrashOutline, EyeOutline, CheckmarkCircle, CloseCircle, SyncOutline, PersonCircleOutline, LogOutOutline, RefreshOutline, PhonePortraitOutline, QrCodeOutline, ArrowForward, CopyOutline } from "@vicons/ionicons5";
 import { useRouter } from "vue-router";
 import { useAppStore } from "./stores/app";
 import { useAuthStore } from "./stores/auth";
+import { useSettingsStore } from "./stores/settingsStore";
 import { useTemplateStore } from "./stores/templates";
 const { message } = createDiscreteApi(["message"]);
 const store = useAppStore();
 const authStore = useAuthStore();
+const settingsStore = useSettingsStore();
 const templateStore = useTemplateStore();
 const router = useRouter();
 const showSettings = ref(false);
@@ -243,31 +245,31 @@ const tplPrompt = computed({
 
     <!-- Settings Drawer -->
     <n-drawer v-model:show="showSettings" width="440"><n-drawer-content title="设置" closable><n-space vertical style="gap:16px;">
-      <div><n-text depth="3" style="font-size:12px;">HTTP 代理</n-text><n-input v-model:value="store.proxy" placeholder="http://127.0.0.1:7897" size="small" /></div>
-      <div><n-text depth="3" style="font-size:12px;">AI 提供商</n-text><n-select v-model:value="store.selectedProvider" :options="store.PROVIDERS.map((p,i)=>({label:p.name,value:i}))" size="small" @update:value="(i) => store.switchProvider(i)" /></div>
-      <div><n-text depth="3" style="font-size:12px;">API 地址</n-text><n-input v-model:value="store.aiApiUrl" size="small" /></div>
+      <div><n-text depth="3" style="font-size:12px;">HTTP 代理</n-text><n-input v-model:value="settingsStore.proxy" placeholder="http://127.0.0.1:7897" size="small" /></div>
+      <div><n-text depth="3" style="font-size:12px;">AI 提供商</n-text><n-select v-model:value="settingsStore.selectedProvider" :options="settingsStore.PROVIDERS.map((p,i)=>({label:p.name,value:i}))" size="small" @update:value="(i) => settingsStore.switchProvider(i)" /></div>
+      <div><n-text depth="3" style="font-size:12px;">API 地址</n-text><n-input v-model:value="settingsStore.aiApiUrl" size="small" /></div>
       <div>
         <n-text depth="3" style="font-size:12px;">API 密钥</n-text>
         <n-space :size="6" style="margin-top:4px;flex-wrap:nowrap;">
-          <n-input v-model:value="store.aiApiKey" type="password" placeholder="sk-..." size="small" show-password-on="click" style="flex:1;min-width:0;" />
-          <n-button size="small" @click="store.fetchModelList()" style="flex-shrink:0;white-space:nowrap;">测试连接 &amp; 拉取模型</n-button>
+          <n-input v-model:value="settingsStore.aiApiKey" type="password" placeholder="sk-..." size="small" show-password-on="click" style="flex:1;min-width:0;" />
+          <n-button size="small" @click="settingsStore.fetchModelList()" style="flex-shrink:0;white-space:nowrap;">测试连接 &amp; 拉取模型</n-button>
         </n-space>
       </div>
-      <div v-if="store.customModels.length>0||store.PROVIDERS[store.selectedProvider].models.length>0">
-        <n-text depth="3" style="font-size:12px;">模型</n-text><n-select v-model:value="store.aiModel" :options="(store.customModels.length>0?store.customModels:store.PROVIDERS[store.selectedProvider].models).map(m=>({label:m,value:m}))" size="small" />
+      <div v-if="settingsStore.customModels.length>0||settingsStore.PROVIDERS[settingsStore.selectedProvider].models.length>0">
+        <n-text depth="3" style="font-size:12px;">模型</n-text><n-select v-model:value="settingsStore.aiModel" :options="(settingsStore.customModels.length>0?settingsStore.customModels:settingsStore.PROVIDERS[settingsStore.selectedProvider].models).map(m=>({label:m,value:m}))" size="small" />
       </div>
-      <div v-else><n-text depth="3" style="font-size:12px;">模型</n-text><n-input v-model:value="store.aiModel" size="small" /></div>
+      <div v-else><n-text depth="3" style="font-size:12px;">模型</n-text><n-input v-model:value="settingsStore.aiModel" size="small" /></div>
       <div>
         <n-text depth="3" style="font-size:12px;">ASR 语音识别模型</n-text>
-        <n-select v-model:value="store.asrModel" :options="[{label:'Paraformer (本地)',value:'paraformer'},{label:'MiMo-V2.5 (API)',value:'mimo'}]" size="small" style="margin-top:4px;" />
+        <n-select v-model:value="settingsStore.asrModel" :options="[{label:'Paraformer (本地)',value:'paraformer'},{label:'MiMo-V2.5 (API)',value:'mimo'}]" size="small" style="margin-top:4px;" />
       </div>
-      <div v-if="store.asrModel === 'mimo'">
+      <div v-if="settingsStore.asrModel === 'mimo'">
         <n-text depth="3" style="font-size:12px;">ASR API 地址</n-text>
-        <n-input v-model:value="store.asrApiUrl" placeholder="https://api.xiaomimimo.com/v1/chat/completions" size="small" style="margin-top:4px;" />
+        <n-input v-model:value="settingsStore.asrApiUrl" placeholder="https://api.xiaomimimo.com/v1/chat/completions" size="small" style="margin-top:4px;" />
       </div>
-      <div v-if="store.asrModel === 'mimo'">
+      <div v-if="settingsStore.asrModel === 'mimo'">
         <n-text depth="3" style="font-size:12px;">ASR API 密钥 (可选)</n-text>
-        <n-input v-model:value="store.asrApiKey" type="password" placeholder="可选，默认不传递" size="small" show-password-on="click" style="margin-top:4px;" />
+        <n-input v-model:value="settingsStore.asrApiKey" type="password" placeholder="可选，默认不传递" size="small" show-password-on="click" style="margin-top:4px;" />
       </div>
       <div>
         <n-space justify="space-between" align="center"><n-text depth="3" style="font-size:12px;">提示词模版</n-text><n-button size="tiny" @click="templateStore.addCustomTemplate()">+ 新增</n-button></n-space>
