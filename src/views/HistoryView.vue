@@ -267,6 +267,7 @@ const sourceColor: Record<string, string> = { url: "#00aeec", fav: "#f0a020", lo
   background: #fff;
   border-radius: 10px;
   border: 1px solid #eee;
+  overflow: hidden;
   transition: border-color .15s, box-shadow .15s;
   min-height: 82px;
 }
@@ -317,9 +318,9 @@ const sourceColor: Record<string, string> = { url: "#00aeec", fav: "#f0a020", lo
   min-width: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 3px;
-  padding: 10px 14px;
+  padding: 10px 14px 12px;
   cursor: pointer;
 }
 
@@ -376,9 +377,10 @@ const sourceColor: Record<string, string> = { url: "#00aeec", fav: "#f0a020", lo
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 4px;
   padding: 10px 12px 10px 4px;
+  align-self: stretch;
   width: 56px;
 }
 .h-status-line {
