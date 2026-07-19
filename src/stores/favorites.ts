@@ -133,7 +133,7 @@ export const useFavoritesStore = defineStore("favorites", () => {
     favSelectedVideos.value = new Set(favVideos.value.map((_: any, i: number) => i));
   }
 
-  function addFavVideosToQueue() {
+  async function addFavVideosToQueue() {
     const sel: any[] = [];
     favSelectedVideos.value.forEach(i => { if (i < favVideos.value.length) sel.push(favVideos.value[i]); });
     if (sel.length === 0) return;
@@ -158,3 +158,4 @@ export const useFavoritesStore = defineStore("favorites", () => {
     loadFollowList, loadWatchLater, loadHistory,
   };
 });
+
