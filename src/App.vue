@@ -1,11 +1,13 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch, computed } from "vue";
 import { NInput, NButton, NSpace, NText, NIcon, NTabs, NTabPane, createDiscreteApi, NDrawer, NDrawerContent, NSelect } from "naive-ui";
 import { SettingsSharp, VideocamOutline, ListOutline, PlayOutline, TrashOutline, EyeOutline, CheckmarkCircle, CloseCircle, SyncOutline, PersonCircleOutline, LogOutOutline, RefreshOutline, PhonePortraitOutline, QrCodeOutline, ArrowForward, CopyOutline } from "@vicons/ionicons5";
 import { useRouter } from "vue-router";
 import { useAppStore } from "./stores/app";
+import { useTemplateStore } from "./stores/templates";
 const { message } = createDiscreteApi(["message"]);
 const store = useAppStore();
+const templateStore = useTemplateStore();
 const router = useRouter();
 const showSettings = ref(false);
 const showQueue = ref(false);
@@ -25,8 +27,8 @@ async function copyAllTitles() {
 }
 
 const templateOptions = computed(() => {
-  const opts = store.allTemplates.map((t, i) => ({ label: t.name, value: i }));
-  return [{ label: `默认（${store.allTemplates[store.selectedTemplateIndex]?.name ?? ""}）`, value: -1 }, ...opts];
+  const opts = templateStore.allTemplates.map((t, i) => ({ label: t.name, value: i }));
+  return [{ label: `默认（${templateStore.allTemplates[templateStore.selectedTemplateIndex]?.name ?? ""}）`, value: -1 }, ...opts];
 });
 
 function updateItemTemplate(itemId: string, val: number) {
@@ -70,15 +72,15 @@ function refreshLogin() { store.cancelLogin(); store.startLogin(); }
 
 const tplPrompt = computed({
   get: () => {
-    const idx = store.selectedTemplateIndex;
-    if (idx < store.BUILTIN_TEMPLATES.length) return store.BUILTIN_TEMPLATES[idx].prompt;
-    const ci = idx - store.BUILTIN_TEMPLATES.length;
-    return store.customTemplates[ci]?.prompt ?? "";
+    const idx = templateStore.selectedTemplateIndex;
+    if (idx < templateStore.BUILTIN_TEMPLATES.length) return templateStore.BUILTIN_TEMPLATES[idx].prompt;
+    const ci = idx - templateStore.BUILTIN_TEMPLATES.length;
+    return templateStore.customTemplates[ci]?.prompt ?? "";
   },
   set: (val: string) => {
-    const idx = store.selectedTemplateIndex;
-    if (idx < store.BUILTIN_TEMPLATES.length) return;
-    store.updateTemplatePrompt(idx, val);
+    const idx = templateStore.selectedTemplateIndex;
+    if (idx < templateStore.BUILTIN_TEMPLATES.length) return;
+    templateStore.updateTemplatePrompt(idx, val);
   }
 });
 </script>
@@ -266,20 +268,20 @@ const tplPrompt = computed({
         <n-input v-model:value="store.asrApiKey" type="password" placeholder="可选，默认不传递" size="small" show-password-on="click" style="margin-top:4px;" />
       </div>
       <div>
-        <n-space justify="space-between" align="center"><n-text depth="3" style="font-size:12px;">提示词模版</n-text><n-button size="tiny" @click="store.addCustomTemplate()">+ 新增</n-button></n-space>
+        <n-space justify="space-between" align="center"><n-text depth="3" style="font-size:12px;">提示词模版</n-text><n-button size="tiny" @click="templateStore.addCustomTemplate()">+ 新增</n-button></n-space>
         <n-space style="margin-top:4px;flex-wrap:wrap;" :size="4">
-          <n-button v-for="(t, i) in store.allTemplates" :key="i" :type="store.selectedTemplateIndex===i ? 'primary' : 'default'" size="tiny" @click="store.selectTemplate(i)" :title="t.name">{{ t.name }}
-            <template v-if="i >= store.BUILTIN_TEMPLATES.length" #icon><n-icon size="14" style="cursor:pointer;margin-left:4px;" @click.stop="store.deleteCustomTemplate(i)"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></n-icon></template>
+          <n-button v-for="(t, i) in templateStore.allTemplates" :key="i" :type="templateStore.selectedTemplateIndex===i ? 'primary' : 'default'" size="tiny" @click="templateStore.selectTemplate(i)" :title="t.name">{{ t.name }}
+            <template v-if="i >= templateStore.BUILTIN_TEMPLATES.length" #icon><n-icon size="14" style="cursor:pointer;margin-left:4px;" @click.stop="templateStore.deleteCustomTemplate(i)"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></n-icon></template>
           </n-button>
         </n-space>
       </div>
-      <div v-if="store.selectedTemplateIndex >= store.BUILTIN_TEMPLATES.length">
+      <div v-if="templateStore.selectedTemplateIndex >= templateStore.BUILTIN_TEMPLATES.length">
         <n-text depth="3" style="font-size:12px;">模版名称</n-text>
-        <n-input :value="store.allTemplates[store.selectedTemplateIndex]?.name??''" @update:value="(v) => store.updateTemplateName(store.selectedTemplateIndex, v)" size="small" style="margin-top:4px;" />
+        <n-input :value="templateStore.allTemplates[templateStore.selectedTemplateIndex]?.name??''" @update:value="(v) => templateStore.updateTemplateName(templateStore.selectedTemplateIndex, v)" size="small" style="margin-top:4px;" />
       </div>
       <div>
-        <n-text depth="3" style="font-size:12px;">提示词内容{{ store.selectedTemplateIndex < store.BUILTIN_TEMPLATES.length ? ' (内置模版不可编辑)' : '' }}</n-text>
-        <n-input v-model:value="tplPrompt" type="textarea" :rows="6" size="small" style="margin-top:4px;" :disabled="store.selectedTemplateIndex < store.BUILTIN_TEMPLATES.length" />
+        <n-text depth="3" style="font-size:12px;">提示词内容{{ templateStore.selectedTemplateIndex < templateStore.BUILTIN_TEMPLATES.length ? ' (内置模版不可编辑)' : '' }}</n-text>
+        <n-input v-model:value="tplPrompt" type="textarea" :rows="6" size="small" style="margin-top:4px;" :disabled="templateStore.selectedTemplateIndex < templateStore.BUILTIN_TEMPLATES.length" />
       </div>
     </n-space></n-drawer-content></n-drawer>
   </div>

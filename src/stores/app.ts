@@ -1,9 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, watch, computed } from "vue";
-import { storeToRefs } from "pinia";
 import type { PipelineResult, PipelineProgress, VideoInfo, PageInfo, TaskState, QueueItem } from "../utils/types";
 import { SETTINGS_VERSION, loadSaved, saveToDisk, type Provider, type PromptTemplate } from "./settings";
-import { useTemplateStore } from "./templates";
 import { runPipelineWithPage, saveResultToFile, previewVideo, fetchModels } from "../utils/invoke";
 import { runPipelineLocal } from "../utils/invoke";
 import { listen } from "@tauri-apps/api/event";
@@ -572,7 +570,7 @@ async function checkLoginAfterAuth() {
     updated[idx] = { ...item, status: 'running' as const, stageLabel: '开始处理' };
     const startTime = performance.now();
     queue.value = updated;
-    const prompt = templateStore.resolvePrompt(item.templateIndex);
+    const prompt = ""(item.templateIndex);
     console.log('processQueue: item', idx, 'set to running, url=', item.url?.slice(0,50), 'cid=', item.pageInfo.cid, 'part=', item.pageInfo.part);
     try {
       if (signal?.aborted) return;
@@ -695,15 +693,9 @@ async function checkLoginAfterAuth() {
     customTemplates,
     BUILTIN_TEMPLATES: templateStore.BUILTIN_TEMPLATES,
     customModels, asrModel, asrApiUrl, asrApiKey,
-    resolvePrompt,
     selectedPages, tasks, activeTaskIndex, videoPages, completedTasks, hasMultiPages,
     activeResultTab, activeResult, mergedMarkdown,
     init, cleanup, startPipeline, exportToFile, switchProvider, fetchModelList,
-    selectTemplate: templateStore.selectTemplate,
-    addCustomTemplate: templateStore.addCustomTemplate,
-    deleteCustomTemplate: templateStore.deleteCustomTemplate,
-    updateTemplatePrompt: templateStore.updateTemplatePrompt,
-    updateTemplateName: templateStore.updateTemplateName,
     persistSettings, togglePage, selectAllPages,
     queue, isProcessing, queueCount, previewVideoFn, addQueueItem, processQueue,
     refreshPreview, clearPreviewCache,
