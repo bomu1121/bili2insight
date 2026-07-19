@@ -194,18 +194,20 @@ const sourceColor: Record<string,string>={url:"#00aeec",fav:"#f0a020",local:"#18
 
 .h-entry{
   display:flex;align-items:center;gap:0;background:#fff;border-radius:10px;
-  border:1px solid #eee;overflow:hidden;cursor:pointer;transition:border-color .15s,box-shadow .15s;
+  border:1px solid #eee;overflow:hidden;cursor:pointer;
+  padding:10px 14px 10px 0;
+  transition:border-color .15s,box-shadow .15s;
 }
 .h-entry:hover{border-color:#ccc;box-shadow:0 2px 12px rgba(0,0,0,.05);}
-.h-entry::before{content:"";width:4px;flex-shrink:0;background:transparent;border-radius:10px 0 0 10px;transition:background .3s;align-self:stretch;}
+.h-entry::before{content:"";width:4px;flex-shrink:0;background:transparent;border-radius:10px 0 0 10px;transition:background .3s;align-self:stretch;margin:-10px 0;}
 .h-entry.h-done::before{background:#18a058;}
 .h-entry.h-err::before{background:#d03050;}
 
-.h-thumb{width:112px;flex-shrink:0;display:flex;align-items:center;padding:8px 0 8px 12px;}
+.h-thumb{width:112px;flex-shrink:0;display:flex;align-items:center;padding-left:8px;}
 .h-cover{width:100px;aspect-ratio:16/9;object-fit:cover;border-radius:6px;background:#f0f0f0;}
 .h-cover-fb{width:100px;aspect-ratio:16/9;border-radius:6px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;}
 
-.h-body{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:8px 14px;}
+.h-body{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:0 14px;}
 .h-line1{display:flex;align-items:baseline;gap:8px;min-width:0;}
 .h-title{font-size:14px;font-weight:600;color:#1a1a1a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;line-height:1.35;}
 .h-badge{font-size:10px;font-weight:500;color:#fff;padding:2px 8px;border-radius:4px;flex-shrink:0;white-space:nowrap;line-height:1.4;}
@@ -214,7 +216,7 @@ const sourceColor: Record<string,string>={url:"#00aeec",fav:"#f0a020",local:"#18
 .h-dot{color:#ddd;font-weight:600;}
 .h-elapsed{font-size:11px;color:#18a058;font-weight:500;}
 
-.h-actions{flex-shrink:0;display:flex;align-items:center;gap:2px;padding:0 10px 0 0;}
+.h-actions{flex-shrink:0;display:flex;align-items:center;gap:2px;}
 
 .detail-scroll{overflow-y:auto;}
 .detail-meta{display:flex;gap:14px;font-size:12px;color:#999;flex-wrap:wrap;align-items:center;}
