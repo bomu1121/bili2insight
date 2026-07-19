@@ -44,9 +44,10 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
 
     println!("  [STAGE:download] calling bili_worker sidecar...");
     emit_progress(&app, "download", 0.05, "Getting video info and downloading audio...", queue_item_id.as_deref());
+    let qid = queue_item_id.clone();
     let app_dl = app.clone();
     let mut video_info = pipeline::download_bili_audio(&app, &url, &output_dir, false, proxy.as_deref(), page_cid,
-        move |s, p, m| { let _ = app_dl.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string(), queue_item_id: None }); },
+        move |s, p, m| { let _ = app_dl.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string(), queue_item_id: qid.clone() }); },
     ).await.map_err(|e| format!("Download failed: {}", e))?;
     // If processing a specific page, override video_info with the page's part title
     if let Some(cid) = page_cid {
@@ -77,10 +78,11 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
     let asr_model_val = asr_model.unwrap_or_else(|| "paraformer".to_string());
     println!("  [STAGE:asr] starting speech recognition, model={}...", asr_model_val);
     emit_progress(&app, "asr", 0.45, "Running speech recognition...", queue_item_id.as_deref());
+    let qid2 = queue_item_id.clone();
     let app_asr = app.clone();
     let transcript = pipeline::run_asr(&app, &wav_path,
         &asr_model_val, asr_api_url.as_deref(), asr_api_key.as_deref(),
-        move |s, p, m| { let _ = app_asr.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string(), queue_item_id: None }); },
+        move |s, p, m| { let _ = app_asr.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string(), queue_item_id: qid2.clone() }); },
     ).await.map_err(|e| format!("ASR failed: {}", e))?;
     println!("  [STAGE:asr] DONE, transcript_len={}", transcript.len());
     emit_progress(&app, "asr", 0.75, "Speech recognition complete", queue_item_id.as_deref());
@@ -174,10 +176,11 @@ pub async fn run_pipeline_local(app: AppHandle, file_path: String, file_name: St
     let asr_model_val = asr_model.unwrap_or_else(|| "paraformer".to_string());
     println!("  [STAGE:asr] starting speech recognition, model={}...", asr_model_val);
     emit_progress(&app, "asr", 0.30, "Running speech recognition...", queue_item_id.as_deref());
+    let qid2 = queue_item_id.clone();
     let app_asr = app.clone();
     let transcript = pipeline::run_asr(&app, &wav_path,
         &asr_model_val, asr_api_url.as_deref(), asr_api_key.as_deref(),
-        move |s, p, m| { let _ = app_asr.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string(), queue_item_id: None }); },
+        move |s, p, m| { let _ = app_asr.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string(), queue_item_id: qid2.clone() }); },
     ).await.map_err(|e| format!("ASR failed: {}", e))?;
     println!("  [STAGE:asr] DONE, transcript_len={}", transcript.len());
     emit_progress(&app, "asr", 0.65, "Speech recognition complete", queue_item_id.as_deref());
