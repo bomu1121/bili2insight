@@ -385,7 +385,7 @@ export const useAppStore = defineStore("app", () => {
     customModels, asrModel, asrApiUrl, asrApiKey,
     selectedPages, tasks, activeTaskIndex, videoPages, completedTasks, hasMultiPages,
     activeResultTab, activeResult, mergedMarkdown,
-    init, cleanup, startPipeline, exportToFile, switchProvider, fetchModelList,
+    init, cleanup, startPipeline, exportToFile, fetchModelList,
     persistSettings, togglePage, selectAllPages,
     queue, isProcessing, queueCount, previewVideoFn, addQueueItem, processQueue,
     refreshPreview, clearPreviewCache,
