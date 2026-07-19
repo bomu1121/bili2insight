@@ -31,10 +31,6 @@ export const useAppStore = defineStore("app", () => {
   const asrApiUrl = ref(ver?.asrApiUrl ?? "");
   const asrApiKey = ref(ver?.asrApiKey ?? "");
 
-  const allTemplates = templateStore.allTemplates;
-  const aiPrompt = templateStore.aiPrompt;
-  const resolvePrompt = (templateIndex?: number) => templateStore.resolvePrompt(templateIndex);
-
   // ---------- Pipeline state ----------
   const processing = ref(false);
   const progress = ref<PipelineProgress | null>(null);
@@ -573,7 +569,7 @@ async function checkLoginAfterAuth() {
     updated[idx] = { ...item, status: 'running' as const, stageLabel: '开始处理' };
     const startTime = performance.now();
     queue.value = updated;
-    const prompt = resolvePrompt(item.templateIndex);
+    const prompt = templateStore.resolvePrompt(item.templateIndex);
     console.log('processQueue: item', idx, 'set to running, url=', item.url?.slice(0,50), 'cid=', item.pageInfo.cid, 'part=', item.pageInfo.part);
     try {
       if (signal?.aborted) return;
@@ -638,7 +634,7 @@ async function checkLoginAfterAuth() {
       try {
         const res = await runPipelineWithPage(
           url.value, proxy.value||undefined, aiApiUrl.value||undefined, aiApiKey.value||undefined,
-          aiModel.value||undefined, aiPrompt as string || undefined, tasks.value[ti].pageInfo.cid,
+          aiModel.value||undefined, templateStore.aiPrompt as string || undefined, tasks.value[ti].pageInfo.cid,
           asrModel.value, asrApiUrl.value||undefined, asrApiKey.value||undefined,
         );
         tasks.value[ti].status = "done";
@@ -667,15 +663,6 @@ async function checkLoginAfterAuth() {
     catch (e: any) { const msg = String(e); error.value = msg.includes("401") ? "API 密钥无效" : "获取失败: "+msg; }
   }
 
-  // Template management delegated to useTemplateStore
-  const selectedTemplateIndex = templateStore.selectedTemplateIndex;
-  const BUILTIN_TEMPLATES = templateStore.BUILTIN_TEMPLATES;
-  const selectTemplate = (idx: number) => templateStore.selectTemplate(idx);
-  const addCustomTemplate = () => templateStore.addCustomTemplate();
-  const deleteCustomTemplate = (idx: number) => templateStore.deleteCustomTemplate(idx);
-  const updateTemplatePrompt = (idx: number, prompt: string) => templateStore.updateTemplatePrompt(idx, prompt);
-  const updateTemplateName = (idx: number, name: string) => templateStore.updateTemplateName(idx, name);
-
   // ---------- Export ----------
   async function exportToFile() {
     const md = activeResultTab.value < completedTasks.value.length
@@ -695,13 +682,22 @@ async function checkLoginAfterAuth() {
   }
 
   return {
-    url, proxy, aiApiUrl, aiApiKey, aiModel, aiPrompt, selectedProvider, processing, progress, result, error,
-    preview, previewLoading, PROVIDERS, BUILTIN_TEMPLATES, allTemplates, selectedTemplateIndex,
+    url, proxy, aiApiUrl, aiApiKey, aiModel, selectedProvider, processing, progress, result, error,
+    preview, previewLoading, PROVIDERS,
+    aiPrompt: templateStore.aiPrompt,
+    allTemplates: templateStore.allTemplates,
+    BUILTIN_TEMPLATES: templateStore.BUILTIN_TEMPLATES,
+    selectedTemplateIndex: templateStore.selectedTemplateIndex,
     customModels, asrModel, asrApiUrl, asrApiKey,
-    resolvePrompt, selectedPages, tasks, activeTaskIndex, videoPages, completedTasks, hasMultiPages,
+    resolvePrompt: templateStore.resolvePrompt,
+    selectedPages, tasks, activeTaskIndex, videoPages, completedTasks, hasMultiPages,
     activeResultTab, activeResult, mergedMarkdown,
     init, cleanup, startPipeline, exportToFile, switchProvider, fetchModelList,
-    selectTemplate, addCustomTemplate, deleteCustomTemplate, updateTemplatePrompt, updateTemplateName,
+    selectTemplate: templateStore.selectTemplate,
+    addCustomTemplate: templateStore.addCustomTemplate,
+    deleteCustomTemplate: templateStore.deleteCustomTemplate,
+    updateTemplatePrompt: templateStore.updateTemplatePrompt,
+    updateTemplateName: templateStore.updateTemplateName,
     persistSettings, togglePage, selectAllPages,
     queue, isProcessing, queueCount, previewVideoFn, addQueueItem, processQueue,
     refreshPreview, clearPreviewCache,
