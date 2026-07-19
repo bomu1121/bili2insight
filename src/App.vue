@@ -1,16 +1,14 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch, computed } from "vue";
 import { NInput, NButton, NSpace, NText, NIcon, NTabs, NTabPane, createDiscreteApi, NDrawer, NDrawerContent, NSelect, NConfigProvider, type GlobalThemeOverrides } from "naive-ui";
 import { SettingsSharp, ListOutline, PlayOutline, TrashOutline, EyeOutline, CheckmarkCircle, CloseCircle, SyncOutline, PersonCircleOutline, LogOutOutline, RefreshOutline, PhonePortraitOutline, QrCodeOutline, ArrowForward, CopyOutline } from "@vicons/ionicons5";
 import { useRouter } from "vue-router";
 import { useAppStore } from "./stores/app";
 import { useAuthStore } from "./stores/auth";
-import { useSettingsStore } from "./stores/settingsStore";
 import { useTemplateStore } from "./stores/templates";
 const { message } = createDiscreteApi(["message"]);
 const store = useAppStore();
 const authStore = useAuthStore();
-const settingsStore = useSettingsStore();
 const templateStore = useTemplateStore();
 const router = useRouter();
 const showSettings = ref(false);
@@ -64,7 +62,7 @@ async function copyAllTitles() {
 
 const templateOptions = computed(() => {
   const opts = templateStore.allTemplates.map((t, i) => ({ label: t.name, value: i }));
-  return [{ label: `默认（${templateStore.allTemplates[templateStore.selectedTemplateIndex]?.name ?? ""}）`, value: -1 }, ...opts];
+  return [{ label: `榛樿锛?{templateStore.allTemplates[templateStore.selectedTemplateIndex]?.name ?? ""}锛塦, value: -1 }, ...opts];
 });
 
 function updateItemTemplate(itemId: string, val: number) {
@@ -95,11 +93,11 @@ function openLogin() {
   authStore.startLogin();
 }
 async function doSendSms() {
-  if (!smsPhone.value) { message.warning("请输入手机号"); return; }
+  if (!smsPhone.value) { message.warning("璇疯緭鍏ユ墜鏈哄彿"); return; }
   smsSending.value = true;
   try {
     // For now, SMS send requires valid captcha token which needs Geetest integration
-    message.info("短信登录需要验证码，即将开发");
+    message.info("鐭俊鐧诲綍闇€瑕侀獙璇佺爜锛屽嵆灏嗗紑鍙?);
   } catch(e: any) { message.error(String(e)); }
   finally { smsSending.value = false; }
 }
@@ -125,30 +123,30 @@ const tplPrompt = computed({
   <n-config-provider :theme-overrides="themeOverrides">
   <div class="app-root">
     <header class="app-header">
-      <div class="header-left" @click="router.push('/')" title="返回首页">
+      <div class="header-left" @click="router.push('/')" title="杩斿洖棣栭〉">
         <div class="logo-mark">B2</div>
         <div class="logo-text">
           <span class="header-title">Bili2Insight</span>
-          <span class="header-sub">观点提炼</span>
+          <span class="header-sub">瑙傜偣鎻愮偧</span>
         </div>
       </div>
       <div class="header-right">
         <button type="button" class="hdr-btn" @click="showQueue = true">
           <n-icon :size="18"><ListOutline /></n-icon>
-          <span>队列</span>
+          <span>闃熷垪</span>
           <span v-if="store.queueCount > 0" class="hdr-badge">{{ store.queueCount }}</span>
         </button>
         <button
           type="button"
           class="hdr-avatar"
           @click="openLogin"
-          :title="authStore.isLoggedIn ? authStore.loginUname : '登录'"
+          :title="authStore.isLoggedIn ? authStore.loginUname : '鐧诲綍'"
         >
           <img v-if="authStore.isLoggedIn && authStore.loginFace" :src="authStore.loginFace" class="hdr-avatar-img" referrerpolicy="no-referrer" />
           <n-icon v-else :size="22" color="var(--color-text-secondary)"><PersonCircleOutline /></n-icon>
           <span v-if="authStore.isLoggedIn" class="hdr-online" />
         </button>
-        <button type="button" class="hdr-btn icon-only" @click="showSettings = true" title="设置">
+        <button type="button" class="hdr-btn icon-only" @click="showSettings = true" title="璁剧疆">
           <n-icon :size="18"><SettingsSharp /></n-icon>
         </button>
       </div>
@@ -160,20 +158,20 @@ const tplPrompt = computed({
 
     <!-- Queue Drawer -->
     <n-drawer v-model:show="showQueue" width="420" placement="right">
-      <n-drawer-content title="处理队列" closable>
+      <n-drawer-content title="澶勭悊闃熷垪" closable>
         <div class="queue-drawer" v-if="store.queue.length > 0">
           <div class="queue-actions">
             <n-button size="small" type="primary" @click="startProcessing" :disabled="store.isProcessing || store.queue.filter(q=>q.status==='pending').length===0">
-              <template #icon><n-icon><PlayOutline /></n-icon></template>开始处理
+              <template #icon><n-icon><PlayOutline /></n-icon></template>寮€濮嬪鐞?
             </n-button>
             <n-button v-if="store.isProcessing" size="small" type="warning" @click="stopProcessing">
-              <template #icon><n-icon><CloseCircle /></n-icon></template>停止
+              <template #icon><n-icon><CloseCircle /></n-icon></template>鍋滄
             </n-button>
             <n-button size="small" @click="clearDone" :disabled="store.queue.filter(q=>q.status==='done'||q.status==='error').length===0">
-              <template #icon><n-icon><TrashOutline /></n-icon></template>清除已完成
+              <template #icon><n-icon><TrashOutline /></n-icon></template>娓呴櫎宸插畬鎴?
             </n-button>
             <n-button size="small" @click="copyAllTitles" :disabled="store.queue.length===0">
-              <template #icon><n-icon><CopyOutline /></n-icon></template>复制标题
+              <template #icon><n-icon><CopyOutline /></n-icon></template>澶嶅埗鏍囬
             </n-button>
           </div>
           <div class="queue-list">
@@ -189,7 +187,7 @@ const tplPrompt = computed({
                 <div class="q-meta">
                   <span class="q-dur">{{ (item.pageInfo.duration ? String(Math.floor(item.pageInfo.duration/60)).padStart(2,'0') + ':' + String(item.pageInfo.duration%60).padStart(2,'0') : '') }}</span>
                   <span v-if="item.status !== 'done'" class="q-tag" :class="item.status">
-                    {{ item.status === 'error' ? '失败' : item.status === 'running' ? item.stageLabel : '等待' }}
+                    {{ item.status === 'error' ? '澶辫触' : item.status === 'running' ? item.stageLabel : '绛夊緟' }}
                   </span>
                   <span class="q-elapsed">{{ item.elapsedMs ? fmtElapsed(item.elapsedMs) : '' }}</span>
                 </div>
@@ -216,15 +214,15 @@ const tplPrompt = computed({
         </div>
         <n-text depth="3" v-else class="queue-empty">
           <n-icon :size="40" color="var(--color-text-tertiary)"><ListOutline /></n-icon>
-          <span>队列为空</span>
-          <span class="queue-empty-hint">返回首页添加视频后在此处理</span>
+          <span>闃熷垪涓虹┖</span>
+          <span class="queue-empty-hint">杩斿洖棣栭〉娣诲姞瑙嗛鍚庡湪姝ゅ鐞?/span>
         </n-text>
       </n-drawer-content>
     </n-drawer>
 
     <!-- Login Drawer -->
     <n-drawer :show="authStore.showLogin" @update:show="(v) => { if (!v) authStore.cancelLogin(); }" width="400">
-      <n-drawer-content title="B站登录" closable>
+      <n-drawer-content title="B绔欑櫥褰? closable>
         <!-- Logged-in state -->
         <div class="login-body" v-if="authStore.isLoggedIn">
           <div class="login-success">
@@ -233,7 +231,7 @@ const tplPrompt = computed({
             <n-text strong class="login-uname">{{ authStore.loginUname }}</n-text>
             <n-text depth="3" class="login-uid">UID: {{ authStore.loginUid }}</n-text>
             <n-button type="error" size="small" @click="authStore.doLogout()" style="margin-top:18px;">
-              <template #icon><n-icon><LogOutOutline /></n-icon></template>退出登录
+              <template #icon><n-icon><LogOutOutline /></n-icon></template>閫€鍑虹櫥褰?
             </n-button>
           </div>
         </div>
@@ -241,10 +239,10 @@ const tplPrompt = computed({
         <!-- Login tabs: QR + SMS -->
         <div v-else>
           <n-tabs v-model:value="qrTab" type="line" size="medium" animated>
-            <n-tab-pane name="qr" tab="扫码登录">
+            <n-tab-pane name="qr" tab="鎵爜鐧诲綍">
               <template #tab>
                 <n-icon size="18"><QrCodeOutline /></n-icon>
-                <span style="margin-left:6px;">扫码登录</span>
+                <span style="margin-left:6px;">鎵爜鐧诲綍</span>
               </template>
               <div class="tab-content">
                 <div class="qr-section">
@@ -252,11 +250,11 @@ const tplPrompt = computed({
                     <img v-if="authStore.qrUrl" :src="'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(authStore.qrUrl)" class="qr-code-img" referrerpolicy="no-referrer" />
                     <div v-if="authStore.qrStatus === 'expired'" class="qr-overlay" @click="refreshLogin">
                       <n-icon size="28"><RefreshOutline /></n-icon>
-                      <n-text depth="3">二维码已过期，点击刷新</n-text>
+                      <n-text depth="3">浜岀淮鐮佸凡杩囨湡锛岀偣鍑诲埛鏂?/n-text>
                     </div>
                     <div v-if="authStore.qrStatus === 'success'" class="qr-overlay success">
                       <n-icon size="32" color="var(--color-success)"><CheckmarkCircle /></n-icon>
-                      <n-text class="login-ok-text">登录成功</n-text>
+                      <n-text class="login-ok-text">鐧诲綍鎴愬姛</n-text>
                     </div>
                   </div>
                   <div class="qr-status" v-if="authStore.qrStatusMessage">
@@ -267,22 +265,22 @@ const tplPrompt = computed({
               </div>
             </n-tab-pane>
 
-            <n-tab-pane name="sms" tab="短信登录">
+            <n-tab-pane name="sms" tab="鐭俊鐧诲綍">
               <template #tab>
                 <n-icon size="18"><PhonePortraitOutline /></n-icon>
-                <span style="margin-left:6px;">短信登录</span>
+                <span style="margin-left:6px;">鐭俊鐧诲綍</span>
               </template>
               <div class="tab-content">
                 <div class="sms-section">
-                  <n-input v-model:value="smsPhone" placeholder="手机号" size="large" style="width:100%;" />
+                  <n-input v-model:value="smsPhone" placeholder="鎵嬫満鍙? size="large" style="width:100%;" />
                   <n-space style="width:100%;margin-top:12px;" :size="8">
-                    <n-input v-model:value="smsCode" placeholder="短信验证码" size="large" style="flex:1;" />
+                    <n-input v-model:value="smsCode" placeholder="鐭俊楠岃瘉鐮? size="large" style="flex:1;" />
                     <n-button type="primary" @click="doSendSms" :disabled="smsSending || smsCountdown > 0" :loading="smsSending" style="flex-shrink:0;">
-                      {{ smsCountdown > 0 ? smsCountdown + 's' : smsSent ? '重新获取' : '获取验证码' }}
+                      {{ smsCountdown > 0 ? smsCountdown + 's' : smsSent ? '閲嶆柊鑾峰彇' : '鑾峰彇楠岃瘉鐮? }}
                     </n-button>
                   </n-space>
-                  <n-button type="primary" block @click="message.info('短信登录需要验证码，即将开发')" style="margin-top:16px;">
-                    <template #icon><n-icon><ArrowForward /></n-icon></template>登录
+                  <n-button type="primary" block @click="message.info('鐭俊鐧诲綍闇€瑕侀獙璇佺爜锛屽嵆灏嗗紑鍙?)" style="margin-top:16px;">
+                    <template #icon><n-icon><ArrowForward /></n-icon></template>鐧诲綍
                   </n-button>
                 </div>
               </div>
@@ -293,93 +291,50 @@ const tplPrompt = computed({
     </n-drawer>
 
     <!-- Settings Drawer -->
-    <n-drawer v-model:show="showSettings" width="460">
-      <n-drawer-content title="设置" closable>
-        <div class="settings-body">
-          <section class="settings-section">
-            <div class="settings-section-title">网络</div>
-            <label class="field">
-              <span class="field-label">HTTP 代理</span>
-              <n-input v-model:value="settingsStore.proxy" placeholder="http://127.0.0.1:7897" size="small" />
-            </label>
-          </section>
-
-          <section class="settings-section">
-            <div class="settings-section-title">AI 模型</div>
-            <label class="field">
-              <span class="field-label">AI 提供商</span>
-              <n-select v-model:value="settingsStore.selectedProvider" :options="settingsStore.PROVIDERS.map((p,i)=>({label:p.name,value:i}))" size="small" @update:value="(i) => settingsStore.switchProvider(i)" />
-            </label>
-            <label class="field">
-              <span class="field-label">API 地址</span>
-              <n-input v-model:value="settingsStore.aiApiUrl" size="small" />
-            </label>
-            <label class="field">
-              <span class="field-label">API 密钥</span>
-              <div class="field-row">
-                <n-input v-model:value="settingsStore.aiApiKey" type="password" placeholder="sk-..." size="small" show-password-on="click" class="field-grow" />
-                <n-button size="small" @click="settingsStore.fetchModelList()">测试连接 &amp; 拉取模型</n-button>
-              </div>
-            </label>
-            <label class="field" v-if="settingsStore.customModels.length>0||settingsStore.PROVIDERS[settingsStore.selectedProvider].models.length>0">
-              <span class="field-label">模型</span>
-              <n-select v-model:value="settingsStore.aiModel" :options="(settingsStore.customModels.length>0?settingsStore.customModels:settingsStore.PROVIDERS[settingsStore.selectedProvider].models).map(m=>({label:m,value:m}))" size="small" />
-            </label>
-            <label class="field" v-else>
-              <span class="field-label">模型</span>
-              <n-input v-model:value="settingsStore.aiModel" size="small" />
-            </label>
-          </section>
-
-          <section class="settings-section">
-            <div class="settings-section-title">语音识别</div>
-            <label class="field">
-              <span class="field-label">ASR 语音识别模型</span>
-              <n-select v-model:value="settingsStore.asrModel" :options="[{label:'Paraformer (本地)',value:'paraformer'},{label:'MiMo-V2.5 (API)',value:'mimo'}]" size="small" />
-            </label>
-            <label class="field" v-if="settingsStore.asrModel === 'mimo'">
-              <span class="field-label">ASR API 地址</span>
-              <n-input v-model:value="settingsStore.asrApiUrl" placeholder="https://api.xiaomimimo.com/v1/chat/completions" size="small" />
-            </label>
-            <label class="field" v-if="settingsStore.asrModel === 'mimo'">
-              <span class="field-label">ASR API 密钥 (可选)</span>
-              <n-input v-model:value="settingsStore.asrApiKey" type="password" placeholder="可选，默认不传递" size="small" show-password-on="click" />
-            </label>
-          </section>
-
-          <section class="settings-section">
-            <div class="settings-section-head">
-              <div class="settings-section-title">提示词模版</div>
-              <n-button size="tiny" @click="templateStore.addCustomTemplate()">+ 新增</n-button>
-            </div>
-            <div class="tpl-chips">
-              <n-button
-                v-for="(t, i) in templateStore.allTemplates"
-                :key="i"
-                :type="templateStore.selectedTemplateIndex===i ? 'primary' : 'default'"
-                size="tiny"
-                @click="templateStore.selectTemplate(i)"
-                :title="t.name"
-              >{{ t.name }}
-                <template v-if="i >= templateStore.BUILTIN_TEMPLATES.length" #icon>
-                  <n-icon size="14" style="cursor:pointer;margin-left:4px;" @click.stop="templateStore.deleteCustomTemplate(i)">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-                  </n-icon>
-                </template>
-              </n-button>
-            </div>
-            <label class="field" v-if="templateStore.selectedTemplateIndex >= templateStore.BUILTIN_TEMPLATES.length">
-              <span class="field-label">模版名称</span>
-              <n-input :value="templateStore.allTemplates[templateStore.selectedTemplateIndex]?.name??''" @update:value="(v) => templateStore.updateTemplateName(templateStore.selectedTemplateIndex, v)" size="small" />
-            </label>
-            <label class="field">
-              <span class="field-label">提示词内容{{ templateStore.selectedTemplateIndex < templateStore.BUILTIN_TEMPLATES.length ? ' (内置模版不可编辑)' : '' }}</span>
-              <n-input v-model:value="tplPrompt" type="textarea" :rows="6" size="small" :disabled="templateStore.selectedTemplateIndex < templateStore.BUILTIN_TEMPLATES.length" />
-            </label>
-          </section>
-        </div>
-      </n-drawer-content>
-    </n-drawer>
+    <n-drawer v-model:show="showSettings" width="440"><n-drawer-content title="璁剧疆" closable><n-space vertical style="gap:16px;">
+      <div><n-text depth="3" style="font-size:12px;">HTTP 浠ｇ悊</n-text><n-input v-model:value="store.proxy" placeholder="http://127.0.0.1:7897" size="small" /></div>
+      <div><n-text depth="3" style="font-size:12px;">AI 鎻愪緵鍟?/n-text><n-select v-model:value="store.selectedProvider" :options="store.PROVIDERS.map((p,i)=>({label:p.name,value:i}))" size="small" @update:value="(i) => store.switchProvider(i)" /></div>
+      <div><n-text depth="3" style="font-size:12px;">API 鍦板潃</n-text><n-input v-model:value="store.aiApiUrl" size="small" /></div>
+      <div>
+        <n-text depth="3" style="font-size:12px;">API 瀵嗛挜</n-text>
+        <n-space :size="6" style="margin-top:4px;flex-wrap:nowrap;">
+          <n-input v-model:value="store.aiApiKey" type="password" placeholder="sk-..." size="small" show-password-on="click" style="flex:1;min-width:0;" />
+          <n-button size="small" @click="store.fetchModelList()" style="flex-shrink:0;white-space:nowrap;">娴嬭瘯杩炴帴 &amp; 鎷夊彇妯″瀷</n-button>
+        </n-space>
+      </div>
+      <div v-if="store.customModels.length>0||store.PROVIDERS[store.selectedProvider].models.length>0">
+        <n-text depth="3" style="font-size:12px;">妯″瀷</n-text><n-select v-model:value="store.aiModel" :options="(store.customModels.length>0?store.customModels:store.PROVIDERS[store.selectedProvider].models).map(m=>({label:m,value:m}))" size="small" />
+      </div>
+      <div v-else><n-text depth="3" style="font-size:12px;">妯″瀷</n-text><n-input v-model:value="store.aiModel" size="small" /></div>
+      <div>
+        <n-text depth="3" style="font-size:12px;">ASR 璇煶璇嗗埆妯″瀷</n-text>
+        <n-select v-model:value="store.asrModel" :options="[{label:'Paraformer (鏈湴)',value:'paraformer'},{label:'MiMo-V2.5 (API)',value:'mimo'}]" size="small" style="margin-top:4px;" />
+      </div>
+      <div v-if="store.asrModel === 'mimo'">
+        <n-text depth="3" style="font-size:12px;">ASR API 鍦板潃</n-text>
+        <n-input v-model:value="store.asrApiUrl" placeholder="https://api.xiaomimimo.com/v1/chat/completions" size="small" style="margin-top:4px;" />
+      </div>
+      <div v-if="store.asrModel === 'mimo'">
+        <n-text depth="3" style="font-size:12px;">ASR API 瀵嗛挜 (鍙€?</n-text>
+        <n-input v-model:value="store.asrApiKey" type="password" placeholder="鍙€夛紝榛樿涓嶄紶閫? size="small" show-password-on="click" style="margin-top:4px;" />
+      </div>
+      <div>
+        <n-space justify="space-between" align="center"><n-text depth="3" style="font-size:12px;">鎻愮ず璇嶆ā鐗?/n-text><n-button size="tiny" @click="templateStore.addCustomTemplate()">+ 鏂板</n-button></n-space>
+        <n-space style="margin-top:4px;flex-wrap:wrap;" :size="4">
+          <n-button v-for="(t, i) in templateStore.allTemplates" :key="i" :type="templateStore.selectedTemplateIndex===i ? 'primary' : 'default'" size="tiny" @click="templateStore.selectTemplate(i)" :title="t.name">{{ t.name }}
+            <template v-if="i >= templateStore.BUILTIN_TEMPLATES.length" #icon><n-icon size="14" style="cursor:pointer;margin-left:4px;" @click.stop="templateStore.deleteCustomTemplate(i)"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></n-icon></template>
+          </n-button>
+        </n-space>
+      </div>
+      <div v-if="templateStore.selectedTemplateIndex >= templateStore.BUILTIN_TEMPLATES.length">
+        <n-text depth="3" style="font-size:12px;">妯＄増鍚嶇О</n-text>
+        <n-input :value="templateStore.allTemplates[templateStore.selectedTemplateIndex]?.name??''" @update:value="(v) => templateStore.updateTemplateName(templateStore.selectedTemplateIndex, v)" size="small" style="margin-top:4px;" />
+      </div>
+      <div>
+        <n-text depth="3" style="font-size:12px;">鎻愮ず璇嶅唴瀹箋{ templateStore.selectedTemplateIndex < templateStore.BUILTIN_TEMPLATES.length ? ' (鍐呯疆妯＄増涓嶅彲缂栬緫)' : '' }}</n-text>
+        <n-input v-model:value="tplPrompt" type="textarea" :rows="6" size="small" style="margin-top:4px;" :disabled="templateStore.selectedTemplateIndex < templateStore.BUILTIN_TEMPLATES.length" />
+      </div>
+    </n-space></n-drawer-content></n-drawer>
   </div>
   </n-config-provider>
 </template>

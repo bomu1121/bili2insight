@@ -6,6 +6,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useAppStore } from "../stores/app";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { createDiscreteApi } from "naive-ui";
+import { renderMarkdown } from "../utils/markdown";
 
 const route = useRoute();
 const router = useRouter();
@@ -30,14 +31,6 @@ const aiContent = computed(() => {
   return section.trim();
 });
 
-function renderMarkdown(text: string) {
-  let h = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>').replace(/^## (.+)$/gm, '<h2>$1</h2>').replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/`(.+?)`/g, '<code>$1</code>')
-    .replace(/^- (.+)$/gm, '<li>$1</li>').replace(/^(\d+)\. (.+)$/gm, '<li>$2</li>')
-    .replace(/^---$/gm, '<hr>').replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
-  return '<p>' + h + '</p>';
-}
 
 async function copyContent() {
   if (!item.value) return;
