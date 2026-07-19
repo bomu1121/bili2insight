@@ -180,10 +180,6 @@ const sourceColor: Record<string, string> = { url: "#00aeec", fav: "#f0a020", lo
             <span v-if="entry.duration > 0" class="h-dot">·</span>
             <span class="h-meta">{{ fmtDate(entry.created_at) }}</span>
           </div>
-
-          <!-- Row 3: summary or error -->
-          <div class="h-line3" v-if="entry.status === 'done' && entry.summary">{{ entry.summary }}</div>
-          <div class="h-line3 h-err-msg" v-else-if="entry.status === 'error' && entry.error_msg">{{ entry.error_msg }}</div>
         </div>
 
         <!-- Right: actions -->
@@ -336,9 +332,7 @@ const sourceColor: Record<string, string> = { url: "#00aeec", fav: "#f0a020", lo
   color: #1a1a1a;
   line-height: 1.35;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
+  text-overflow: ellipsis;flex: 1;
   min-width: 0;
 }
 .h-badge {
@@ -347,9 +341,7 @@ const sourceColor: Record<string, string> = { url: "#00aeec", fav: "#f0a020", lo
   color: #fff;
   padding: 2px 8px;
   border-radius: 4px;
-  flex-shrink: 0;
-  white-space: nowrap;
-  line-height: 1.4;
+  flex-shrink: 0;line-height: 1.4;
 }
 
 .h-line2 {
@@ -361,14 +353,6 @@ const sourceColor: Record<string, string> = { url: "#00aeec", fav: "#f0a020", lo
 .h-meta { color: #999; }
 .h-dot { color: #ddd; font-weight: 600; }
 
-.h-line3 {
-  font-size: 12.5px;
-  color: #777;
-  line-height: 1.6;
-  word-break: break-word;
-}
-.h-err-msg { color: #d03050; }
-
 /* Right actions column */
 .h-right {
   flex-shrink: 0;
@@ -376,25 +360,15 @@ const sourceColor: Record<string, string> = { url: "#00aeec", fav: "#f0a020", lo
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  gap: 4px;
-  padding: 10px 12px 10px 4px;
-  align-self: stretch;
-  width: 56px;
+  gap: 6px;
+  padding: 10px 14px 10px 4px;
+  width: 52px;
 }
-.h-status-line {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
+
 .h-elapsed {
   font-size: 10px;
-  color: #bbb;
-  white-space: nowrap;
-}
-.h-action-btn {
-  padding: 2px 4px !important;
-}
+  color: #aaa;}
+
 
 /* ===== Detail Drawer ===== */
 .detail-scroll { overflow-y: auto; }
