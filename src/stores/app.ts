@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, watch, computed } from "vue";
 import type { PipelineResult, PipelineProgress, VideoInfo, PageInfo, TaskState, QueueItem } from "../utils/types";
+import { useTemplateStore } from "./templates";
 import { SETTINGS_VERSION, loadSaved, saveToDisk, type Provider, type PromptTemplate } from "./settings";
 import { runPipelineWithPage, saveResultToFile, previewVideo, fetchModels } from "../utils/invoke";
 import { runPipelineLocal } from "../utils/invoke";
@@ -15,9 +16,6 @@ const PROVIDERS: Provider[] = [
 export const useAppStore = defineStore("app", () => {
   const saved = loadSaved();
   const ver = saved;
-  const templateStore = useTemplateStore();
-  const { selectedTemplateIndex, customTemplates, aiPrompt } = storeToRefs(templateStore);
-  const resolvePrompt = (templateIndex?: number) => templateStore.resolvePrompt(templateIndex);
 
   const url = ref("");
   const proxy = ref(ver?.proxy ?? "");
@@ -570,7 +568,7 @@ async function checkLoginAfterAuth() {
     updated[idx] = { ...item, status: 'running' as const, stageLabel: '开始处理' };
     const startTime = performance.now();
     queue.value = updated;
-    const prompt = ""(item.templateIndex);
+    const prompt = useTemplateStore().resolvePrompt(item.templateIndex);
     console.log('processQueue: item', idx, 'set to running, url=', item.url?.slice(0,50), 'cid=', item.pageInfo.cid, 'part=', item.pageInfo.part);
     try {
       if (signal?.aborted) return;
@@ -635,7 +633,7 @@ async function checkLoginAfterAuth() {
       try {
         const res = await runPipelineWithPage(
           url.value, proxy.value||undefined, aiApiUrl.value||undefined, aiApiKey.value||undefined,
-          aiModel.value||undefined, aiPrompt.value || undefined, tasks.value[ti].pageInfo.cid,
+          aiModel.value||undefined, "", tasks.value[ti].pageInfo.cid,
           asrModel.value, asrApiUrl.value||undefined, asrApiKey.value||undefined,
         );
         tasks.value[ti].status = "done";
@@ -687,11 +685,6 @@ async function checkLoginAfterAuth() {
     preview, previewLoading, PROVIDERS,
     
     
-    aiPrompt,
-    selectedTemplateIndex,
-    allTemplates: templateStore.allTemplates,
-    customTemplates,
-    BUILTIN_TEMPLATES: templateStore.BUILTIN_TEMPLATES,
     customModels, asrModel, asrApiUrl, asrApiKey,
     selectedPages, tasks, activeTaskIndex, videoPages, completedTasks, hasMultiPages,
     activeResultTab, activeResult, mergedMarkdown,
@@ -708,3 +701,4 @@ async function checkLoginAfterAuth() {
     loadFavFolders, loadFavVideos, loadCollectedVideos, openFavFolder, toggleFavVideo, selectAllFavVideos, addFavVideosToQueue, followItems, followLoading, followType, followPage, followTotalPages, followTotal, loadFollowList, watchLaterItems, watchLaterLoading, watchLaterPage, watchLaterTotalPages, loadWatchLater, historyItems, historyLoading, historyPage, historyTotalPages, loadHistory,
   };
 });
+
