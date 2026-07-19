@@ -3,9 +3,11 @@ import { ref, onMounted, computed, watch } from "vue";
 import { NButton, NText, NIcon, NCheckbox, NSpin, NPagination, NInput, createDiscreteApi, NTabs, NTabPane } from "naive-ui";
 import { ArrowBackOutline, AddCircleOutline, FolderOpenOutline, RefreshOutline, PlayCircleOutline, TimeOutline, BookmarkOutline, TvOutline } from "@vicons/ionicons5";
 import { useRouter } from "vue-router";
+import { useAuthStore } from "../stores/auth";
 import { useAppStore } from "../stores/app";
 
 const store = useAppStore();
+const authStore = useAuthStore();
 const router = useRouter();
 const { message } = createDiscreteApi(["message"]);
 
@@ -21,7 +23,7 @@ const showFolders = ref(true);
 const folderSearch = ref("");
 
 onMounted(async () => {
-  if (store.isLoggedIn) {
+  if (authStore.isLoggedIn) {
     await store.loadFavFolders();
   }
 });
@@ -74,7 +76,7 @@ function fmtDur(sec: number) {
     </div>
 
     <div class="source-body">
-      <div v-if="!store.isLoggedIn" class="fav-empty">
+      <div v-if="!authStore.isLoggedIn" class="fav-empty">
         <n-icon size="48" color="#ccc"><FolderOpenOutline /></n-icon>
         <n-text depth="3" style="margin-top:12px;">请先登录B站账号以访问收藏</n-text>
       </div>

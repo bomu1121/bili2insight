@@ -1,12 +1,14 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch, computed } from "vue";
 import { NInput, NButton, NSpace, NText, NIcon, NTabs, NTabPane, createDiscreteApi, NDrawer, NDrawerContent, NSelect } from "naive-ui";
 import { SettingsSharp, VideocamOutline, ListOutline, PlayOutline, TrashOutline, EyeOutline, CheckmarkCircle, CloseCircle, SyncOutline, PersonCircleOutline, LogOutOutline, RefreshOutline, PhonePortraitOutline, QrCodeOutline, ArrowForward, CopyOutline } from "@vicons/ionicons5";
 import { useRouter } from "vue-router";
 import { useAppStore } from "./stores/app";
+import { useAuthStore } from "./stores/auth";
 import { useTemplateStore } from "./stores/templates";
 const { message } = createDiscreteApi(["message"]);
 const store = useAppStore();
+const authStore = useAuthStore();
 const templateStore = useTemplateStore();
 const router = useRouter();
 const showSettings = ref(false);
@@ -55,8 +57,8 @@ const smsSent = ref(false);
 const smsCountdown = ref(0);
 
 function openLogin() {
-  if (store.isLoggedIn) { store.showLogin = true; return; }
-  store.startLogin();
+  if (authStore.isLoggedIn) { authStore.showLogin = true; return; }
+  authStore.startLogin();
 }
 async function doSendSms() {
   if (!smsPhone.value) { message.warning("请输入手机号"); return; }
@@ -68,7 +70,7 @@ async function doSendSms() {
   finally { smsSending.value = false; }
 }
 
-function refreshLogin() { store.cancelLogin(); store.startLogin(); }
+function refreshLogin() { authStore.cancelLogin(); authStore.startLogin(); }
 
 const tplPrompt = computed({
   get: () => {
@@ -97,9 +99,9 @@ const tplPrompt = computed({
           <template #icon><n-icon><ListOutline /></n-icon></template>队列
           <span v-if="store.queueCount > 0" class="hdr-badge">{{ store.queueCount }}</span>
         </n-button>
-        <div class="hdr-avatar" @click="openLogin" :title="store.isLoggedIn ? store.loginUname : '登录'">
-          <img v-if="store.isLoggedIn && store.loginFace" :src="store.loginFace" class="hdr-avatar-img" referrerpolicy="no-referrer" />
-          <n-icon v-else :color="store.isLoggedIn ? '#18a058' : '#999'" size="22"><PersonCircleOutline /></n-icon>
+        <div class="hdr-avatar" @click="openLogin" :title="authStore.isLoggedIn ? authStore.loginUname : '登录'">
+          <img v-if="authStore.isLoggedIn && authStore.loginFace" :src="authStore.loginFace" class="hdr-avatar-img" referrerpolicy="no-referrer" />
+          <n-icon v-else :color="authStore.isLoggedIn ? '#18a058' : '#999'" size="22"><PersonCircleOutline /></n-icon>
         </div>
         <n-button text @click="showSettings=true"><template #icon><n-icon><SettingsSharp /></n-icon></template>设置</n-button>
       </n-space>
@@ -170,16 +172,16 @@ const tplPrompt = computed({
     </n-drawer>
 
     <!-- Login Drawer -->
-    <n-drawer :show="store.showLogin" @update:show="(v) => { if (!v) store.cancelLogin(); }" width="400">
+    <n-drawer :show="authStore.showLogin" @update:show="(v) => { if (!v) authStore.cancelLogin(); }" width="400">
       <n-drawer-content title="B站登录" closable>
         <!-- Logged-in state -->
-        <div class="login-body" v-if="store.isLoggedIn">
+        <div class="login-body" v-if="authStore.isLoggedIn">
           <div class="login-success">
-            <img v-if="store.loginFace" :src="store.loginFace" class="login-avatar-lg" referrerpolicy="no-referrer" />
+            <img v-if="authStore.loginFace" :src="authStore.loginFace" class="login-avatar-lg" referrerpolicy="no-referrer" />
             <n-icon v-else size="64" color="#00aeec"><PersonCircleOutline /></n-icon>
-            <n-text strong style="font-size:17px;margin-top:12px;">{{ store.loginUname }}</n-text>
-            <n-text depth="3" style="font-size:13px;">UID: {{ store.loginUid }}</n-text>
-            <n-button type="error" size="small" @click="store.doLogout()" style="margin-top:18px;">
+            <n-text strong style="font-size:17px;margin-top:12px;">{{ authStore.loginUname }}</n-text>
+            <n-text depth="3" style="font-size:13px;">UID: {{ authStore.loginUid }}</n-text>
+            <n-button type="error" size="small" @click="authStore.doLogout()" style="margin-top:18px;">
               <template #icon><n-icon><LogOutOutline /></n-icon></template>退出登录
             </n-button>
           </div>
@@ -196,21 +198,21 @@ const tplPrompt = computed({
               <div class="tab-content">
                 <div class="qr-section">
                   <div class="qr-code-wrap">
-                    <img v-if="store.qrUrl" :src="'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(store.qrUrl)" class="qr-code-img" referrerpolicy="no-referrer" />
-                    <div v-if="store.qrStatus === 'expired'" class="qr-overlay" @click="refreshLogin">
+                    <img v-if="authStore.qrUrl" :src="'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(authStore.qrUrl)" class="qr-code-img" referrerpolicy="no-referrer" />
+                    <div v-if="authStore.qrStatus === 'expired'" class="qr-overlay" @click="refreshLogin">
                       <n-icon size="28"><RefreshOutline /></n-icon>
                       <n-text depth="3">二维码已过期，点击刷新</n-text>
                     </div>
-                    <div v-if="store.qrStatus === 'success'" class="qr-overlay success">
+                    <div v-if="authStore.qrStatus === 'success'" class="qr-overlay success">
                       <n-icon size="32" color="#18a058"><CheckmarkCircle /></n-icon>
                       <n-text style="color:#18a058;">登录成功</n-text>
                     </div>
                   </div>
-                  <div class="qr-status" v-if="store.qrStatusMessage">
-                    <n-text depth="3" style="font-size:13px;">{{ store.qrStatusMessage }}</n-text>
+                  <div class="qr-status" v-if="authStore.qrStatusMessage">
+                    <n-text depth="3" style="font-size:13px;">{{ authStore.qrStatusMessage }}</n-text>
                   </div>
                 </div>
-                <n-text v-if="store.loginError" depth="3" type="error" style="font-size:11px;text-align:center;display:block;margin-top:10px;">{{ store.loginError }}</n-text>
+                <n-text v-if="authStore.loginError" depth="3" type="error" style="font-size:11px;text-align:center;display:block;margin-top:10px;">{{ authStore.loginError }}</n-text>
               </div>
             </n-tab-pane>
 
@@ -342,3 +344,4 @@ const tplPrompt = computed({
 ::-webkit-scrollbar-thumb:hover{background:#a0a0a0}
 *{scrollbar-width:thin;scrollbar-color:#c0c0c0 transparent}
 </style>
+

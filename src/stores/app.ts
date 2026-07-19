@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { ref, watch, computed } from "vue";
 import type { PipelineResult, PipelineProgress, VideoInfo, PageInfo, TaskState, QueueItem } from "../utils/types";
 import { useTemplateStore } from "./templates";
+import { useAuthStore } from "./auth";
 import { SETTINGS_VERSION, loadSaved, saveToDisk, type Provider, type PromptTemplate } from "./settings";
 import { runPipelineWithPage, saveResultToFile, previewVideo, fetchModels } from "../utils/invoke";
 import { runPipelineLocal } from "../utils/invoke";
@@ -91,21 +92,6 @@ export const useAppStore = defineStore("app", () => {
     persistSettings();
   }, { deep: false });
 
-  // ---------- Login state ----------
-  const showLogin = ref(false);
-  const qrUrl = ref('');
-  const qrcodeKey = ref('');
-  const qrPolling = ref(false);
-  const qrStatusMessage = ref('');
-  const qrStatus = ref(''); // 'waiting' | 'scanned' | 'expired' | 'success'
-  const loginError = ref('');
-  const isLoggedIn = ref(false);
-  const loginUname = ref('');
-  const loginUid = ref(0);
-  const loginFace = ref('');
-  const cookiesSaved = ref<Record<string,string>>({});
-  let qrPollTimer: ReturnType<typeof setInterval> | null = null;
-
   // ---------- Favorites state ----------
   const favFolders = ref<any[]>([]);
   const favLoading = ref(false);
@@ -149,7 +135,7 @@ export const useAppStore = defineStore("app", () => {
 
   // ---------- Login functions ----------
   async function startLogin() {
-    loginError.value = ''; qrStatus.value = 'waiting'; qrStatusMessage.value = '正在生成二维码...';
+    useAuthStore().loginError = ''; qrStatus.value = 'waiting'; qrStatusMessage.value = '正在生成二维码...';
     console.log("[login] startLogin called"); showLogin.value = true;
     try {
       const { qrGenerate } = await import('../utils/invoke');
@@ -160,7 +146,7 @@ export const useAppStore = defineStore("app", () => {
       qrStatus.value = 'waiting';
       startPolling();
     } catch (e: any) {
-      loginError.value = String(e);
+      useAuthStore().loginError = String(e);
       qrStatus.value = 'error';
       qrStatusMessage.value = '获取二维码失败';
     }
@@ -182,13 +168,13 @@ export const useAppStore = defineStore("app", () => {
       if (result.status_code === 0 && result.logged_in) {
         qrStatus.value = 'success'; console.log('[login] *** QR LOGIN SUCCESS, cookies keys:', result.cookies ? Object.keys(result.cookies) : 'none');
         qrStatusMessage.value = '登录成功！';
-        stopPolling(); console.log('[login] saving cookies to localStorage...'); cookiesSaved.value = result.cookies || {};
+        stopPolling(); console.log('[login] saving cookies to localStorage...'); useAuthStore().cookiesSaved = result.cookies || {};
         if (result.cookies) {
       try { localStorage.setItem('bili2insight-cookies', JSON.stringify(result.cookies)); } catch(_) {}
     }
     // Set logged-in state IMMEDIATELY from cookies, don't wait for verification
-    isLoggedIn.value = true;
-    loginUname.value = loginUname.value || '...';
+    useAuthStore().isLoggedIn = true;
+    useAuthStore().loginUname = useAuthStore().loginUname || '...';
     await checkLoginAfterAuth();
         setTimeout(() => { showLogin.value = false; }, 1500);
       } else if (result.status_code === 86090) {
@@ -200,7 +186,7 @@ export const useAppStore = defineStore("app", () => {
         stopPolling();
       }
     } catch (e: any) {
-      loginError.value = String(e);
+      useAuthStore().loginError = String(e);
     }
   }
 
@@ -218,12 +204,12 @@ export const useAppStore = defineStore("app", () => {
 async function checkLoginAfterAuth() {
     console.log("[login] checkLoginAfterAuth: verifying cookies...");
     try {
-      const cookiesStr = JSON.stringify(cookiesSaved.value);
+      const cookiesStr = JSON.stringify(useAuthStore().cookiesSaved);
       const { checkLogin } = await import('../utils/invoke');
-      const result = await checkLogin(cookiesStr, proxy.value || undefined); console.log("[login] checkLoginAfterAuth:", {logged_in: result.logged_in, uname: result.uname, uid: result.uid}); isLoggedIn.value = result.logged_in;
-      loginUname.value = result.uname;
-      loginUid.value = result.uid;
-      loginFace.value = result.face;
+      const result = await checkLogin(cookiesStr, proxy.value || undefined); console.log("[login] checkLoginAfterAuth:", {logged_in: result.logged_in, uname: result.uname, uid: result.uid}); useAuthStore().isLoggedIn = result.logged_in;
+      useAuthStore().loginUname = result.uname;
+      useAuthStore().loginUid = result.uid;
+      useAuthStore().loginFace = result.face;
     } catch (e: any) { console.error("[login] checkLoginAfterAuth FAILED:", e); }
   }
 
@@ -243,23 +229,23 @@ async function checkLoginAfterAuth() {
         }
         if (saved) cookies = JSON.parse(saved);
       } catch(_) {}
-      console.log("[login] checkLoginStatus: found cookies, keys:", Object.keys(cookies)); if (Object.keys(cookies).length === 0) {console.log("[login] checkLoginStatus: no cookies, not logged in"); isLoggedIn.value = false; return;
+      console.log("[login] checkLoginStatus: found cookies, keys:", Object.keys(cookies)); if (Object.keys(cookies).length === 0) {console.log("[login] checkLoginStatus: no cookies, not logged in"); useAuthStore().isLoggedIn = false; return;
       }
-      cookiesSaved.value = cookies;
+      useAuthStore().cookiesSaved = cookies;
       const { checkLogin } = await import('../utils/invoke');
-      const result = await checkLogin(JSON.stringify(cookies), proxy.value || undefined); console.log("[login] checkLoginStatus result:", {logged_in: result.logged_in, uname: result.uname}); isLoggedIn.value = result.logged_in;
-      loginUname.value = result.uname;
-      loginUid.value = result.uid;
-      loginFace.value = result.face;
-    } catch (_) { isLoggedIn.value = false; }
+      const result = await checkLogin(JSON.stringify(cookies), proxy.value || undefined); console.log("[login] checkLoginStatus result:", {logged_in: result.logged_in, uname: result.uname}); useAuthStore().isLoggedIn = result.logged_in;
+      useAuthStore().loginUname = result.uname;
+      useAuthStore().loginUid = result.uid;
+      useAuthStore().loginFace = result.face;
+    } catch (_) { useAuthStore().isLoggedIn = false; }
   }
 
   async function doLogout() {
     stopPolling();
     try { localStorage.removeItem('bili2insight-cookies'); } catch(_) {}
-    cookiesSaved.value = {};
-    isLoggedIn.value = false;
-    loginUname.value = ''; loginUid.value = 0; loginFace.value = '';
+    useAuthStore().cookiesSaved = {};
+    useAuthStore().isLoggedIn = false;
+    useAuthStore().loginUname = ''; useAuthStore().loginUid = 0; useAuthStore().loginFace = '';
     favFolders.value = []; favVideos.value = [];
     cancelLogin();
   }
@@ -268,18 +254,18 @@ async function checkLoginAfterAuth() {
   async function loadFavFolders() {
     favLoading.value = true;
     try {
-      const cookiesStr = JSON.stringify(cookiesSaved.value);
+      const cookiesStr = JSON.stringify(useAuthStore().cookiesSaved);
       const { favGetFolders } = await import('../utils/invoke');
       const result = await favGetFolders(cookiesStr, proxy.value || undefined);
       favFolders.value = result.folders; console.log("FAV loadFavFolders OK:", result.folders.length, "folders");
-      loginUname.value = result.uname;
-      loginUid.value = result.uid;
-      loginFace.value = result.face;
-      isLoggedIn.value = true;
+      useAuthStore().loginUname = result.uname;
+      useAuthStore().loginUid = result.uid;
+      useAuthStore().loginFace = result.face;
+      useAuthStore().isLoggedIn = true;
     } catch (e: any) {
-      loginError.value = String(e);
+      useAuthStore().loginError = String(e);
       if (String(e).includes('expired') || String(e).includes('login')) {
-        isLoggedIn.value = false;
+        useAuthStore().isLoggedIn = false;
       }
     } finally { favLoading.value = false; }
   }
@@ -287,7 +273,7 @@ async function checkLoginAfterAuth() {
   async function loadCollectedVideos(seasonId: number, mid: number, page: number) {
     favLoadingVideos.value = true;
     try {
-      const ck = JSON.stringify(cookiesSaved.value);
+      const ck = JSON.stringify(useAuthStore().cookiesSaved);
       const { invoke } = await import('@tauri-apps/api/core');
       const r = await invoke<any>('fav_collected_videos', { cookiesJson: ck, folderId: seasonId, mid, page, proxy: proxy.value || undefined });
       favVideos.value = r.videos;
@@ -295,21 +281,21 @@ async function checkLoginAfterAuth() {
       favTotalPages.value = r.total_pages;
       favTotal.value = r.total;
       favCurrentFolderId.value = seasonId;
-    } catch(e:any){ loginError.value = String(e); }
+    } catch(e:any){ useAuthStore().loginError = String(e); }
     finally { favLoadingVideos.value = false; }
   }
 
   async function loadFavVideos(folderId: number, page: number) {
     favLoadingVideos.value = true;
     try {
-      const cookiesStr = JSON.stringify(cookiesSaved.value); console.log("FAV loadFavVideos: folder=" + folderId + " page=" + page + " hasCookies=" + Object.keys(cookiesSaved.value || {}).length); const { favGetVideos } = await import('../utils/invoke');
+      const cookiesStr = JSON.stringify(useAuthStore().cookiesSaved); console.log("FAV loadFavVideos: folder=" + folderId + " page=" + page + " hasCookies=" + Object.keys(useAuthStore().cookiesSaved || {}).length); const { favGetVideos } = await import('../utils/invoke');
       const result = await favGetVideos(cookiesStr, folderId, page, proxy.value || undefined);
       favVideos.value = result.videos; console.log("FAV loadFavVideos OK:", result.videos.length, "videos, total=", result.total);
       favPage.value = page;
       favTotalPages.value = result.total_pages;
       favTotal.value = result.total;
       favCurrentFolderId.value = folderId;
-    } catch (e: any) { console.error("FAV loadFavVideos ERROR:", e); loginError.value = String(e); }
+    } catch (e: any) { console.error("FAV loadFavVideos ERROR:", e); useAuthStore().loginError = String(e); }
     finally { favLoadingVideos.value = false; }
   }
 
@@ -317,7 +303,7 @@ async function checkLoginAfterAuth() {
   async function loadFollowList(fType: number, page: number) {
     followLoading.value = true;
     try {
-      const cookiesStr = JSON.stringify(cookiesSaved.value);
+      const cookiesStr = JSON.stringify(useAuthStore().cookiesSaved);
       const { favGetFollowList } = await import('../utils/invoke');
       const result = await favGetFollowList(cookiesStr, fType, page, proxy.value || undefined);
       followItems.value = result.items;
@@ -325,7 +311,7 @@ async function checkLoginAfterAuth() {
       followTotalPages.value = result.total_pages;
       followTotal.value = result.total;
       followType.value = fType;
-    } catch (e: any) { loginError.value = String(e); }
+    } catch (e: any) { useAuthStore().loginError = String(e); }
     finally { followLoading.value = false; }
   }
 
@@ -333,23 +319,23 @@ async function checkLoginAfterAuth() {
   async function loadWatchLater(page: number) {
     watchLaterLoading.value = true;
     try {
-      const ck = JSON.stringify(cookiesSaved.value);
+      const ck = JSON.stringify(useAuthStore().cookiesSaved);
       const { favWatchLater } = await import("../utils/invoke");
       const r = await favWatchLater(ck, page, proxy.value || undefined);
       watchLaterItems.value = r.items; watchLaterPage.value = r.page;
       watchLaterTotalPages.value = r.total_pages;
-    } catch(e:any){ loginError.value = String(e); }
+    } catch(e:any){ useAuthStore().loginError = String(e); }
     finally { watchLaterLoading.value = false; }
   }
   async function loadHistory(page: number) {
     historyLoading.value = true;
     try {
-      const ck = JSON.stringify(cookiesSaved.value);
+      const ck = JSON.stringify(useAuthStore().cookiesSaved);
       const { favHistory } = await import("../utils/invoke");
       const r = await favHistory(ck, page, proxy.value || undefined);
       historyItems.value = r.items; historyPage.value = r.page;
       historyTotalPages.value = r.total_pages;
-    } catch(e:any){ loginError.value = String(e); }
+    } catch(e:any){ useAuthStore().loginError = String(e); }
     finally { historyLoading.value = false; }
   }
 
@@ -395,7 +381,7 @@ async function checkLoginAfterAuth() {
 
   // ---------- Lifecycle ----------
   function switchProvider(idx: number) { selectedProvider.value = idx; const p = PROVIDERS[idx]; aiApiUrl.value = p.url; if (p.models.length>0 && customModels.value.length===0) aiModel.value = p.models[0]; }
-  async function init() { console.log("[login] App init - checking..."); await initCookiesPath(); console.log("[login] cookies path:", cookiesFilePath.value);
+  async function init() { console.log("[login] App init - checking..."); 
     unlisten = await listen<PipelineProgress>("pipeline-progress", (ev) => {
       progress.value = ev.payload;
       const stageMap: Record<string,string> = {download:"下载中",ffmpeg:"转换格式",asr:"语音识别",refine:"AI 校对",ai:"AI 分析",done:"完成",preview:"检测中"};
@@ -417,7 +403,7 @@ async function checkLoginAfterAuth() {
         queue.value = q;
       }
     });
-    await checkLoginStatus();
+    await useAuthStore().checkLoginStatus();
   }
   function cleanup() { if (unlisten) { unlisten(); unlisten = null; } }
 
@@ -693,12 +679,8 @@ async function checkLoginAfterAuth() {
     queue, isProcessing, queueCount, previewVideoFn, addQueueItem, processQueue,
     refreshPreview, clearPreviewCache,
     cancelQueue, cancelQueueItem,
-    // Login
-    showLogin, qrUrl, qrcodeKey, qrPolling, qrStatusMessage, qrStatus, loginError, isLoggedIn, loginUname, loginUid, loginFace, cookiesSaved, cookiesFilePath, initCookiesPath,
-    startLogin, pollQr, stopPolling, cancelLogin, checkLoginStatus, doLogout, checkLoginAfterAuth,
     // Favorites
     favFolders, favLoading, favCurrentFolderId, favCurrentFolderTitle, favIsCollected, favCurrentFolderMid, favVideos, favPage, favTotalPages, favTotal, favLoadingVideos, favSelectedVideos,
     loadFavFolders, loadFavVideos, loadCollectedVideos, openFavFolder, toggleFavVideo, selectAllFavVideos, addFavVideosToQueue, followItems, followLoading, followType, followPage, followTotalPages, followTotal, loadFollowList, watchLaterItems, watchLaterLoading, watchLaterPage, watchLaterTotalPages, loadWatchLater, historyItems, historyLoading, historyPage, historyTotalPages, loadHistory,
   };
 });
-
