@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, onMounted, computed, watch } from "vue";
 import { NButton, NText, NIcon, NCheckbox, NSpin, NPagination, NInput, createDiscreteApi, NTabs, NTabPane } from "naive-ui";
 import { ArrowBackOutline, AddCircleOutline, FolderOpenOutline, RefreshOutline, PlayCircleOutline, TimeOutline, BookmarkOutline, TvOutline } from "@vicons/ionicons5";
@@ -203,7 +203,7 @@ function fmtDur(sec: number) {
             <n-text style="font-size:14px;font-weight:500;flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 12px;">{{ favStore.favCurrentFolderTitle }}</n-text>
             <n-text depth="3" style="font-size:12px;">共{{ favStore.favTotal }} 个视频</n-text>
           </div>
-          <n-spin :show="favfavStore.favLoadingVideos">
+          <n-spin :show="favStore.favLoadingVideos">
             <div v-if="favStore.favVideos.length > 0">
               <div class="page-header-row">
                 <n-checkbox :checked="favStore.favSelectedVideos.size === favStore.favVideos.length" @update:checked="favStore.selectAllFavVideos()">全选 ({{ favStore.favSelectedVideos.size }}/{{ favStore.favVideos.length }})</n-checkbox>
@@ -260,3 +260,4 @@ function fmtDur(sec: number) {
 .follow-cover { width: 72px; height: 96px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
 .follow-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 </style>
+
