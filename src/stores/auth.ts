@@ -149,6 +149,13 @@ export const useAuthStore = defineStore("auth", () => {
     isLoggedIn.value = false; loginUname.value = ""; loginUid.value = 0; loginFace.value = "";
     cookiesSaved.value = {}; showLogin.value = false;
     try { localStorage.removeItem("bili2insight-cookies"); } catch (_) { }
+    // Also clear the cookies file on disk
+    if (cookiesFilePath.value) {
+      try {
+        const { writeTextFile } = await import("@tauri-apps/plugin-fs");
+        await writeTextFile(cookiesFilePath.value, "{}");
+      } catch (_) { }
+    }
   }
 
   return {
