@@ -3,13 +3,15 @@ import { NIcon } from "naive-ui";
 import { VideocamOutline, FolderOpenOutline, CloudUploadOutline, TimeOutline } from "@vicons/ionicons5";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/app";
+import { useAuthStore } from "../stores/auth";
 import { createDiscreteApi } from "naive-ui";
 const router = useRouter();
 const store = useAppStore();
+const authStore = useAuthStore();
 const { message } = createDiscreteApi(["message"]);
 
 function goToFav() {
-  if (store.isLoggedIn) {
+  if (authStore.isLoggedIn) {
     router.push("/source/fav");
   } else {
     message.warning("请先点击右上角头像登录B站账号");
