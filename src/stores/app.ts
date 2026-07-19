@@ -1,5 +1,6 @@
-﻿import { defineStore } from "pinia";
+import { defineStore } from "pinia";
 import { ref, watch, computed } from "vue";
+import { storeToRefs } from "pinia";
 import type { PipelineResult, PipelineProgress, VideoInfo, PageInfo, TaskState, QueueItem } from "../utils/types";
 import { SETTINGS_VERSION, loadSaved, saveToDisk, type Provider, type PromptTemplate } from "./settings";
 import { useTemplateStore } from "./templates";
@@ -17,6 +18,8 @@ export const useAppStore = defineStore("app", () => {
   const saved = loadSaved();
   const ver = saved;
   const templateStore = useTemplateStore();
+  const { selectedTemplateIndex, customTemplates, aiPrompt } = storeToRefs(templateStore);
+  const resolvePrompt = (templateIndex?: number) => templateStore.resolvePrompt(templateIndex);
 
   const url = ref("");
   const proxy = ref(ver?.proxy ?? "");
@@ -634,7 +637,7 @@ async function checkLoginAfterAuth() {
       try {
         const res = await runPipelineWithPage(
           url.value, proxy.value||undefined, aiApiUrl.value||undefined, aiApiKey.value||undefined,
-          aiModel.value||undefined, templateStore.aiPrompt as string || undefined, tasks.value[ti].pageInfo.cid,
+          aiModel.value||undefined, aiPrompt.value || undefined, tasks.value[ti].pageInfo.cid,
           asrModel.value, asrApiUrl.value||undefined, asrApiKey.value||undefined,
         );
         tasks.value[ti].status = "done";
@@ -684,13 +687,15 @@ async function checkLoginAfterAuth() {
   return {
     url, proxy, aiApiUrl, aiApiKey, aiModel, selectedProvider, processing, progress, result, error,
     preview, previewLoading, PROVIDERS,
-    aiPrompt: templateStore.aiPrompt,
+    
+    
+    aiPrompt,
+    selectedTemplateIndex,
     allTemplates: templateStore.allTemplates,
-    customTemplates: templateStore.customTemplates,
+    customTemplates,
     BUILTIN_TEMPLATES: templateStore.BUILTIN_TEMPLATES,
-    selectedTemplateIndex: templateStore.selectedTemplateIndex,
     customModels, asrModel, asrApiUrl, asrApiKey,
-    resolvePrompt: templateStore.resolvePrompt,
+    resolvePrompt,
     selectedPages, tasks, activeTaskIndex, videoPages, completedTasks, hasMultiPages,
     activeResultTab, activeResult, mergedMarkdown,
     init, cleanup, startPipeline, exportToFile, switchProvider, fetchModelList,
