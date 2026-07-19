@@ -686,6 +686,7 @@ async function checkLoginAfterAuth() {
     preview, previewLoading, PROVIDERS,
     aiPrompt: templateStore.aiPrompt,
     allTemplates: templateStore.allTemplates,
+    customTemplates: templateStore.customTemplates,
     BUILTIN_TEMPLATES: templateStore.BUILTIN_TEMPLATES,
     selectedTemplateIndex: templateStore.selectedTemplateIndex,
     customModels, asrModel, asrApiUrl, asrApiKey,
