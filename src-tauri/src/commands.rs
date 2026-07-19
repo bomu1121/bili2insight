@@ -267,6 +267,13 @@ pub fn read_cookies_file(app: AppHandle) -> Result<String, String> {
 }
 
 #[tauri::command]
+pub fn clear_cookies_file(app: AppHandle) -> Result<(), String> {
+    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let path = dir.join("bili_cookies.json");
+    std::fs::write(&path, "{}").map_err(|e| format!("Cannot clear cookies: {}", e))
+}
+
+#[tauri::command]
 pub async fn save_result_to_file(_app: AppHandle, result: crate::PipelineResult, output_path: String) -> Result<(), String> {
     let path = PathBuf::from(&output_path);
     if let Some(parent) = path.parent() { std::fs::create_dir_all(parent).map_err(|e| e.to_string())?; }
