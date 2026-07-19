@@ -128,9 +128,10 @@ const sourceColor: Record<string,string>={url:"#00aeec",fav:"#f0a020",local:"#18
         <div class="h-body">
           <div class="h-line1">
             <span class="h-title">{{ entry.title }}</span>
-            <span class="h-badge" :style="{background:sourceColor[entry.source]||'#999'}">{{ sourceLabel[entry.source]||entry.source }}</span>
           </div>
           <div class="h-line2">
+            <span class="h-badge" :style="{background:sourceColor[entry.source]||'#999'}">{{ sourceLabel[entry.source]||entry.source }}</span>
+            <span class="h-dot">&middot;</span>
             <span v-if="entry.uploader" class="h-meta">{{ entry.uploader }}</span>
             <span v-if="entry.uploader" class="h-dot">&middot;</span>
             <span v-if="entry.duration>0" class="h-meta">{{ fmtDur(entry.duration) }}</span>
