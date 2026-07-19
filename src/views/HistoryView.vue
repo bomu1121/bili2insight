@@ -267,7 +267,6 @@ const sourceColor: Record<string, string> = { url: "#00aeec", fav: "#f0a020", lo
   background: #fff;
   border-radius: 10px;
   border: 1px solid #eee;
-  overflow: hidden;
   transition: border-color .15s, box-shadow .15s;
   min-height: 82px;
 }
@@ -292,8 +291,8 @@ const sourceColor: Record<string, string> = { url: "#00aeec", fav: "#f0a020", lo
   flex-shrink: 0;
   cursor: pointer;
   display: flex;
-  align-items: center;
-  padding: 10px 0 10px 12px;
+  align-items: flex-start;
+  padding: 10px 0 0 12px;
 }
 .h-cover {
   width: 100px;
@@ -365,8 +364,7 @@ const sourceColor: Record<string, string> = { url: "#00aeec", fav: "#f0a020", lo
   font-size: 12.5px;
   color: #777;
   line-height: 1.6;
-  max-height: calc(1.6em * 3);
-  overflow-y: auto;
+  max-height: calc(1.6em * 5);
   word-break: break-word;
 }
 .h-err-msg { color: #d03050; }
