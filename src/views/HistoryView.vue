@@ -267,6 +267,7 @@ const sourceColor: Record<string, string> = { url: "#00aeec", fav: "#f0a020", lo
   background: #fff;
   border-radius: 10px;
   border: 1px solid #eee;
+  overflow: hidden;
   transition: border-color .15s, box-shadow .15s;
   min-height: 82px;
 }
@@ -364,7 +365,6 @@ const sourceColor: Record<string, string> = { url: "#00aeec", fav: "#f0a020", lo
   font-size: 12.5px;
   color: #777;
   line-height: 1.6;
-  max-height: calc(1.6em * 5);
   word-break: break-word;
 }
 .h-err-msg { color: #d03050; }
