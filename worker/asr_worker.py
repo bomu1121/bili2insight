@@ -225,7 +225,7 @@ def _daemon_emit(kind, data):
 
 def run_sherpa_daemon(args):
     """Daemon mode: HTTP server on localhost, model loaded once."""
-    from http.server import HTTPServer, BaseHTTPRequestHandler
+    from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
     import threading
 
     rec = _load_sherpa_model(args)
@@ -286,7 +286,7 @@ def run_sherpa_daemon(args):
             self.end_headers()
             self.wfile.write(json.dumps(data, ensure_ascii=False).encode("utf-8"))
 
-    server = HTTPServer(("127.0.0.1", daemon_port), AsrHandler)
+    server = ThreadingHTTPServer(("127.0.0.1", daemon_port), AsrHandler)
     sys.stdout.write(json.dumps({"type": "ready", "port": daemon_port}) + "\n")
     sys.stdout.flush()
     server.serve_forever()
