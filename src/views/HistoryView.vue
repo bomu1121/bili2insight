@@ -267,9 +267,8 @@ const sourceColor: Record<string, string> = { url: "#00aeec", fav: "#f0a020", lo
   background: #fff;
   border-radius: 10px;
   border: 1px solid #eee;
-  overflow: hidden;
   transition: border-color .15s, box-shadow .15s;
-  min-height: 76px;
+  min-height: 82px;
 }
 .h-entry:hover { border-color: #ccc; box-shadow: 0 2px 12px rgba(0,0,0,.05); }
 .h-entry:last-child { margin-bottom: 0; }
@@ -364,11 +363,10 @@ const sourceColor: Record<string, string> = { url: "#00aeec", fav: "#f0a020", lo
 .h-line3 {
   font-size: 12.5px;
   color: #777;
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  line-height: 1.6;
+  max-height: calc(1.6em * 3);
+  overflow-y: auto;
+  word-break: break-word;
 }
 .h-err-msg { color: #d03050; }
 
