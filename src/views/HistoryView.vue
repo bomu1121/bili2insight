@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from "vue";
 import { NButton, NText, NIcon, NInput, NPagination, NDrawer, NDrawerContent, NSpace, NDivider, NPopconfirm, createDiscreteApi } from "naive-ui";
-import { ArrowBackOutline, TrashOutline, EyeOutline, SearchOutline, RefreshOutline, CopyOutline, DownloadOutline, CheckmarkCircle, CloseCircle } from "@vicons/ionicons5";
+import { ArrowBackOutline, TrashOutline, EyeOutline, SearchOutline, RefreshOutline, CopyOutline, DownloadOutline, TimeOutline, DocumentTextOutline } from "@vicons/ionicons5";
 import { useRouter } from "vue-router";
 import { fetchHistoryList, getHistoryResult, deleteHistoryItem, clearHistory } from "../utils/invoke";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
@@ -96,14 +96,23 @@ function fmtElapsed(ms: number) {
 }
 
 const sourceLabel: Record<string,string>={url:"B站",fav:"收藏",local:"本地"};
-const sourceColor: Record<string,string>={url:"#00aeec",fav:"#f0a020",local:"#18a058"};
+const sourceColor: Record<string,string>={
+  url: "var(--color-brand)",
+  fav: "var(--color-warning)",
+  local: "var(--color-success)",
+};
 </script>
 
 <template>
   <div class="history-root">
     <div class="history-header">
-      <n-button text @click="router.push('/')"><template #icon><n-icon><ArrowBackOutline /></n-icon></template>返回</n-button>
-      <n-text strong style="font-size:16px;">历史记录</n-text>
+      <div class="header-left">
+        <n-button text @click="router.push('/')"><template #icon><n-icon><ArrowBackOutline /></n-icon></template>返回</n-button>
+        <div class="title-wrap">
+          <n-icon :size="18" color="var(--color-accent-purple)"><TimeOutline /></n-icon>
+          <n-text strong>历史记录</n-text>
+        </div>
+      </div>
       <n-space :size="8">
         <n-button size="small" @click="load()" :loading="loading"><template #icon><n-icon><RefreshOutline /></n-icon></template></n-button>
         <n-button size="small" type="error" secondary @click="doClearAll" :disabled="!data||data.total===0">清空全部</n-button>
@@ -111,10 +120,10 @@ const sourceColor: Record<string,string>={url:"#00aeec",fav:"#f0a020",local:"#18
     </div>
 
     <div class="history-bar">
-      <n-input v-model:value="search" placeholder="搜索标题、UP主、BV号..." size="small" clearable style="width:300px;">
+      <n-input v-model:value="search" placeholder="搜索标题、UP主、BV号..." size="small" clearable round style="width:320px;">
         <template #prefix><n-icon><SearchOutline /></n-icon></template>
       </n-input>
-      <n-text depth="3" style="font-size:12px;" v-if="data&&!loading">共 {{ data.total }} 条</n-text>
+      <n-text depth="3" class="total-text" v-if="data&&!loading">共 {{ data.total }} 条</n-text>
     </div>
 
     <div class="history-list" v-if="data&&data.entries.length>0">
@@ -123,14 +132,14 @@ const sourceColor: Record<string,string>={url:"#00aeec",fav:"#f0a020",local:"#18
         @click="openDetail(entry)">
         <div class="h-thumb">
           <img v-if="entry.cover" :src="entry.cover+'@160w_100h_1c'" class="h-cover" referrerpolicy="no-referrer" />
-          <div v-else class="h-cover-fb"><n-icon size="22" color="#bbb"><EyeOutline /></n-icon></div>
+          <div v-else class="h-cover-fb"><n-icon size="22" color="var(--color-text-tertiary)"><EyeOutline /></n-icon></div>
         </div>
         <div class="h-body">
           <div class="h-line1">
             <span class="h-title">{{ entry.title }}</span>
           </div>
           <div class="h-line2">
-            <span class="h-badge" :style="{background:sourceColor[entry.source]||'#999'}">{{ sourceLabel[entry.source]||entry.source }}</span>
+            <span class="h-badge" :style="{background:sourceColor[entry.source]||'var(--color-text-secondary)'}">{{ sourceLabel[entry.source]||entry.source }}</span>
             <span class="h-dot">&middot;</span>
             <span v-if="entry.uploader" class="h-meta">{{ entry.uploader }}</span>
             <span v-if="entry.uploader" class="h-dot">&middot;</span>
@@ -152,7 +161,9 @@ const sourceColor: Record<string,string>={url:"#00aeec",fav:"#f0a020",local:"#18
     </div>
 
     <div class="history-empty" v-else-if="!loading">
-      <n-text depth="3">{{ search?"未找到匹配的记录":"暂无历史记录，处理视频后自动保存" }}</n-text>
+      <div class="empty-icon"><n-icon :size="32"><DocumentTextOutline /></n-icon></div>
+      <div class="empty-title">{{ search ? "未找到匹配记录" : "暂无历史记录" }}</div>
+      <div class="empty-desc">{{ search ? "试试换个关键词" : "处理视频后会自动保存在这里" }}</div>
     </div>
 
     <div class="history-pagination" v-if="data&&data.total_pages>1">
@@ -165,7 +176,7 @@ const sourceColor: Record<string,string>={url:"#00aeec",fav:"#f0a020",local:"#18
         <div v-if="detailLoading" style="text-align:center;padding:60px;"><n-text depth="3">加载中...</n-text></div>
         <div v-else-if="detailResult&&detailEntry" class="detail-scroll">
           <div class="detail-meta">
-            <span class="meta-badge" :style="{background:sourceColor[detailEntry.source]||'#999'}">{{ sourceLabel[detailEntry.source]||detailEntry.source }}</span>
+            <span class="meta-badge" :style="{background:sourceColor[detailEntry.source]||'var(--color-text-secondary)'}">{{ sourceLabel[detailEntry.source]||detailEntry.source }}</span>
             <span v-if="detailResult.video_info?.uploader">{{ detailResult.video_info.uploader }}</span>
             <span v-if="detailResult.video_info?.duration">{{ fmtDur(detailResult.video_info.duration) }}</span>
             <span>{{ fmtDate(detailEntry.created_at) }}</span>
@@ -186,51 +197,276 @@ const sourceColor: Record<string,string>={url:"#00aeec",fav:"#f0a020",local:"#18
 </template>
 
 <style scoped>
-.history-root{display:flex;flex-direction:column;height:100%;background:#f5f5f5;}
-.history-header{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:#fff;border-bottom:1px solid #eee;flex-shrink:0;}
-.history-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 10px;flex-shrink:0;}
-.history-list{flex:1;overflow-y:auto;padding:4px 20px 12px;display:flex;flex-direction:column;gap:8px;}
-.history-empty{flex:1;display:flex;align-items:center;justify-content:center;padding-bottom:80px;}
-.history-pagination{display:flex;justify-content:center;padding:12px 0 20px;flex-shrink:0;}
-
-.h-entry{
-  display:flex;align-items:center;gap:0;background:#fff;border-radius:10px;
-  border:1px solid #eee;border-left:4px solid transparent;cursor:pointer;
-  padding:10px 14px;
-  transition:border-color .15s,box-shadow .15s;
+.history-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--color-bg);
 }
-.h-entry:hover{border-color:#ccc;box-shadow:0 2px 12px rgba(0,0,0,.05);}
-.h-entry.h-done{border-left-color:#18a058;}
-.h-entry.h-err{border-left-color:#d03050;}
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.title-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+}
+.history-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  flex-shrink: 0;
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+}
+.total-text {
+  font-size: 12px;
+}
+.history-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+}
+.history-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding-bottom: 80px;
+}
+.empty-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  background: var(--color-accent-purple-soft);
+  color: var(--color-accent-purple);
+  margin-bottom: 4px;
+}
+.empty-title {
+  font-size: 16px;
+  font-weight: 650;
+}
+.empty-desc {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+.history-pagination {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 20px;
+  flex-shrink: 0;
+}
 
-.h-thumb{width:112px;flex-shrink:0;display:flex;align-items:center;}
-.h-cover{width:100px;aspect-ratio:16/9;object-fit:cover;border-radius:6px;background:#f0f0f0;}
-.h-cover-fb{width:100px;aspect-ratio:16/9;border-radius:6px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;}
+.h-entry {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--color-surface);
+  border-radius: 14px;
+  border: 1px solid var(--color-border);
+  border-left: 4px solid transparent;
+  cursor: pointer;
+  padding: 12px 14px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.18s var(--ease-out), border-color 0.15s, box-shadow 0.18s;
+}
+.h-entry:hover {
+  transform: translateY(-1px);
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-hover);
+}
+.h-entry.h-done {
+  border-left-color: var(--color-success);
+}
+.h-entry.h-err {
+  border-left-color: var(--color-error);
+}
 
-.h-body{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:4px;}
-.h-line1{display:flex;align-items:baseline;gap:8px;min-width:0;}
-.h-title{font-size:14px;font-weight:600;color:#1a1a1a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;line-height:1.35;}
-.h-badge{font-size:10px;font-weight:500;color:#fff;padding:2px 8px;border-radius:4px;flex-shrink:0;white-space:nowrap;line-height:1.4;}
-.h-line2{display:flex;align-items:center;gap:6px;font-size:12px;}
-.h-meta{color:#999;}
-.h-dot{color:#ddd;font-weight:600;}
-.h-elapsed{font-size:11px;color:#18a058;font-weight:500;}
+.h-thumb {
+  width: 120px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+.h-cover {
+  width: 108px;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 10px;
+  background: var(--color-bg);
+}
+.h-cover-fb {
+  width: 108px;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  background: var(--color-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-.h-actions{flex-shrink:0;display:flex;align-items:center;gap:2px;padding-left:8px;}
+.h-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 8px;
+}
+.h-line1 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.h-title {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.35;
+}
+.h-badge {
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.h-line2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.h-meta {
+  color: var(--color-text-secondary);
+}
+.h-dot {
+  color: var(--color-border-strong);
+  font-weight: 600;
+}
+.h-elapsed {
+  font-size: 11px;
+  color: var(--color-success);
+  font-weight: 600;
+}
 
-.detail-scroll{overflow-y:auto;}
-.detail-meta{display:flex;gap:14px;font-size:12px;color:#999;flex-wrap:wrap;align-items:center;}
-.meta-badge{font-size:11px;color:#fff;padding:2px 10px;border-radius:10px;}
-.detail-link{color:#888;text-decoration:none;word-break:break-all;font-size:12px;}
-.detail-link:hover{color:#00aeec;}
+.h-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-left: 8px;
+  opacity: 0.7;
+}
+.h-entry:hover .h-actions {
+  opacity: 1;
+}
 
-.md-preview{line-height:1.8;color:#333;font-size:14px;padding:4px 0;}
-.md-preview :deep(h1){font-size:20px;margin:14px 0 10px;color:#111;}
-.md-preview :deep(h2){font-size:16px;margin:12px 0 8px;color:#222;}
-.md-preview :deep(h3){font-size:14px;margin:10px 0 6px;color:#333;}
-.md-preview :deep(p){margin:5px 0;}
-.md-preview :deep(strong){color:#00aeec;}
-.md-preview :deep(code){background:#f0f0f0;padding:2px 6px;border-radius:3px;font-size:13px;}
-.md-preview :deep(li){margin-left:22px;}
-.md-preview :deep(hr){border:none;border-top:1px solid #eee;margin:14px 0;}
+.detail-scroll {
+  overflow-y: auto;
+}
+.detail-meta {
+  display: flex;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  flex-wrap: wrap;
+  align-items: center;
+}
+.meta-badge {
+  font-size: 11px;
+  color: #fff;
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+.detail-link {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  word-break: break-all;
+  font-size: 12px;
+}
+.detail-link:hover {
+  color: var(--color-brand);
+}
+
+.md-preview {
+  line-height: 1.85;
+  color: var(--color-text);
+  font-size: 14.5px;
+  padding: 4px 0 12px;
+}
+.md-preview :deep(h1) {
+  font-size: 22px;
+  margin: 18px 0 10px;
+  color: var(--color-text);
+  letter-spacing: -0.02em;
+}
+.md-preview :deep(h2) {
+  font-size: 17px;
+  margin: 16px 0 8px;
+  color: var(--color-text);
+}
+.md-preview :deep(h3) {
+  font-size: 15px;
+  margin: 12px 0 6px;
+  color: var(--color-text);
+}
+.md-preview :deep(p) {
+  margin: 8px 0;
+}
+.md-preview :deep(strong) {
+  color: var(--color-brand);
+}
+.md-preview :deep(code) {
+  background: var(--color-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+.md-preview :deep(li) {
+  margin-left: 22px;
+  margin-bottom: 4px;
+}
+.md-preview :deep(hr) {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 16px 0;
+}
 </style>
+
+

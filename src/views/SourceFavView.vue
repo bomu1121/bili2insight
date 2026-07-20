@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from "vue";
 import { NButton, NText, NIcon, NCheckbox, NSpin, NPagination, NInput, createDiscreteApi, NTabs, NTabPane } from "naive-ui";
-import { ArrowBackOutline, AddCircleOutline, FolderOpenOutline, RefreshOutline, PlayCircleOutline, TimeOutline, BookmarkOutline, TvOutline } from "@vicons/ionicons5";
+import { ArrowBackOutline, AddCircleOutline, FolderOpenOutline, RefreshOutline, BookmarkOutline, ChevronForwardOutline, LogInOutline } from "@vicons/ionicons5";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 import { useAppStore } from "../stores/app";
@@ -72,13 +72,18 @@ function fmtDur(sec: number) {
   <div class="source-root">
     <div class="source-bar">
       <n-button text @click="router.push('/')"><template #icon><n-icon><ArrowBackOutline /></n-icon></template>返回</n-button>
-      <n-text strong style="font-size:15px;">B站收藏</n-text>
+      <div class="bar-title">
+        <n-icon :size="18" color="var(--color-warning)"><FolderOpenOutline /></n-icon>
+        <n-text strong>B站收藏</n-text>
+      </div>
     </div>
 
     <div class="source-body">
       <div v-if="!authStore.isLoggedIn" class="fav-empty">
-        <n-icon size="48" color="#ccc"><FolderOpenOutline /></n-icon>
-        <n-text depth="3" style="margin-top:12px;">请先登录B站账号以访问收藏</n-text>
+        <div class="empty-icon"><n-icon :size="32"><LogInOutline /></n-icon></div>
+        <div class="empty-title">需要登录 B 站账号</div>
+        <div class="empty-desc">登录后可导入收藏夹、合集、稍后再看等内容</div>
+        <n-button type="primary" round @click="authStore.startLogin()">去登录</n-button>
       </div>
 
       <template v-else>
@@ -102,12 +107,12 @@ function fmtDur(sec: number) {
           <n-spin :show="store.favLoading">
             <div class="folder-grid" v-if="createdFolders.length > 0">
               <div v-for="f in createdFolders" :key="f.id" class="folder-card" @click="openFolder(f)">
-                <div class="folder-icon"><n-icon size="22" color="#00aeec"><FolderOpenOutline /></n-icon></div>
+                <div class="folder-icon"><n-icon size="22" color="var(--color-brand)"><FolderOpenOutline /></n-icon></div>
                 <div class="folder-info">
                   <n-text style="font-size:14px;font-weight:500;">{{ f.title }}</n-text>
                   <n-text depth="3" style="font-size:12px;">{{ f.count }} 个视频</n-text>
                 </div>
-                <span class="folder-arrow">&rarr;</span>
+                <span class="folder-arrow"><n-icon :size="16"><ChevronForwardOutline /></n-icon></span>
               </div>
             </div>
             <div v-else class="fav-empty"><n-text depth="3">暂无收藏夹</n-text></div>
@@ -119,12 +124,12 @@ function fmtDur(sec: number) {
           <n-spin :show="store.favLoading">
             <div class="folder-grid" v-if="collectedFolders.length > 0">
               <div v-for="f in collectedFolders" :key="f.id" class="folder-card" @click="openFolder(f)">
-                <div class="folder-icon"><n-icon size="22" color="#f0a020"><BookmarkOutline /></n-icon></div>
+                <div class="folder-icon"><n-icon size="22" color="var(--color-warning)"><BookmarkOutline /></n-icon></div>
                 <div class="folder-info">
                   <n-text style="font-size:14px;font-weight:500;">{{ f.title }}</n-text>
                   <n-text depth="3" style="font-size:12px;">{{ f.count }} 个视频</n-text>
                 </div>
-                <span class="folder-arrow">&rarr;</span>
+                <span class="folder-arrow"><n-icon :size="16"><ChevronForwardOutline /></n-icon></span>
               </div>
             </div>
             <div v-else class="fav-empty"><n-text depth="3">暂无订阅合集</n-text></div>
@@ -233,28 +238,210 @@ function fmtDur(sec: number) {
 </template>
 
 <style scoped>
-.source-root { display: flex; flex-direction: column; height: 100%; }
-.source-bar { display: flex; align-items: center; gap: 12px; padding: 12px 20px; background: #fff; border-bottom: 1px solid #eee; flex-shrink: 0; }
-.source-body { flex: 1; padding: 10px 20px; max-width: 820px; margin: 0 auto; width: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
-.fav-empty { display: flex; flex-direction: column; align-items: center; padding: 60px 0; text-align: center; }
-.fav-bar { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
-.folder-grid { display: flex; flex-direction: column; gap: 6px; }
-.folder-card { display: flex; align-items: center; gap: 14px; padding: 12px 14px; background: #fff; border: 1px solid #eee; border-radius: 10px; cursor: pointer; transition: all .15s; }
-.folder-card:hover { border-color: #00aeec; box-shadow: 0 2px 12px rgba(0,174,236,.08); }
-.folder-icon { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: #f5f7fa; border-radius: 8px; flex-shrink: 0; }
-.folder-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.folder-arrow { color: #ccc; flex-shrink: 0; font-size: 16px; }
-.page-header-row { margin-bottom: 4px; }
-.fav-video-list { display: flex; flex-direction: column; gap: 4px; max-height: 420px; overflow-y: auto; }
-.fav-video-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; cursor: pointer; transition: background .15s; }
-.fav-video-row:hover { background: #f5f5f5; }
-.fav-video-row.sel { background: #e8f4fd; }
-.fav-thumb { width: 80px; height: 45px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
-.fav-video-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.fav-pagination { display: flex; justify-content: center; margin-top: 12px; }
-.follow-list { display: flex; flex-direction: column; gap: 8px; }
-.follow-card { display: flex; gap: 12px; padding: 10px; border-radius: 8px; border: 1px solid #eee; cursor: pointer; transition: all .15s; }
-.follow-card:hover { border-color: #00aeec; }
-.follow-cover { width: 72px; height: 96px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
-.follow-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.source-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.source-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+.bar-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+.source-body {
+  flex: 1;
+  padding: 16px 20px 28px;
+  max-width: var(--content-max-wide);
+  margin: 0 auto;
+  width: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.fav-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 72px 16px;
+  text-align: center;
+}
+.empty-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+  margin-bottom: 4px;
+}
+.empty-title {
+  font-size: 16px;
+  font-weight: 650;
+  color: var(--color-text);
+}
+.empty-desc {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-bottom: 8px;
+}
+.fav-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 8px;
+}
+.folder-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.folder-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.18s var(--ease-out), border-color 0.15s, box-shadow 0.18s;
+}
+.folder-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(0, 174, 236, 0.35);
+  box-shadow: var(--shadow-brand-hover);
+}
+.folder-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  background: var(--color-brand-soft);
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+.folder-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.folder-arrow {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: var(--color-text-tertiary);
+  background: var(--color-bg);
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.folder-card:hover .folder-arrow {
+  background: var(--color-brand);
+  color: #fff;
+}
+.page-header-row {
+  margin-bottom: 8px;
+}
+.fav-video-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 460px;
+  overflow-y: auto;
+}
+.fav-video-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  border: 1px solid transparent;
+  background: var(--color-surface);
+}
+.fav-video-row:hover {
+  background: var(--color-bg);
+}
+.fav-video-row.sel {
+  background: var(--color-brand-soft);
+  border-color: rgba(0, 174, 236, 0.2);
+}
+.fav-thumb {
+  width: 96px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background: var(--color-bg);
+}
+.fav-video-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.fav-pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
+}
+.follow-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.follow-card {
+  display: flex;
+  gap: 14px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+.follow-card:hover {
+  border-color: rgba(0, 174, 236, 0.35);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-hover);
+}
+.follow-cover {
+  width: 72px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 10px;
+  flex-shrink: 0;
+  background: var(--color-bg);
+}
+.follow-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 2px;
+}
 </style>
+
+

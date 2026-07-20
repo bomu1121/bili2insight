@@ -1,84 +1,276 @@
 <script setup lang="ts">
 import { NIcon } from "naive-ui";
-import { VideocamOutline, FolderOpenOutline, CloudUploadOutline, TimeOutline } from "@vicons/ionicons5";
+import {
+  LinkOutline,
+  FolderOpenOutline,
+  CloudUploadOutline,
+  TimeOutline,
+  ChevronForwardOutline,
+} from "@vicons/ionicons5";
 import { useRouter } from "vue-router";
-import { useAppStore } from "../stores/app";
 import { useAuthStore } from "../stores/auth";
 import { createDiscreteApi } from "naive-ui";
+
 const router = useRouter();
-const store = useAppStore();
 const authStore = useAuthStore();
 const { message } = createDiscreteApi(["message"]);
 
-function goToFav() {
-  if (authStore.isLoggedIn) {
-    router.push("/source/fav");
-  } else {
-    message.warning("请先点击右上角头像登录B站账号");
-  }
-}
+const entries = [
+  {
+    key: "url",
+    title: "B站链接",
+    desc: "粘贴视频地址，自动解析分P并加入队列",
+    icon: LinkOutline,
+    tone: "url",
+    action: () => router.push("/source/url"),
+  },
+  {
+    key: "fav",
+    title: "B站收藏夹",
+    desc: "登录后批量导入收藏、合集与稍后再看",
+    icon: FolderOpenOutline,
+    tone: "fav",
+    action: () => {
+      if (authStore.isLoggedIn) router.push("/source/fav");
+      else message.warning("请先点击右上角头像登录B站账号");
+    },
+  },
+  {
+    key: "local",
+    title: "本地文件",
+    desc: "选择本机音频或视频，离线也能跑通流水线",
+    icon: CloudUploadOutline,
+    tone: "local",
+    action: () => router.push("/source/local"),
+  },
+  {
+    key: "history",
+    title: "历史记录",
+    desc: "回看已生成的观点笔记，支持复制与导出",
+    icon: TimeOutline,
+    tone: "history",
+    action: () => router.push("/history"),
+  },
+];
 </script>
 
 <template>
   <div class="home-root">
-    <div class="hero">
-      <n-icon size="48" color="#00aeec"><VideocamOutline /></n-icon>
+    <div class="home-glow" aria-hidden="true" />
+
+    <section class="hero">
+      <div class="brand-mark" aria-hidden="true">
+        <span class="brand-mark-inner">B2</span>
+      </div>
       <h1 class="hero-title">Bili2Insight</h1>
-      <p class="hero-sub">B站视频 · AI 观点提炼 · 结构化笔记</p>
-    </div>
+      <p class="hero-sub">把 B 站长视频，变成可阅读、可导出的结构化笔记</p>
+      <div class="hero-chips">
+        <span class="chip">AI 观点提炼</span>
+        <span class="chip">语音识别</span>
+        <span class="chip">Markdown 导出</span>
+      </div>
+    </section>
 
-    <div class="entry-grid">
-      <button class="entry-btn" @click="router.push('/source/url')">
-        <div class="entry-icon url"><n-icon size="28"><VideocamOutline /></n-icon></div>
-        <div class="entry-label">B站链接</div>
-        <div class="entry-desc">粘贴视频地址，自动解析并加入队列</div>
-        <div class="entry-arrow">&rarr;</div>
+    <section class="entry-grid">
+      <button
+        v-for="item in entries"
+        :key="item.key"
+        type="button"
+        class="entry-card"
+        :class="item.tone"
+        @click="item.action()"
+      >
+        <div class="entry-icon">
+          <n-icon :size="26">
+            <component :is="item.icon" />
+          </n-icon>
+        </div>
+        <div class="entry-copy">
+          <div class="entry-label">{{ item.title }}</div>
+          <div class="entry-desc">{{ item.desc }}</div>
+        </div>
+        <div class="entry-go">
+          <n-icon :size="18"><ChevronForwardOutline /></n-icon>
+        </div>
       </button>
-
-      <button class="entry-btn" @click="goToFav()">
-        <div class="entry-icon fav"><n-icon size="28"><FolderOpenOutline /></n-icon></div>
-        <div class="entry-label">B站收藏夹</div>
-        <div class="entry-desc">登录B站账号，批量导入收藏视频</div>
-        <div class="entry-arrow">&rarr;</div>
-      </button>
-
-      <button class="entry-btn" @click="router.push('/source/local')">
-        <div class="entry-icon local"><n-icon size="28"><CloudUploadOutline /></n-icon></div>
-        <div class="entry-label">本地文件</div>
-        <div class="entry-desc">选择本地音频或视频文件进行处理</div>
-        <div class="entry-arrow">&rarr;</div>
-      </button>
-
-      <button class="entry-btn" @click="router.push('/history')">
-        <div class="entry-icon history"><n-icon size="28"><TimeOutline /></n-icon></div>
-        <div class="entry-label">历史记录</div>
-        <div class="entry-desc">查看已处理视频的 AI 观点和文稿</div>
-        <div class="entry-arrow">&rarr;</div>
-      </button>
-    </div>
+    </section>
   </div>
 </template>
 
 <style scoped>
-.home-root { display: flex; flex-direction: column; align-items: center; padding: 60px 24px 40px; min-height: 100%; }
-.hero { text-align: center; margin-bottom: 48px; }
-.hero-title { font-size: 28px; font-weight: 700; margin: 14px 0 6px; color: #111; }
-.hero-sub { font-size: 15px; color: #999; margin: 0; }
-.entry-grid { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 440px; }
-.entry-btn {
-  display: flex; align-items: center; gap: 16px; padding: 20px 24px;
-  background: #fff; border: 1.5px solid #eee; border-radius: 14px;
-  cursor: pointer; text-align: left; transition: all .2s; width: 100%; font-family: inherit;
+.home-root {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: 48px var(--space-6) 56px;
+  overflow: auto;
 }
-.entry-btn:hover:not(:disabled) { border-color: #00aeec; box-shadow: 0 2px 16px rgba(0,174,236,.1); transform: translateY(-1px); }
-.entry-btn:disabled { opacity: .5; cursor: not-allowed; }
-.entry-icon { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.entry-icon.url { background: #e8f4fd; color: #00aeec; }
-.entry-icon.fav { background: #fef3e8; color: #f0a020; }
-.entry-icon.local { background: #e8f8e8; color: #18a058; }
-.entry-icon.history { background: #f0e8fd; color: #7c3aed; }
-.entry-label { font-size: 17px; font-weight: 600; color: #222; flex: 1; }
-.entry-desc { font-size: 12px; color: #aaa; }
-.entry-arrow { font-size: 18px; color: #ccc; flex-shrink: 0; }
-.entry-badge { font-size: 11px; color: #bbb; border: 1px dashed #ddd; padding: 2px 10px; border-radius: 10px; flex-shrink: 0; white-space: nowrap; }
+.home-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 45% at 50% -10%, rgba(0, 174, 236, 0.14), transparent 60%),
+    radial-gradient(ellipse 40% 30% at 90% 80%, rgba(124, 58, 237, 0.06), transparent 55%);
+}
+.hero {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  margin-bottom: 40px;
+  max-width: 560px;
+}
+.brand-mark {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 18px;
+  border-radius: 18px;
+  background: linear-gradient(145deg, var(--color-brand), #0088c9);
+  box-shadow: 0 12px 28px rgba(0, 174, 236, 0.28);
+  display: grid;
+  place-items: center;
+}
+.brand-mark-inner {
+  color: #fff;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+.hero-title {
+  font-size: 34px;
+  font-weight: 760;
+  letter-spacing: -0.03em;
+  margin: 0 0 10px;
+  color: var(--color-text);
+}
+.hero-sub {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+.hero-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+.chip {
+  font-size: 12px;
+  color: var(--color-brand-hover);
+  background: var(--color-brand-soft);
+  border: 1px solid rgba(0, 174, 236, 0.18);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+}
+.entry-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  width: 100%;
+  max-width: var(--content-max-home);
+}
+.entry-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-height: 118px;
+  padding: 18px 16px 18px 18px;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 0.22s var(--ease-out),
+    box-shadow 0.22s var(--ease-out),
+    border-color 0.22s var(--ease-out);
+}
+.entry-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-hover);
+  border-color: transparent;
+}
+.entry-card:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+.entry-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  transition: transform 0.22s var(--ease-out);
+}
+.entry-card:hover .entry-icon {
+  transform: scale(1.05);
+}
+.entry-card.url .entry-icon {
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
+}
+.entry-card.fav .entry-icon {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+.entry-card.local .entry-icon {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+.entry-card.history .entry-icon {
+  background: var(--color-accent-purple-soft);
+  color: var(--color-accent-purple);
+}
+.entry-copy {
+  flex: 1;
+  min-width: 0;
+  padding-top: 2px;
+}
+.entry-label {
+  font-size: 16px;
+  font-weight: 650;
+  color: var(--color-text);
+  margin-bottom: 6px;
+}
+.entry-desc {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+.entry-go {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  display: grid;
+  place-items: center;
+  color: var(--color-text-tertiary);
+  background: var(--color-bg);
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: background 0.2s, color 0.2s, transform 0.2s var(--ease-out);
+}
+.entry-card:hover .entry-go {
+  background: var(--color-brand);
+  color: #fff;
+  transform: translateX(2px);
+}
+@media (max-width: 720px) {
+  .entry-grid {
+    grid-template-columns: 1fr;
+  }
+  .hero-title {
+    font-size: 28px;
+  }
+}
 </style>
