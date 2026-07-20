@@ -2,7 +2,7 @@ use crate::{VideoInfo, VideoPageInfo};
 use crate::InsightResult;
 use std::path::Path;
 use tauri::{AppHandle, Manager};
-use std::sync::atomic::{AtomicBool, Ordering};
+// use std::sync::atomic::{AtomicBool, Ordering}; // moved to AppState
 use tauri_plugin_shell::ShellExt;
 
 use serde_json::Value;
@@ -204,20 +204,30 @@ fn parse_asr_output(stdout: &str) -> Result<String, anyhow::Error> {
     Ok(full_text)
 }
 // --- ASR Daemon (long-lived process, model loaded once) ---
-const ASR_DAEMON_PORT: u16 = 9876;
-static ASR_DAEMON_STARTED: AtomicBool = AtomicBool::new(false);
 
-async fn ensure_asr_daemon(app: &AppHandle) -> Result<(), anyhow::Error> {
-    // Quick health check if daemon was previously started
-    if ASR_DAEMON_STARTED.load(Ordering::Relaxed) {
+const ASR_DAEMON_BASE_PORT: u16 = 9876;
+const ASR_DAEMON_MAX_PORT: u16 = 9878;
+
+async fn ensure_asr_daemon(app: &AppHandle) -> Result<u16, anyhow::Error> {
+    // Check if daemon is already running via stored state
+    let existing_port: Option<u16> = {
+        let state = app.state::<crate::AppState>();
+        let daemon = state.asr_daemon.lock().map_err(|e| anyhow::anyhow!("Lock error: {}", e))?;
+        daemon.as_ref().map(|ds| ds.port)
+    };
+    if let Some(port) = existing_port {
         let client = app.state::<crate::AppState>().http_client.clone();
-        if let Ok(resp) = client.get(format!("http://127.0.0.1:{}/health", ASR_DAEMON_PORT)).send().await {
+        if let Ok(resp) = client.get(format!("http://127.0.0.1:{}/health", port)).send().await {
             if resp.status().is_success() {
-                return Ok(());
+                return Ok(port);
             }
         }
-        // Daemon died, will restart
-        ASR_DAEMON_STARTED.store(false, Ordering::Relaxed);
+        // Daemon died - kill old child and restart
+        let state = app.state::<crate::AppState>();
+        let mut daemon = state.asr_daemon.lock().map_err(|e| anyhow::anyhow!("Lock error: {}", e))?;
+        if let Some(old) = daemon.take() {
+            let _ = old.child.kill();
+        }
     }
 
     let models_root = get_models_root(app)?;
@@ -225,39 +235,62 @@ async fn ensure_asr_daemon(app: &AppHandle) -> Result<(), anyhow::Error> {
         return Err(anyhow::anyhow!("ASR model directory not found: {}", models_root.display()));
     }
 
-    let (mut rx, _child) = app.shell().sidecar("asr_worker")
-        .map_err(|e| anyhow::anyhow!("asr_worker sidecar not found: {}", e))?
-        .args(["--daemon", "--model", "paraformer", "--models-dir", models_root.to_str().unwrap_or("")])
-        .spawn()
-        .map_err(|e| anyhow::anyhow!("Failed to spawn ASR daemon: {}", e))?;
+    // Try ports in range: base, base+1, base+2
+    for port in ASR_DAEMON_BASE_PORT..=ASR_DAEMON_MAX_PORT {
+        println!("[asr-daemon] Trying port {}...", port);
+        let (mut rx, child) = app.shell().sidecar("asr_worker")
+            .map_err(|e| anyhow::anyhow!("asr_worker sidecar not found: {}", e))?
+            .args(["--daemon", "--model", "paraformer",
+                   "--models-dir", models_root.to_str().unwrap_or(""),
+                   "--daemon-port", &port.to_string()])
+            .spawn()
+            .map_err(|e| anyhow::anyhow!("Failed to spawn ASR daemon: {}", e))?;
 
-    // The _child is intentionally leaked - the daemon runs independently.
-    // We signal shutdown via HTTP /shutdown endpoint.
-    std::mem::forget(_child);
-
-    // Wait for "ready" message from daemon stdout (30s timeout)
-    for _ in 0..30 {
-        if let Some(event) = rx.recv().await {
-            if let tauri_plugin_shell::process::CommandEvent::Stdout(line) = event {
-                let line_str = String::from_utf8_lossy(&line);
-                if line_str.contains("\"ready\"") {
-                    ASR_DAEMON_STARTED.store(true, Ordering::Relaxed);
-                    println!("[asr-daemon] Ready on port {}", ASR_DAEMON_PORT);
-                    return Ok(());
+        // Wait for "ready" message (30s timeout)
+        let mut ready = false;
+        for _ in 0..30 {
+            if let Some(event) = rx.recv().await {
+                if let tauri_plugin_shell::process::CommandEvent::Stdout(line) = event {
+                    let line_str = String::from_utf8_lossy(&line);
+                    if line_str.contains("\"ready\"") {
+                        ready = true;
+                        break;
+                    }
                 }
+            } else {
+                break;
             }
-        } else {
-            break;
         }
+
+        if ready {
+            // Store child handle in AppState
+            let state = app.state::<crate::AppState>();
+            let mut daemon = state.asr_daemon.lock().map_err(|e| anyhow::anyhow!("Lock error: {}", e))?;
+            *daemon = Some(crate::AsrDaemonState { child, port });
+            println!("[asr-daemon] Ready on port {}", port);
+            return Ok(port);
+        }
+
+        // Port failed, kill and try next
+        let _ = child.kill();
+        println!("[asr-daemon] Failed on port {}, trying next...", port);
     }
-    Err(anyhow::anyhow!("ASR daemon failed to start within 30s"))
+
+    Err(anyhow::anyhow!("ASR daemon failed to start on any port in range {}-{}", ASR_DAEMON_BASE_PORT, ASR_DAEMON_MAX_PORT))
 }
 
 pub async fn shutdown_asr_daemon(app: &AppHandle) {
-    if ASR_DAEMON_STARTED.swap(false, Ordering::Relaxed) {
-        let client = app.state::<crate::AppState>().http_client.clone();
-        let _ = client.post(format!("http://127.0.0.1:{}/shutdown", ASR_DAEMON_PORT)).send().await;
-        println!("[asr-daemon] Shut down");
+    let state = app.state::<crate::AppState>();
+    let mut daemon = match state.asr_daemon.lock() {
+        Ok(d) => d,
+        Err(_) => return,
+    };
+    if let Some(ds) = daemon.take() {
+        let client = state.http_client.clone();
+        let port = ds.port;
+        let _ = client.post(format!("http://127.0.0.1:{}/shutdown", port)).send().await;
+        let _ = ds.child.kill();
+        println!("[asr-daemon] Shut down (port {})", port);
     }
 }
 
@@ -265,11 +298,11 @@ async fn run_asr_sherpa_daemon(
     app: &AppHandle, wav_path: &str,
     progress: impl Fn(&str, f64, &str) + Send + 'static,
 ) -> Result<String, anyhow::Error> {
-    ensure_asr_daemon(app).await?;
+    let port = ensure_asr_daemon(app).await?;
     let client = app.state::<crate::AppState>().http_client.clone();
 
     let resp = client
-        .post(format!("http://127.0.0.1:{}/recognize", ASR_DAEMON_PORT))
+        .post(format!("http://127.0.0.1:{}/recognize", port))
         .json(&serde_json::json!({"wav_path": wav_path}))
         .send()
         .await

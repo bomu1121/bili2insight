@@ -85,7 +85,8 @@ def main():
                         choices=["sherpa-onnx", "api"],
                         help="ASR backend: sherpa-onnx (local) or api (remote)")
     parser.add_argument("--wav", default=None, help="16kHz mono WAV file")
-    parser.add_argument("--daemon", action="store_true", help="Run as long-lived daemon, reading requests from stdin")
+    parser.add_argument("--daemon", action="store_true", help="Run as long-lived daemon")
+    parser.add_argument("--daemon-port", type=int, default=9876, help="Port for daemon HTTP server")
     parser.add_argument("--model", default="paraformer", choices=["paraformer", "sensevoice"])
     parser.add_argument("--models-dir", default=None, help="Models root directory")
     parser.add_argument("--api-url", default=None, help="ASR API endpoint (Chat Completions)")

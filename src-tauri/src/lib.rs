@@ -114,8 +114,14 @@ pub struct PipelineResult {
     pub ai_raw_response: String,
 }
 
+pub struct AsrDaemonState {
+    pub child: tauri_plugin_shell::process::CommandChild,
+    pub port: u16,
+}
+
 pub struct AppState {
     pub http_client: reqwest::Client,
+    pub asr_daemon: std::sync::Mutex<Option<AsrDaemonState>>,
 }
 
 use tauri::Manager;
@@ -162,7 +168,7 @@ pub fn run() {
                .pool_max_idle_per_host(4)
                .build()
                .expect("Failed to create HTTP client");
-           app.manage(AppState { http_client });
+           app.manage(AppState { http_client, asr_daemon: std::sync::Mutex::new(None) });
             let history_data_dir = app.path().app_data_dir()
                 .map_err(|e| format!("app_data_dir: {}", e))
                 .unwrap_or_default()
@@ -172,6 +178,26 @@ pub fn run() {
             ));
            Ok(())
        })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| {
+            if let tauri::RunEvent::Exit = event {
+                let state = app_handle.state::<crate::AppState>();
+                // Safely extract daemon state
+                let ds = state.asr_daemon.lock().ok().and_then(|mut g| g.take());
+                if let Some(ds) = ds {
+                    let client = state.http_client.clone();
+                    let port = ds.port;
+                    // Graceful HTTP shutdown (best-effort)
+                    let _ = tauri::async_runtime::block_on(async {
+                        let _ = client.post(
+                            format!("http://127.0.0.1:{}/shutdown", port)
+                        ).send().await;
+                    });
+                    // Force kill as fallback
+                    let _ = ds.child.kill();
+                    println!("[asr-daemon] Shut down on exit (port {})", port);
+                }
+            }
+        });
 }
