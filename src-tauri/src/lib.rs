@@ -1,4 +1,5 @@
 mod commands;
+mod error;
 mod pipeline;
 mod export;
 mod history;

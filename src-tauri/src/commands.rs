@@ -3,6 +3,7 @@ use crate::pipeline;
 use crate::export;
 use crate::VideoInfo;
 use crate::history::{HistoryEntry, HistoryListResult, HistoryState};
+use crate::error::AppError;
 use tauri::{AppHandle, Emitter, Manager};
 use std::path::PathBuf;
 
@@ -11,24 +12,24 @@ fn emit_progress(app: &AppHandle, stage: &str, progress: f64, message: &str, que
 }
 
 #[tauri::command]
-pub async fn preview_video(app: AppHandle, url: String, proxy: Option<String>, page_cid: Option<i64>) -> Result<VideoInfo, String> {
+pub async fn preview_video(app: AppHandle, url: String, proxy: Option<String>, page_cid: Option<i64>) -> Result<VideoInfo, AppError> {
     emit_progress(&app, "preview", 0.0, "Detecting video...", None);
     let app_pv = app.clone();
     let result = pipeline::download_bili_audio(&app, &url, &PathBuf::from("."), true, proxy.as_deref(), page_cid,
         move |s, p, m| { let _ = app_pv.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string(), queue_item_id: None }); },
-    ).await.map_err(|e| format!("Preview failed: {}", e))?;
+    ).await.map_err(|e| AppError::with_detail(crate::error::ErrorCode::BiliApiError, "Preview failed", e.to_string()))?;
     Ok(result)
 }
 
 #[tauri::command]
-pub async fn download_batch(app: AppHandle, url: String, proxy: Option<String>, cids: Vec<i64>) -> Result<crate::VideoInfo, String> {
+pub async fn download_batch(app: AppHandle, url: String, proxy: Option<String>, cids: Vec<i64>) -> Result<crate::VideoInfo, AppError> {
     let output_dir = app.path().app_data_dir().map_err(|e| e.to_string())?.join("tasks");
     std::fs::create_dir_all(&output_dir).map_err(|e| e.to_string())?;
     emit_progress(&app, "download", 0.05, &format!("Batch downloading {} page(s)...", cids.len()), None);
     let app_dl = app.clone();
     let video_info = pipeline::download_bili_audio_batch(&app, &url, &output_dir, proxy.as_deref(), &cids,
         move |s, p, m| { let _ = app_dl.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string(), queue_item_id: None }); },
-    ).await.map_err(|e| format!("Batch download failed: {}", e))?;
+    ).await.map_err(|e| AppError::with_detail(crate::error::ErrorCode::BiliApiError, "Batch download failed", e.to_string()))?;
     emit_progress(&app, "download", 0.25, "Batch download complete", None);
     Ok(video_info)
 }
@@ -36,7 +37,7 @@ pub async fn download_batch(app: AppHandle, url: String, proxy: Option<String>, 
 pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai_api_url: Option<String>, ai_api_key: Option<String>, ai_model: Option<String>, ai_prompt: Option<String>, page_cid: Option<i64>,
     asr_model: Option<String>, asr_api_url: Option<String>, asr_api_key: Option<String>,
     queue_item_id: Option<String>,
-) -> Result<crate::PipelineResult, String> {
+) -> Result<crate::PipelineResult, AppError> {
     let output_dir = app.path().app_data_dir().map_err(|e| e.to_string())?.join("tasks");
     std::fs::create_dir_all(&output_dir).map_err(|e| e.to_string())?;
     let start = std::time::Instant::now();
@@ -48,7 +49,7 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
     let app_dl = app.clone();
     let mut video_info = pipeline::download_bili_audio(&app, &url, &output_dir, false, proxy.as_deref(), page_cid,
         move |s, p, m| { let _ = app_dl.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string(), queue_item_id: qid.clone() }); },
-    ).await.map_err(|e| format!("Download failed: {}", e))?;
+    ).await.map_err(|e| AppError::with_detail(crate::error::ErrorCode::BiliApiError, "Download failed", e.to_string()))?;
     // If processing a specific page, override video_info with the page's part title
     if let Some(cid) = page_cid {
         if let Some(page) = video_info.pages.iter().find(|p| p.cid == cid) {
@@ -71,7 +72,7 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
     let audio_path = output_dir.join(format!("{}.m4a", audio_tag));
     println!("  [STAGE:ffmpeg] audio_tag={} audio_path={}", audio_tag, audio_path.display());
     emit_progress(&app, "ffmpeg", 0.30, "Converting audio format...", queue_item_id.as_deref());
-    let wav_path = pipeline::extract_audio_wav(&app, &audio_path.to_string_lossy(), &output_dir).await.map_err(|e| format!("FFmpeg error: {}", e))?;
+    let wav_path = pipeline::extract_audio_wav(&app, &audio_path.to_string_lossy(), &output_dir).await.map_err(|e| AppError::with_detail(crate::error::ErrorCode::FfmpegError, "FFmpeg error", e.to_string()))?;
     println!("  [STAGE:ffmpeg] DONE, wav_path={}", wav_path);
     emit_progress(&app, "ffmpeg", 0.40, "Audio conversion complete", queue_item_id.as_deref());
 
@@ -83,7 +84,7 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
     let transcript = pipeline::run_asr(&app, &wav_path,
         &asr_model_val, asr_api_url.as_deref(), asr_api_key.as_deref(),
         move |s, p, m| { let _ = app_asr.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string(), queue_item_id: qid2.clone() }); },
-    ).await.map_err(|e| format!("ASR failed: {}", e))?;
+    ).await.map_err(|e| AppError::with_detail(crate::error::ErrorCode::AsrFailed, "ASR failed", e.to_string()))?;
     println!("  [STAGE:asr] DONE, transcript_len={}", transcript.len());
     emit_progress(&app, "asr", 0.75, "Speech recognition complete", queue_item_id.as_deref());
 
@@ -95,14 +96,14 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
     println!("  [STAGE:refine] calling AI proofread, model={}", model);
     emit_progress(&app, "refine", 0.76, "AI proofreading transcript...", queue_item_id.as_deref());
     let client = app.state::<crate::AppState>().http_client.clone();
-    let transcript = pipeline::refine_transcript(&client, &ai_url, &ai_key, &model, &transcript).await.map_err(|e| format!("Refine failed: {}", e))?;
+    let transcript = pipeline::refine_transcript(&client, &ai_url, &ai_key, &model, &transcript).await.map_err(|e| AppError::with_detail(crate::error::ErrorCode::AiApiError, "AI refine failed", e.to_string()))?;
     println!("  [STAGE:refine] DONE, refined_len={}", transcript.len());
     emit_progress(&app, "refine", 0.80, "Transcript proofread", queue_item_id.as_deref());
 
     let prompt = ai_prompt.unwrap_or_else(|| "Please analyze the following video transcript...".to_string());
     println!("  [STAGE:ai] calling AI insights, prompt_len={}", prompt.len());
     emit_progress(&app, "ai", 0.81, "Extracting insights with AI...", queue_item_id.as_deref());
-    let (insights, ai_raw) = pipeline::extract_insights(&client, &ai_url, &ai_key, &model, &prompt, &transcript, &video_info.title).await.map_err(|e| format!("AI analysis failed: {}", e))?;
+    let (insights, ai_raw) = pipeline::extract_insights(&client, &ai_url, &ai_key, &model, &prompt, &transcript, &video_info.title).await.map_err(|e| AppError::with_detail(crate::error::ErrorCode::AiApiError, "AI analysis failed", e.to_string()))?;
     println!("  [STAGE:ai] DONE, ai_raw_len={}", ai_raw.len());
     emit_progress(&app, "ai", 0.95, "AI insights ready", queue_item_id.as_deref());
 
@@ -149,7 +150,7 @@ pub async fn run_pipeline_local(app: AppHandle, file_path: String, file_name: St
     ai_api_url: Option<String>, ai_api_key: Option<String>, ai_model: Option<String>, ai_prompt: Option<String>,
     asr_model: Option<String>, asr_api_url: Option<String>, asr_api_key: Option<String>,
     queue_item_id: Option<String>,
-) -> Result<crate::PipelineResult, String> {
+) -> Result<crate::PipelineResult, AppError> {
     let output_dir = app.path().app_data_dir().map_err(|e| e.to_string())?.join("tasks");
     std::fs::create_dir_all(&output_dir).map_err(|e| e.to_string())?;
     let start = std::time::Instant::now();
@@ -169,7 +170,7 @@ pub async fn run_pipeline_local(app: AppHandle, file_path: String, file_name: St
     };
 
     emit_progress(&app, "ffmpeg", 0.10, "Converting audio format...", queue_item_id.as_deref());
-    let wav_path = pipeline::extract_audio_wav(&app, &file_path, &output_dir).await.map_err(|e| format!("FFmpeg error: {}", e))?;
+    let wav_path = pipeline::extract_audio_wav(&app, &file_path, &output_dir).await.map_err(|e| AppError::with_detail(crate::error::ErrorCode::FfmpegError, "FFmpeg error", e.to_string()))?;
     println!("  [STAGE:ffmpeg] DONE, wav_path={}", wav_path);
     emit_progress(&app, "ffmpeg", 0.25, "Audio conversion complete", queue_item_id.as_deref());
 
@@ -181,7 +182,7 @@ pub async fn run_pipeline_local(app: AppHandle, file_path: String, file_name: St
     let transcript = pipeline::run_asr(&app, &wav_path,
         &asr_model_val, asr_api_url.as_deref(), asr_api_key.as_deref(),
         move |s, p, m| { let _ = app_asr.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string(), queue_item_id: qid2.clone() }); },
-    ).await.map_err(|e| format!("ASR failed: {}", e))?;
+    ).await.map_err(|e| AppError::with_detail(crate::error::ErrorCode::AsrFailed, "ASR failed", e.to_string()))?;
     println!("  [STAGE:asr] DONE, transcript_len={}", transcript.len());
     emit_progress(&app, "asr", 0.65, "Speech recognition complete", queue_item_id.as_deref());
 
@@ -193,14 +194,14 @@ pub async fn run_pipeline_local(app: AppHandle, file_path: String, file_name: St
     println!("  [STAGE:refine] calling AI proofread, model={}", model);
     emit_progress(&app, "refine", 0.66, "AI proofreading transcript...", queue_item_id.as_deref());
     let client = app.state::<crate::AppState>().http_client.clone();
-    let transcript = pipeline::refine_transcript(&client, &ai_url, &ai_key, &model, &transcript).await.map_err(|e| format!("Refine failed: {}", e))?;
+    let transcript = pipeline::refine_transcript(&client, &ai_url, &ai_key, &model, &transcript).await.map_err(|e| AppError::with_detail(crate::error::ErrorCode::AiApiError, "AI refine failed", e.to_string()))?;
     println!("  [STAGE:refine] DONE, refined_len={}", transcript.len());
     emit_progress(&app, "refine", 0.75, "Transcript proofread", queue_item_id.as_deref());
 
     let prompt = ai_prompt.unwrap_or_else(|| "Please analyze the following video transcript...".to_string());
     println!("  [STAGE:ai] calling AI insights, prompt_len={}", prompt.len());
     emit_progress(&app, "ai", 0.76, "Extracting insights with AI...", queue_item_id.as_deref());
-    let (insights, ai_raw) = pipeline::extract_insights(&client, &ai_url, &ai_key, &model, &prompt, &transcript, &video_info.title).await.map_err(|e| format!("AI analysis failed: {}", e))?;
+    let (insights, ai_raw) = pipeline::extract_insights(&client, &ai_url, &ai_key, &model, &prompt, &transcript, &video_info.title).await.map_err(|e| AppError::with_detail(crate::error::ErrorCode::AiApiError, "AI analysis failed", e.to_string()))?;
     println!("  [STAGE:ai] DONE, ai_raw_len={}", ai_raw.len());
     emit_progress(&app, "ai", 0.95, "AI insights ready", queue_item_id.as_deref());
 
@@ -243,9 +244,9 @@ pub async fn run_pipeline_local(app: AppHandle, file_path: String, file_name: St
 
 #[tauri::command]
 #[allow(dead_code)]
-pub async fn fetch_ai_models(app: AppHandle, api_url: String, api_key: String) -> Result<Vec<String>, String> {
+pub async fn fetch_ai_models(app: AppHandle, api_url: String, api_key: String) -> Result<Vec<String>, AppError> {
     let client = app.state::<crate::AppState>().http_client.clone();
-    pipeline::fetch_models(&client, &api_url, &api_key).await.map_err(|e| format!("Fetch failed: {}", e))
+    pipeline::fetch_models(&client, &api_url, &api_key).await.map_err(|e| AppError::with_detail(crate::error::ErrorCode::AiApiError, "Fetch models failed", e.to_string()))
 }
 
 #[tauri::command]
@@ -285,23 +286,23 @@ pub async fn save_result_to_file(_app: AppHandle, result: crate::PipelineResult,
 
 // --- Login & Favorites commands ---
 #[tauri::command]
-pub async fn qr_generate(app: AppHandle, proxy: Option<String>) -> Result<crate::QrGenerateResult, String> {
-    pipeline::qr_generate_flow(&app, proxy.as_deref()).await.map_err(|e| format!("QR generate failed: {}", e))
+pub async fn qr_generate(app: AppHandle, proxy: Option<String>) -> Result<crate::QrGenerateResult, AppError> {
+    pipeline::qr_generate_flow(&app, proxy.as_deref()).await.map_err(|e| AppError::with_detail(crate::error::ErrorCode::AuthExpired, "QR generate failed", e.to_string()))
 }
 
 #[tauri::command]
-pub async fn qr_poll(app: AppHandle, qrcode_key: String, cookies_file: Option<String>, proxy: Option<String>) -> Result<crate::QrPollResult, String> {
-    pipeline::qr_poll_flow(&app, &qrcode_key, cookies_file.as_deref(), proxy.as_deref()).await.map_err(|e| format!("QR poll failed: {}", e))
+pub async fn qr_poll(app: AppHandle, qrcode_key: String, cookies_file: Option<String>, proxy: Option<String>) -> Result<crate::QrPollResult, AppError> {
+    pipeline::qr_poll_flow(&app, &qrcode_key, cookies_file.as_deref(), proxy.as_deref()).await.map_err(|e| AppError::with_detail(crate::error::ErrorCode::AuthExpired, "QR poll failed", e.to_string()))
 }
 
 #[tauri::command]
-pub async fn check_login(app: AppHandle, cookies_json: String, proxy: Option<String>) -> Result<crate::LoginCheckResult, String> {
-    pipeline::check_login_flow(&app, &cookies_json, proxy.as_deref()).await.map_err(|e| format!("Check login failed: {}", e))
+pub async fn check_login(app: AppHandle, cookies_json: String, proxy: Option<String>) -> Result<crate::LoginCheckResult, AppError> {
+    pipeline::check_login_flow(&app, &cookies_json, proxy.as_deref()).await.map_err(|e| AppError::with_detail(crate::error::ErrorCode::AuthExpired, "Check login failed", e.to_string()))
 }
 
 #[tauri::command]
-pub async fn fav_get_folders(app: AppHandle, cookies_json: String, proxy: Option<String>) -> Result<crate::FavFoldersResult, String> {
-    pipeline::fav_get_folders_flow(&app, &cookies_json, proxy.as_deref()).await.map_err(|e| format!("Get folders failed: {}", e))
+pub async fn fav_get_folders(app: AppHandle, cookies_json: String, proxy: Option<String>) -> Result<crate::FavFoldersResult, AppError> {
+    pipeline::fav_get_folders_flow(&app, &cookies_json, proxy.as_deref()).await.map_err(|e| AppError::with_detail(crate::error::ErrorCode::AuthExpired, "Get folders failed", e.to_string()))
 }
 
 #[tauri::command]
@@ -326,8 +327,8 @@ pub async fn fav_history(app: AppHandle, cookies_json: String, page: i64, proxy:
 }
 
 #[tauri::command]
-pub async fn fav_get_videos(app: AppHandle, cookies_json: String, folder_id: i64, page: i64, proxy: Option<String>) -> Result<crate::FavVideosResult, String> {
-    pipeline::fav_get_videos_flow(&app, &cookies_json, folder_id, page, proxy.as_deref()).await.map_err(|e| format!("Get videos failed: {}", e))
+pub async fn fav_get_videos(app: AppHandle, cookies_json: String, folder_id: i64, page: i64, proxy: Option<String>) -> Result<crate::FavVideosResult, AppError> {
+    pipeline::fav_get_videos_flow(&app, &cookies_json, folder_id, page, proxy.as_deref()).await.map_err(|e| AppError::with_detail(crate::error::ErrorCode::BiliApiError, "Get videos failed", e.to_string()))
 }
 
 #[tauri::command]

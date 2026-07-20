@@ -3,6 +3,7 @@ import { ref, watch, computed } from "vue";
 import type { PipelineResult, PipelineProgress, VideoInfo, PageInfo, TaskState, QueueItem } from "../utils/types";
 import { useTemplateStore } from "./templates";
 import { useAuthStore } from "./auth";
+import { getUserErrorMessage } from "../utils/errors";
 import { SETTINGS_VERSION, loadSaved, saveToDisk, type Provider, type PromptTemplate } from "./settings";
 import { runPipelineWithPage, saveResultToFile, previewVideo, fetchModels } from "../utils/invoke";
 import { runPipelineLocal } from "../utils/invoke";
@@ -450,7 +451,7 @@ export const useAppStore = defineStore("app", () => {
       const err = [...queue.value];
       const errIdx = err.findIndex(q => q.id === item.id);
       if (errIdx >= 0) {
-        err[errIdx] = { ...err[errIdx], status: 'error' as const, error: String(e), elapsedMs: Math.round(performance.now() - startTime) };
+        err[errIdx] = { ...err[errIdx], status: 'error' as const, error: getUserErrorMessage(e), elapsedMs: Math.round(performance.now() - startTime) };
         queue.value = err;
       }
     }

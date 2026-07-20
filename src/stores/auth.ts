@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import { loadSaved } from "./settings";
+import { isAuthExpired } from "../utils/errors";
 import { qrGenerate, qrPoll, checkLogin } from "../utils/invoke";
 
 export const useAuthStore = defineStore("auth", () => {
@@ -109,7 +110,7 @@ export const useAuthStore = defineStore("auth", () => {
       loginUname.value = result.uname;
       loginUid.value = result.uid;
       loginFace.value = result.face;
-    } catch (e: any) { console.error("[login] checkLoginAfterAuth FAILED:", e); }
+    } catch (e: any) { console.error("[login] checkLoginAfterAuth FAILED:", e); if (isAuthExpired(e)) { doLogout(); } }
   }
 
   async function checkLoginStatus() {
@@ -141,7 +142,7 @@ export const useAuthStore = defineStore("auth", () => {
       if (result.logged_in) {
         try { localStorage.setItem("bili2insight-cookies", JSON.stringify(cookies)); } catch (_) { }
       }
-    } catch (e: any) { console.error("[login] checkLoginStatus ERROR:", e); isLoggedIn.value = false; }
+    } catch (e: any) { console.error("[login] checkLoginStatus ERROR:", e); isLoggedIn.value = false; if (isAuthExpired(e)) { doLogout(); } }
   }
 
   async function doLogout() {
