@@ -1,8 +1,7 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { computed } from "vue";
 import { NButton, NText, NIcon, NSpace, NSelect } from "naive-ui";
 import {
-  ArrowBackOutline,
   TrashOutline,
   PlayOutline,
   EyeOutline,
@@ -80,14 +79,9 @@ function updateItemTemplate(itemId: string, val: number) {
   <div class="queue-root">
     <div class="queue-header">
       <div class="header-left">
-        <n-button text @click="router.push('/')">
-          <template #icon><n-icon><ArrowBackOutline /></n-icon></template>返回
-        </n-button>
-        <div class="title-wrap">
-          <n-icon :size="18" color="var(--color-brand)"><ListOutline /></n-icon>
-          <n-text strong>处理队列</n-text>
-          <span class="count-pill">{{ store.queue.length }}</span>
-        </div>
+        <span class="bar-ic queue"><n-icon :size="15"><ListOutline /></n-icon></span>
+        <n-text strong class="page-title">处理队列</n-text>
+        <span class="count-pill tnum">{{ store.queue.length }}</span>
       </div>
       <n-space :size="8">
         <n-button
@@ -115,7 +109,7 @@ function updateItemTemplate(itemId: string, val: number) {
     </div>
 
     <div v-if="store.queue.length === 0" class="queue-empty">
-      <div class="empty-icon"><n-icon :size="32"><ListOutline /></n-icon></div>
+      <div class="empty-icon"><n-icon :size="30"><ListOutline /></n-icon></div>
       <div class="empty-title">队列为空</div>
       <div class="empty-desc">返回首页添加视频后再来处理</div>
       <n-button type="primary" round @click="router.push('/')">去添加</n-button>
@@ -130,18 +124,18 @@ function updateItemTemplate(itemId: string, val: number) {
       >
         <div class="q-row1">
           <span class="q-status">
-            <n-icon v-if="item.status === 'done'" color="var(--color-success)" :size="18"><CheckmarkCircle /></n-icon>
-            <n-icon v-else-if="item.status === 'error'" color="var(--color-error)" :size="18"><CloseCircle /></n-icon>
-            <n-icon v-else-if="item.status === 'running'" color="var(--color-info)" :size="18" class="spinning"><SyncOutline /></n-icon>
+            <n-icon v-if="item.status === 'done'" color="var(--color-success)" :size="17"><CheckmarkCircle /></n-icon>
+            <n-icon v-else-if="item.status === 'error'" color="var(--color-error)" :size="17"><CloseCircle /></n-icon>
+            <n-icon v-else-if="item.status === 'running'" color="var(--color-brand)" :size="17" class="spinning"><SyncOutline /></n-icon>
             <span v-else class="q-pending-dot">&#9679;</span>
           </span>
           <span class="q-title" :title="item.pageInfo.part">{{ item.pageInfo.part }}</span>
           <div class="q-meta">
-            <span class="q-dur">{{ fmtDur(item.pageInfo.duration) }}</span>
+            <span class="q-dur tnum">{{ fmtDur(item.pageInfo.duration) }}</span>
             <span v-if="item.status !== 'done'" class="q-tag" :class="item.status">
               {{ item.status === "error" ? "失败" : item.status === "running" ? item.stageLabel : "等待" }}
             </span>
-            <span class="q-elapsed">{{ item.elapsedMs ? fmtElapsed(item.elapsedMs) : "" }}</span>
+            <span class="q-elapsed tnum">{{ item.elapsedMs ? fmtElapsed(item.elapsedMs) : "" }}</span>
           </div>
           <div class="q-action">
             <n-select
@@ -154,7 +148,7 @@ function updateItemTemplate(itemId: string, val: number) {
               @update:value="(v: number) => updateItemTemplate(item.id, v)"
             />
             <n-button v-if="item.status === 'done'" size="tiny" type="primary" secondary @click="viewResult(item.id)">
-              <template #icon><n-icon :size="16"><EyeOutline /></n-icon></template>
+              <template #icon><n-icon :size="15"><EyeOutline /></n-icon></template>
               查看
             </n-button>
           </div>
@@ -173,9 +167,10 @@ function updateItemTemplate(itemId: string, val: number) {
 .queue-root {
   height: 100%;
   overflow: auto;
-  padding: 20px 24px 32px;
+  padding: 28px 28px 40px;
   max-width: var(--content-max-wide);
   margin: 0 auto;
+  width: 100%;
 }
 .queue-header {
   display: flex;
@@ -188,39 +183,51 @@ function updateItemTemplate(itemId: string, val: number) {
 .header-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
-.title-wrap {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 16px;
+.bar-ic {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+}
+.bar-ic.queue {
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
+}
+.page-title {
+  font-size: var(--font-size-page);
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 .count-pill {
   min-width: 22px;
-  height: 22px;
+  height: 20px;
   padding: 0 7px;
-  border-radius: 999px;
-  background: var(--color-brand-soft);
-  color: var(--color-brand);
+  border-radius: var(--radius-full);
+  background: var(--color-ink-soft);
+  color: var(--color-text-secondary);
   font-size: 12px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
+
+/* ===== 空状态 ===== */
 .queue-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: 80px 16px;
+  padding: 88px 16px;
   text-align: center;
 }
 .empty-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 18px;
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
   display: grid;
   place-items: center;
   background: var(--color-brand-soft);
@@ -236,50 +243,69 @@ function updateItemTemplate(itemId: string, val: number) {
   color: var(--color-text-secondary);
   margin-bottom: 6px;
 }
+
+/* ===== 队列项 ===== */
 .queue-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 .queue-item {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 14px 16px;
+  padding: 13px 16px 12px 19px;
   background: var(--color-surface);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-sm);
-  transition: border-color 0.15s, box-shadow 0.15s;
+  box-shadow: var(--shadow-xs);
+  transition: border-color var(--dur-1), box-shadow var(--dur-2);
   overflow: hidden;
   min-width: 0;
 }
+.queue-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: transparent;
+}
 .queue-item:hover {
   border-color: var(--color-border-strong);
-  box-shadow: var(--shadow-hover);
+  box-shadow: var(--shadow-card);
 }
 .queue-item.running {
-  background: var(--color-info-soft);
-  border-color: var(--color-info-border);
+  border-color: var(--color-brand-border);
+}
+.queue-item.running::before {
+  background: var(--color-brand);
 }
 .queue-item.done {
-  background: var(--color-success-soft);
   border-color: var(--color-success-border);
 }
+.queue-item.done::before {
+  background: var(--color-success);
+}
 .queue-item.error {
-  background: var(--color-error-soft);
   border-color: var(--color-error-border);
+}
+.queue-item.error::before {
+  background: var(--color-error);
 }
 .q-row1 {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 28px;
+  min-height: 26px;
   min-width: 0;
   width: 100%;
 }
 .q-row2 {
-  padding-left: 30px;
+  padding-left: 29px;
 }
 .q-status {
   flex-shrink: 0;
@@ -314,16 +340,16 @@ function updateItemTemplate(itemId: string, val: number) {
   font-size: 11px;
   color: var(--color-text-secondary);
   padding: 2px 8px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.04);
+  border-radius: var(--radius-full);
+  background: var(--color-ink-soft);
 }
 .q-tag.running {
-  color: var(--color-info);
-  background: rgba(32, 128, 240, 0.1);
+  color: var(--color-brand-pressed);
+  background: var(--color-brand-soft);
 }
 .q-tag.error {
   color: var(--color-error);
-  background: rgba(208, 48, 80, 0.1);
+  background: var(--color-error-soft);
 }
 .q-elapsed {
   font-size: 11px;
@@ -341,15 +367,15 @@ function updateItemTemplate(itemId: string, val: number) {
 }
 .q-progress {
   width: 100%;
-  height: 5px;
-  background: rgba(32, 128, 240, 0.12);
-  border-radius: 999px;
+  height: 4px;
+  background: var(--color-brand-soft);
+  border-radius: var(--radius-full);
   overflow: hidden;
 }
 .q-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #3b9eff, var(--color-info));
-  border-radius: 999px;
+  background: var(--color-brand);
+  border-radius: var(--radius-full);
   transition: width 0.3s ease;
 }
 </style>

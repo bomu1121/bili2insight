@@ -96,20 +96,25 @@ function fmtElapsed(ms: number) {
 }
 
 const sourceLabel: Record<string,string>={url:"B站",fav:"收藏",local:"本地"};
-const sourceColor: Record<string,string>={
-  url: "var(--color-brand)",
-  fav: "var(--color-warning)",
-  local: "var(--color-success)",
+const sourceTheme: Record<string,{bg:string;color:string}>={
+  url: { bg: "var(--color-brand-soft)", color: "var(--color-brand-pressed)" },
+  fav: { bg: "var(--color-accent-pink-soft)", color: "var(--color-accent-pink)" },
+  local: { bg: "var(--color-success-soft)", color: "var(--color-success)" },
 };
+const fallbackTheme = { bg: "var(--color-ink-soft)", color: "var(--color-text-secondary)" };
+function badgeStyle(source: string) {
+  const t = sourceTheme[source] ?? fallbackTheme;
+  return { background: t.bg, color: t.color };
+}
 </script>
 
 <template>
   <div class="history-root">
     <div class="history-header">
       <div class="header-left">
-        <n-button text @click="router.push('/')"><template #icon><n-icon><ArrowBackOutline /></n-icon></template>返回</n-button>
+        <n-button text class="bar-back" @click="router.push('/')"><template #icon><n-icon><ArrowBackOutline /></n-icon></template>返回</n-button>
         <div class="title-wrap">
-          <n-icon :size="18" color="var(--color-accent-purple)"><TimeOutline /></n-icon>
+          <span class="bar-ic history"><n-icon :size="15"><TimeOutline /></n-icon></span>
           <n-text strong>历史记录</n-text>
         </div>
       </div>
@@ -123,7 +128,7 @@ const sourceColor: Record<string,string>={
       <n-input v-model:value="search" placeholder="搜索标题、UP主、BV号..." size="small" clearable round style="width:320px;">
         <template #prefix><n-icon><SearchOutline /></n-icon></template>
       </n-input>
-      <n-text depth="3" class="total-text" v-if="data&&!loading">共 {{ data.total }} 条</n-text>
+      <n-text depth="3" class="total-text tnum" v-if="data&&!loading">共 {{ data.total }} 条</n-text>
     </div>
 
     <div class="history-list" v-if="data&&data.entries.length>0">
@@ -132,22 +137,22 @@ const sourceColor: Record<string,string>={
         @click="openDetail(entry)">
         <div class="h-thumb">
           <img v-if="entry.cover" :src="entry.cover+'@160w_100h_1c'" class="h-cover" referrerpolicy="no-referrer" />
-          <div v-else class="h-cover-fb"><n-icon size="22" color="var(--color-text-tertiary)"><EyeOutline /></n-icon></div>
+          <div v-else class="h-cover-fb"><n-icon size="20" color="var(--color-text-tertiary)"><EyeOutline /></n-icon></div>
         </div>
         <div class="h-body">
           <div class="h-line1">
             <span class="h-title">{{ entry.title }}</span>
           </div>
           <div class="h-line2">
-            <span class="h-badge" :style="{background:sourceColor[entry.source]||'var(--color-text-secondary)'}">{{ sourceLabel[entry.source]||entry.source }}</span>
+            <span class="h-badge" :style="badgeStyle(entry.source)">{{ sourceLabel[entry.source]||entry.source }}</span>
             <span class="h-dot">&middot;</span>
             <span v-if="entry.uploader" class="h-meta">{{ entry.uploader }}</span>
             <span v-if="entry.uploader" class="h-dot">&middot;</span>
-            <span v-if="entry.duration>0" class="h-meta">{{ fmtDur(entry.duration) }}</span>
+            <span v-if="entry.duration>0" class="h-meta tnum">{{ fmtDur(entry.duration) }}</span>
             <span v-if="entry.duration>0" class="h-dot">&middot;</span>
             <span class="h-meta">{{ fmtDate(entry.created_at) }}</span>
             <span class="h-dot">&middot;</span>
-            <span class="h-elapsed">{{ fmtElapsed(entry.elapsed_ms) }}</span>
+            <span class="h-elapsed tnum">{{ fmtElapsed(entry.elapsed_ms) }}</span>
           </div>
         </div>
         <div class="h-actions" @click.stop>
@@ -161,7 +166,7 @@ const sourceColor: Record<string,string>={
     </div>
 
     <div class="history-empty" v-else-if="!loading">
-      <div class="empty-icon"><n-icon :size="32"><DocumentTextOutline /></n-icon></div>
+      <div class="empty-icon"><n-icon :size="30"><DocumentTextOutline /></n-icon></div>
       <div class="empty-title">{{ search ? "未找到匹配记录" : "暂无历史记录" }}</div>
       <div class="empty-desc">{{ search ? "试试换个关键词" : "处理视频后会自动保存在这里" }}</div>
     </div>
@@ -176,11 +181,11 @@ const sourceColor: Record<string,string>={
         <div v-if="detailLoading" style="text-align:center;padding:60px;"><n-text depth="3">加载中...</n-text></div>
         <div v-else-if="detailResult&&detailEntry" class="detail-scroll">
           <div class="detail-meta">
-            <span class="meta-badge" :style="{background:sourceColor[detailEntry.source]||'var(--color-text-secondary)'}">{{ sourceLabel[detailEntry.source]||detailEntry.source }}</span>
+            <span class="meta-badge" :style="badgeStyle(detailEntry.source)">{{ sourceLabel[detailEntry.source]||detailEntry.source }}</span>
             <span v-if="detailResult.video_info?.uploader">{{ detailResult.video_info.uploader }}</span>
-            <span v-if="detailResult.video_info?.duration">{{ fmtDur(detailResult.video_info.duration) }}</span>
+            <span v-if="detailResult.video_info?.duration" class="tnum">{{ fmtDur(detailResult.video_info.duration) }}</span>
             <span>{{ fmtDate(detailEntry.created_at) }}</span>
-            <span>耗时 {{ fmtElapsed(detailEntry.elapsed_ms) }}</span>
+            <span class="tnum">耗时 {{ fmtElapsed(detailEntry.elapsed_ms) }}</span>
             <a v-if="detailEntry.url&&detailEntry.source!=='local'" :href="detailEntry.url" target="_blank" class="detail-link">{{ detailEntry.bvid||detailEntry.url }}</a>
           </div>
           <n-space style="margin:10px 0 0;">
@@ -207,30 +212,44 @@ const sourceColor: Record<string,string>={
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 18px;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(8px);
+  height: var(--header-height);
+  padding: 0 20px;
+  background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
+}
+.bar-back {
+  color: var(--color-text-secondary);
 }
 .header-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 .title-wrap {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-size: 16px;
+  gap: 9px;
+  font-size: 15px;
+}
+.bar-ic {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+}
+.bar-ic.history {
+  background: var(--color-accent-indigo-soft);
+  color: var(--color-accent-indigo);
 }
 .history-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px 12px;
+  padding: 18px 24px 12px;
   flex-shrink: 0;
-  max-width: 960px;
+  max-width: var(--content-max-wide);
   width: 100%;
   margin: 0 auto;
 }
@@ -240,14 +259,16 @@ const sourceColor: Record<string,string>={
 .history-list {
   flex: 1;
   overflow-y: auto;
-  padding: 4px 20px 16px;
+  padding: 2px 24px 20px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  max-width: 960px;
+  gap: 8px;
+  max-width: var(--content-max-wide);
   width: 100%;
   margin: 0 auto;
 }
+
+/* ===== 空状态 ===== */
 .history-empty {
   flex: 1;
   display: flex;
@@ -258,13 +279,13 @@ const sourceColor: Record<string,string>={
   padding-bottom: 80px;
 }
 .empty-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 18px;
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
   display: grid;
   place-items: center;
-  background: var(--color-accent-purple-soft);
-  color: var(--color-accent-purple);
+  background: var(--color-accent-indigo-soft);
+  color: var(--color-accent-indigo);
   margin-bottom: 4px;
 }
 .empty-title {
@@ -282,49 +303,67 @@ const sourceColor: Record<string,string>={
   flex-shrink: 0;
 }
 
+/* ===== 历史条目 ===== */
 .h-entry {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 4px;
   background: var(--color-surface);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
-  border-left: 4px solid transparent;
   cursor: pointer;
-  padding: 12px 14px;
-  box-shadow: var(--shadow-sm);
-  transition: transform 0.18s var(--ease-out), border-color 0.15s, box-shadow 0.18s;
+  padding: 12px 14px 12px 18px;
+  box-shadow: var(--shadow-xs);
+  transition: border-color var(--dur-1), box-shadow var(--dur-2), transform var(--dur-2) var(--ease-out);
+}
+.h-entry::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: transparent;
 }
 .h-entry:hover {
   transform: translateY(-1px);
   border-color: var(--color-border-strong);
-  box-shadow: var(--shadow-hover);
+  box-shadow: var(--shadow-card);
 }
 .h-entry.h-done {
-  border-left-color: var(--color-success);
+  border-color: var(--color-success-border);
+}
+.h-entry.h-done::before {
+  background: var(--color-success);
 }
 .h-entry.h-err {
-  border-left-color: var(--color-error);
+  border-color: var(--color-error-border);
+}
+.h-entry.h-err::before {
+  background: var(--color-error);
 }
 
 .h-thumb {
-  width: 120px;
+  width: 112px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
 }
 .h-cover {
-  width: 108px;
+  width: 104px;
   aspect-ratio: 16 / 9;
   object-fit: cover;
-  border-radius: 10px;
-  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
 }
 .h-cover-fb {
-  width: 108px;
+  width: 104px;
   aspect-ratio: 16 / 9;
-  border-radius: 10px;
-  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -337,7 +376,7 @@ const sourceColor: Record<string,string>={
   flex-direction: column;
   justify-content: center;
   gap: 6px;
-  padding: 0 8px;
+  padding: 0 10px;
 }
 .h-line1 {
   display: flex;
@@ -357,14 +396,13 @@ const sourceColor: Record<string,string>={
   line-height: 1.35;
 }
 .h-badge {
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 600;
-  color: #fff;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   flex-shrink: 0;
   white-space: nowrap;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 .h-line2 {
   display: flex;
@@ -391,12 +429,13 @@ const sourceColor: Record<string,string>={
   align-items: center;
   gap: 2px;
   padding-left: 8px;
-  opacity: 0.7;
+  opacity: 0.6;
 }
 .h-entry:hover .h-actions {
   opacity: 1;
 }
 
+/* ===== 详情抽屉 ===== */
 .detail-scroll {
   overflow-y: auto;
 }
@@ -410,53 +449,60 @@ const sourceColor: Record<string,string>={
 }
 .meta-badge {
   font-size: 11px;
-  color: #fff;
+  font-weight: 600;
   padding: 2px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
 }
 .detail-link {
   color: var(--color-text-secondary);
   text-decoration: none;
   word-break: break-all;
-  font-size: 12px;
+  font-size: 11.5px;
+  font-family: var(--font-mono);
 }
 .detail-link:hover {
   color: var(--color-brand);
 }
 
 .md-preview {
-  line-height: 1.85;
+  line-height: var(--line-height-loose);
   color: var(--color-text);
   font-size: 14.5px;
   padding: 4px 0 12px;
 }
 .md-preview :deep(h1) {
-  font-size: 22px;
+  font-size: 21px;
   margin: 18px 0 10px;
   color: var(--color-text);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 .md-preview :deep(h2) {
-  font-size: 17px;
-  margin: 16px 0 8px;
+  font-size: 16.5px;
+  margin: 20px 0 8px;
+  padding-left: 10px;
+  border-left: 3px solid var(--color-brand);
   color: var(--color-text);
+  line-height: 1.4;
 }
 .md-preview :deep(h3) {
   font-size: 15px;
-  margin: 12px 0 6px;
+  margin: 14px 0 6px;
   color: var(--color-text);
 }
 .md-preview :deep(p) {
   margin: 8px 0;
 }
 .md-preview :deep(strong) {
-  color: var(--color-brand);
+  color: var(--color-brand-pressed);
+  font-weight: 700;
 }
 .md-preview :deep(code) {
-  background: var(--color-bg);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 13px;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  font-size: 12.5px;
+  font-family: var(--font-mono);
 }
 .md-preview :deep(li) {
   margin-left: 22px;
@@ -465,8 +511,6 @@ const sourceColor: Record<string,string>={
 .md-preview :deep(hr) {
   border: none;
   border-top: 1px solid var(--color-border);
-  margin: 16px 0;
+  margin: 18px 0;
 }
 </style>
-
-

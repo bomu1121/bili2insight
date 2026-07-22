@@ -98,12 +98,12 @@ async function refreshPreview() {
 
 <template>
   <div class="source-root">
-    <div class="source-bar">
-      <n-button text @click="router.push('/')">
+    <div class="page-bar">
+      <n-button text class="bar-back" @click="router.push('/')">
         <template #icon><n-icon><ArrowBackOutline /></n-icon></template>返回
       </n-button>
       <div class="bar-title">
-        <n-icon :size="18" color="var(--color-brand)"><LinkOutline /></n-icon>
+        <span class="bar-ic url"><n-icon :size="15"><LinkOutline /></n-icon></span>
         <n-text strong>B站链接</n-text>
       </div>
     </div>
@@ -136,13 +136,13 @@ async function refreshPreview() {
         <div class="preview-card">
           <div class="cover-wrap">
             <img v-if="store.preview.cover" :src="store.preview.cover" referrerpolicy="no-referrer" class="preview-img" />
-            <div class="cover-badge">{{ videoPages.length }}P</div>
+            <div class="cover-badge tnum">{{ videoPages.length }}P</div>
           </div>
           <div class="preview-info">
             <div class="preview-title">{{ store.preview.title }}</div>
             <div class="preview-meta">
               <span class="meta-item"><n-icon :size="14"><PersonOutline /></n-icon>{{ store.preview.uploader }}</span>
-              <span class="meta-item"><n-icon :size="14"><TimeOutline /></n-icon>{{ fmtDur(store.preview.duration) }}</span>
+              <span class="meta-item tnum"><n-icon :size="14"><TimeOutline /></n-icon>{{ fmtDur(store.preview.duration) }}</span>
             </div>
           </div>
           <n-button quaternary circle size="small" @click="refreshPreview" title="刷新预览（绕过缓存）">
@@ -165,9 +165,9 @@ async function refreshPreview() {
               @click="togglePage(i)"
             >
               <n-checkbox :checked="store.selectedPages.has(i)" size="small" />
-              <span class="page-idx">P{{ p.page }}</span>
+              <span class="page-idx tnum">P{{ p.page }}</span>
               <span class="page-name">{{ p.part }}</span>
-              <span class="page-time">{{ fmtDur(p.duration) }}</span>
+              <span class="page-time tnum">{{ fmtDur(p.duration) }}</span>
             </div>
           </div>
         </div>
@@ -187,25 +187,42 @@ async function refreshPreview() {
   flex-direction: column;
   height: 100%;
 }
-.source-bar {
+
+/* ===== 页头条 ===== */
+.page-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 18px;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(8px);
+  gap: 12px;
+  height: var(--header-height);
+  padding: 0 20px;
+  background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
+}
+.bar-back {
+  color: var(--color-text-secondary);
 }
 .bar-title {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   font-size: 15px;
 }
+.bar-ic {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+}
+.bar-ic.url {
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
+}
+
 .source-body {
   flex: 1;
-  padding: 28px 24px 36px;
+  padding: 32px 28px 40px;
   max-width: var(--content-max-source);
   margin: 0 auto;
   width: 100%;
@@ -215,18 +232,19 @@ async function refreshPreview() {
   gap: 16px;
 }
 .intro-card {
-  padding: 4px 2px 8px;
+  padding: 0 2px 6px;
 }
 .intro-title {
-  font-size: 20px;
+  font-size: var(--font-size-page);
   font-weight: 700;
+  letter-spacing: -0.01em;
   color: var(--color-text);
-  margin-bottom: 6px;
+  margin-bottom: 7px;
 }
 .intro-desc {
   font-size: 13px;
   color: var(--color-text-secondary);
-  line-height: 1.5;
+  line-height: 1.6;
 }
 .preview-loading {
   display: inline-flex;
@@ -240,50 +258,43 @@ async function refreshPreview() {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  animation: fadeUp 0.28s var(--ease-out);
+  animation: fadeUp var(--dur-3) var(--ease-out);
 }
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
+
+/* ===== 预览卡 ===== */
 .preview-card {
   display: flex;
   gap: 14px;
   align-items: center;
   background: var(--color-surface);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   padding: 14px;
   border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-xs);
 }
 .cover-wrap {
   position: relative;
   flex-shrink: 0;
 }
 .preview-img {
-  width: 148px;
-  height: 84px;
+  width: 152px;
+  aspect-ratio: 16 / 9;
   object-fit: cover;
-  border-radius: 12px;
-  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
   display: block;
 }
 .cover-badge {
   position: absolute;
   right: 6px;
   bottom: 6px;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(22, 24, 29, 0.72);
   color: #fff;
   font-size: 11px;
   font-weight: 600;
   padding: 2px 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
+  backdrop-filter: blur(2px);
 }
 .preview-info {
   flex: 1;
@@ -296,7 +307,7 @@ async function refreshPreview() {
   font-size: 15px;
   font-weight: 650;
   color: var(--color-text);
-  line-height: 1.4;
+  line-height: 1.45;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -305,57 +316,62 @@ async function refreshPreview() {
 .preview-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
 }
 .meta-item {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   font-size: 12px;
   color: var(--color-text-secondary);
 }
+
+/* ===== 分P 选择 ===== */
 .page-section {
   background: var(--color-surface);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   padding: 12px 14px;
   border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-xs);
 }
 .page-header {
   margin-bottom: 8px;
+  padding: 0 4px;
 }
 .page-list {
   max-height: 260px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 .page-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 10px;
-  border-radius: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background 0.15s, transform 0.15s;
+  transition: background var(--dur-1), border-color var(--dur-1);
   font-size: 13px;
   border: 1px solid transparent;
 }
 .page-row:hover {
-  background: var(--color-bg);
+  background: var(--color-surface-muted);
 }
 .page-row.sel {
   background: var(--color-brand-soft);
-  border-color: rgba(0, 174, 236, 0.22);
+  border-color: var(--color-brand-border);
 }
 .page-idx {
-  color: var(--color-brand);
+  color: var(--color-brand-pressed);
   font-weight: 700;
-  min-width: 28px;
+  min-width: 30px;
   font-size: 12px;
 }
 .page-name {
   flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

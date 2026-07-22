@@ -3,7 +3,7 @@ import { ref, watch, computed } from "vue";
 import type { PipelineResult, PipelineProgress, VideoInfo, PageInfo, TaskState, QueueItem } from "../utils/types";
 import { useTemplateStore } from "./templates";
 import { useAuthStore } from "./auth";
-import { SETTINGS_VERSION, loadSaved, saveToDisk, type Provider, type PromptTemplate } from "./settings";
+import { SETTINGS_VERSION, loadSaved, saveToDisk, type Provider } from "./settings";
 import { runPipelineWithPage, saveResultToFile, previewVideo, fetchModels } from "../utils/invoke";
 import { runPipelineLocal } from "../utils/invoke";
 import { listen } from "@tauri-apps/api/event";
@@ -122,7 +122,6 @@ export const useAppStore = defineStore("app", () => {
 
 
 
-  const cookiesFilePath = ref('');
   // ---------- Favorites functions ----------
   async function loadFavFolders() {
     favLoading.value = true;

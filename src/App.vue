@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch, computed } from "vue";
 import { NInput, NButton, NSpace, NText, NIcon, NTabs, NTabPane, createDiscreteApi, NDrawer, NDrawerContent, NSelect, NConfigProvider, type GlobalThemeOverrides } from "naive-ui";
-import { SettingsSharp, ListOutline, PlayOutline, TrashOutline, EyeOutline, CheckmarkCircle, CloseCircle, SyncOutline, PersonCircleOutline, LogOutOutline, RefreshOutline, PhonePortraitOutline, QrCodeOutline, ArrowForward, CopyOutline } from "@vicons/ionicons5";
-import { useRouter } from "vue-router";
+import { SettingsSharp, ListOutline, PlayOutline, TrashOutline, EyeOutline, CheckmarkCircle, CloseCircle, SyncOutline, PersonCircleOutline, LogOutOutline, RefreshOutline, PhonePortraitOutline, QrCodeOutline, ArrowForward, CopyOutline, LinkOutline, FolderOpenOutline, CloudUploadOutline, TimeOutline } from "@vicons/ionicons5";
+import { useRoute, useRouter } from "vue-router";
 import { useAppStore } from "./stores/app";
 import { useAuthStore } from "./stores/auth";
 import { useSettingsStore } from "./stores/settingsStore";
@@ -13,6 +13,7 @@ const authStore = useAuthStore();
 const settingsStore = useSettingsStore();
 const templateStore = useTemplateStore();
 const router = useRouter();
+const route = useRoute();
 const showSettings = ref(false);
 const showQueue = ref(false);
 const qrTab = ref("qr");
@@ -20,19 +21,19 @@ const qrTab = ref("qr");
 const themeOverrides: GlobalThemeOverrides = {
   common: {
     primaryColor: "#00AEEC",
-    primaryColorHover: "#0099D3",
-    primaryColorPressed: "#0088BC",
+    primaryColorHover: "#00A1DB",
+    primaryColorPressed: "#0090C4",
     primaryColorSuppl: "#00AEEC",
     infoColor: "#2080F0",
     successColor: "#18A058",
     warningColor: "#F0A020",
     errorColor: "#D03050",
     borderRadius: "6px",
-    borderColor: "#E8EAED",
-    textColorBase: "#1A1A1A",
-    textColor2: "#8A8F98",
-    textColor3: "#B0B4BC",
-    bodyColor: "#F5F7FA",
+    borderColor: "#E5E7EB",
+    textColorBase: "#1D2129",
+    textColor2: "#6B7280",
+    textColor3: "#9CA3AF",
+    bodyColor: "#F4F5F7",
     cardColor: "#FFFFFF",
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif',
   },
@@ -40,12 +41,16 @@ const themeOverrides: GlobalThemeOverrides = {
     borderRadiusMedium: "6px",
     borderRadiusSmall: "6px",
     borderRadiusTiny: "6px",
+    fontWeight: "500",
   },
   Input: {
     borderRadius: "6px",
   },
   Card: {
-    borderRadius: "10px",
+    borderRadius: "12px",
+  },
+  Checkbox: {
+    borderRadius: "4px",
   },
 };
 
@@ -53,7 +58,10 @@ onMounted(async () => { await store.init(); });
 onUnmounted(() => store.cleanup());
 watch(() => store.error, (val) => { if (val) message.error(val); });
 
+const isQueueRoute = computed(() => route.path === "/queue" || route.path.startsWith("/result"));
+
 function viewResult(id: string) { showQueue.value = false; router.push(`/result/${id}`); }
+function openQueuePage() { showQueue.value = false; router.push("/queue"); }
 function startProcessing() { store.processQueue(); }
 function clearDone() { store.queue = store.queue.filter(q => q.status !== "done" && q.status !== "error"); }
 function stopProcessing() { store.cancelQueue(); }
@@ -124,35 +132,68 @@ const tplPrompt = computed({
 <template>
   <n-config-provider :theme-overrides="themeOverrides">
   <div class="app-root">
-    <header class="app-header">
-      <div class="header-left" @click="router.push('/')" title="返回首页">
+    <aside class="side">
+      <div class="side-brand" @click="router.push('/')" title="返回首页">
         <div class="logo-mark">B2</div>
         <div class="logo-text">
-          <span class="header-title">Bili2Insight</span>
-          <span class="header-sub">观点提炼</span>
+          <span class="brand-name">Bili2Insight</span>
+          <span class="brand-sub">AI 观点笔记</span>
         </div>
       </div>
-      <div class="header-right">
-        <button type="button" class="hdr-btn" @click="showQueue = true">
-          <n-icon :size="18"><ListOutline /></n-icon>
-          <span>队列</span>
-          <span v-if="store.queueCount > 0" class="hdr-badge">{{ store.queueCount }}</span>
-        </button>
+
+      <nav class="side-nav">
+        <div class="nav-group">
+          <div class="nav-caption">来源</div>
+          <button type="button" class="nav-item" :class="{ on: route.path === '/source/url' }" @click="router.push('/source/url')">
+            <n-icon :size="17"><LinkOutline /></n-icon>
+            <span class="nav-label">B站链接</span>
+          </button>
+          <button type="button" class="nav-item" :class="{ on: route.path === '/source/fav' }" @click="router.push('/source/fav')">
+            <n-icon :size="17"><FolderOpenOutline /></n-icon>
+            <span class="nav-label">收藏夹</span>
+          </button>
+          <button type="button" class="nav-item" :class="{ on: route.path === '/source/local' }" @click="router.push('/source/local')">
+            <n-icon :size="17"><CloudUploadOutline /></n-icon>
+            <span class="nav-label">本地文件</span>
+          </button>
+        </div>
+        <div class="nav-group">
+          <div class="nav-caption">工作台</div>
+          <button type="button" class="nav-item" :class="{ on: isQueueRoute }" @click="showQueue = true">
+            <n-icon :size="17"><ListOutline /></n-icon>
+            <span class="nav-label">处理队列</span>
+            <span v-if="store.isProcessing" class="nav-pulse" title="正在处理" />
+            <span v-if="store.queueCount > 0" class="nav-badge tnum">{{ store.queueCount }}</span>
+          </button>
+          <button type="button" class="nav-item" :class="{ on: route.path === '/history' }" @click="router.push('/history')">
+            <n-icon :size="17"><TimeOutline /></n-icon>
+            <span class="nav-label">历史记录</span>
+          </button>
+        </div>
+      </nav>
+
+      <div class="side-foot">
         <button
           type="button"
-          class="hdr-avatar"
+          class="side-user"
           @click="openLogin"
-          :title="authStore.isLoggedIn ? authStore.loginUname : '登录'"
+          :title="authStore.isLoggedIn ? authStore.loginUname : '登录 B 站账号'"
         >
-          <img v-if="authStore.isLoggedIn && authStore.loginFace" :src="authStore.loginFace" class="hdr-avatar-img" referrerpolicy="no-referrer" />
-          <n-icon v-else :size="22" color="var(--color-text-secondary)"><PersonCircleOutline /></n-icon>
-          <span v-if="authStore.isLoggedIn" class="hdr-online" />
+          <span class="side-avatar">
+            <img v-if="authStore.isLoggedIn && authStore.loginFace" :src="authStore.loginFace" referrerpolicy="no-referrer" />
+            <n-icon v-else :size="18" color="var(--color-text-secondary)"><PersonCircleOutline /></n-icon>
+            <span v-if="authStore.isLoggedIn" class="side-online" />
+          </span>
+          <span class="side-user-meta">
+            <span class="side-user-name">{{ authStore.isLoggedIn ? authStore.loginUname : "未登录" }}</span>
+            <span class="side-user-hint">{{ authStore.isLoggedIn ? "B站账号" : "点击登录 B 站" }}</span>
+          </span>
         </button>
-        <button type="button" class="hdr-btn icon-only" @click="showSettings = true" title="设置">
-          <n-icon :size="18"><SettingsSharp /></n-icon>
+        <button type="button" class="side-set" @click="showSettings = true" title="设置">
+          <n-icon :size="17"><SettingsSharp /></n-icon>
         </button>
       </div>
-    </header>
+    </aside>
 
     <main class="app-main">
       <router-view />
@@ -182,16 +223,16 @@ const tplPrompt = computed({
                 <span class="q-s">
                   <n-icon v-if="item.status === 'done'" color="var(--color-success)" size="16"><CheckmarkCircle /></n-icon>
                   <n-icon v-else-if="item.status === 'error'" color="var(--color-error)" size="16"><CloseCircle /></n-icon>
-                  <n-icon v-else-if="item.status === 'running'" color="var(--color-info)" size="16" class="spinning"><SyncOutline /></n-icon>
+                  <n-icon v-else-if="item.status === 'running'" color="var(--color-brand)" size="16" class="spinning"><SyncOutline /></n-icon>
                   <span v-else class="q-pending-dot">&#9679;</span>
                 </span>
                 <span class="q-title" :title="item.pageInfo.part">{{ item.pageInfo.part }}</span>
                 <div class="q-meta">
-                  <span class="q-dur">{{ (item.pageInfo.duration ? String(Math.floor(item.pageInfo.duration/60)).padStart(2,'0') + ':' + String(item.pageInfo.duration%60).padStart(2,'0') : '') }}</span>
+                  <span class="q-dur tnum">{{ (item.pageInfo.duration ? String(Math.floor(item.pageInfo.duration/60)).padStart(2,'0') + ':' + String(item.pageInfo.duration%60).padStart(2,'0') : '') }}</span>
                   <span v-if="item.status !== 'done'" class="q-tag" :class="item.status">
                     {{ item.status === 'error' ? '失败' : item.status === 'running' ? item.stageLabel : '等待' }}
                   </span>
-                  <span class="q-elapsed">{{ item.elapsedMs ? fmtElapsed(item.elapsedMs) : '' }}</span>
+                  <span class="q-elapsed tnum">{{ item.elapsedMs ? fmtElapsed(item.elapsedMs) : '' }}</span>
                 </div>
                 <div class="q-action">
                   <n-select
@@ -219,6 +260,12 @@ const tplPrompt = computed({
           <span>队列为空</span>
           <span class="queue-empty-hint">返回首页添加视频后在此处理</span>
         </n-text>
+        <template #footer>
+          <button type="button" class="queue-full-link" @click="openQueuePage">
+            打开完整队列页
+            <n-icon :size="14"><ArrowForward /></n-icon>
+          </button>
+        </template>
       </n-drawer-content>
     </n-drawer>
 
@@ -385,145 +432,259 @@ const tplPrompt = computed({
 </template>
 
 <style>
+/* ===== 外壳：侧边栏 + 内容 ===== */
 .app-root {
   height: 100vh;
   display: grid;
-  grid-template-rows: var(--header-height) 1fr;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
   background: var(--color-bg);
 }
-.app-header {
+.side {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 18px 0 16px;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--color-border);
+  flex-direction: column;
+  min-height: 0;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
   z-index: 2;
 }
-.header-left {
+.side-brand {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 16px 16px 14px;
   cursor: pointer;
   user-select: none;
-  border-radius: 10px;
-  padding: 4px 6px 4px 4px;
-  transition: background 0.15s;
-}
-.header-left:hover {
-  background: var(--color-bg);
 }
 .logo-mark {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  background: linear-gradient(145deg, var(--color-brand), #0088c9);
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: linear-gradient(150deg, #22262e, var(--color-ink) 60%);
   color: #fff;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 800;
   letter-spacing: -0.04em;
   display: grid;
   place-items: center;
-  box-shadow: 0 4px 12px rgba(0, 174, 236, 0.28);
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(22, 24, 29, 0.22);
+}
+.logo-mark::after {
+  content: "";
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-brand);
 }
 .logo-text {
   display: flex;
   flex-direction: column;
-  line-height: 1.15;
+  line-height: 1.2;
+  min-width: 0;
 }
-.header-title {
+.brand-name {
   font-size: 14px;
   font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+.brand-sub {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+.side-nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.nav-caption {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  padding: 0 22px 6px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  margin: 0 10px;
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--dur-1), color var(--dur-1);
+}
+.nav-item .n-icon {
+  color: var(--color-text-tertiary);
+  transition: color var(--dur-1);
+  flex-shrink: 0;
+}
+.nav-item:hover {
+  background: var(--color-ink-soft);
   color: var(--color-text);
 }
-.header-sub {
-  font-size: 11px;
-  color: var(--color-text-secondary);
+.nav-item:hover .n-icon {
+  color: var(--color-text);
 }
-.header-right {
+.nav-item.on {
+  background: var(--color-ink);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(22, 24, 29, 0.18);
+}
+.nav-item.on .n-icon {
+  color: #fff;
+}
+.nav-label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nav-badge {
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: var(--radius-full);
+  background: var(--color-brand);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.nav-pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-brand);
+  animation: pulse-dot 1.2s var(--ease-out) infinite;
+  flex-shrink: 0;
+}
+
+.side-foot {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 10px;
+  border-top: 1px solid var(--color-border);
 }
-.app-main {
-  overflow: hidden;
+.side-user {
+  flex: 1;
+  min-width: 0;
   display: flex;
-  flex-direction: column;
-}
-.hdr-btn {
-  position: relative;
-  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  height: 34px;
-  padding: 0 12px;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background: var(--color-surface);
-  color: var(--color-text);
-  font-size: 13px;
+  gap: 10px;
+  padding: 6px 8px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
   font-family: inherit;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
+  text-align: left;
+  transition: background var(--dur-1);
 }
-.hdr-btn:hover {
-  border-color: rgba(0, 174, 236, 0.35);
-  color: var(--color-brand);
-  background: var(--color-brand-soft);
+.side-user:hover {
+  background: var(--color-ink-soft);
 }
-.hdr-btn.icon-only {
-  width: 34px;
-  padding: 0;
-  justify-content: center;
-}
-.hdr-badge {
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: var(--color-error);
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.hdr-avatar {
+.side-avatar {
   position: relative;
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   display: grid;
   place-items: center;
-  cursor: pointer;
   overflow: hidden;
-  border: 1.5px solid var(--color-border);
-  background: var(--color-surface);
-  padding: 0;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-muted);
+  flex-shrink: 0;
 }
-.hdr-avatar:hover {
-  border-color: var(--color-brand);
-  box-shadow: 0 0 0 3px rgba(0, 174, 236, 0.12);
-}
-.hdr-avatar-img {
+.side-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-.hdr-online {
+.side-online {
   position: absolute;
-  right: 1px;
-  bottom: 1px;
-  width: 8px;
-  height: 8px;
+  right: 0;
+  bottom: 0;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: var(--color-success);
-  border: 1.5px solid #fff;
+  border: 2px solid #fff;
+}
+.side-user-meta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 0;
+}
+.side-user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.side-user-hint {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+.side-set {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-secondary);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--dur-1), color var(--dur-1);
+}
+.side-set:hover {
+  background: var(--color-ink-soft);
+  color: var(--color-text);
 }
 
+.app-main {
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== 队列抽屉 ===== */
 .queue-drawer {
   display: flex;
   flex-direction: column;
@@ -533,7 +694,7 @@ const tplPrompt = computed({
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  padding-bottom: 4px;
+  padding-bottom: 2px;
 }
 .queue-list {
   display: flex;
@@ -553,33 +714,68 @@ const tplPrompt = computed({
   font-size: 12px;
   color: var(--color-text-tertiary);
 }
+.queue-full-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: 2px 0;
+  transition: color var(--dur-1);
+}
+.queue-full-link:hover {
+  color: var(--color-brand);
+}
 .q-item {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 12px 12px 10px;
-  border-radius: 12px;
+  padding: 11px 12px 10px 15px;
+  border-radius: 10px;
   border: 1px solid var(--color-border);
   background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
-  transition: border-color 0.15s, box-shadow 0.15s;
+  box-shadow: var(--shadow-xs);
+  transition: border-color var(--dur-1), box-shadow var(--dur-1);
   overflow: hidden;
   min-width: 0;
 }
+.q-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: transparent;
+}
 .q-item:hover {
   border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-sm);
 }
 .q-item.running {
-  background: var(--color-info-soft);
-  border-color: var(--color-info-border);
+  border-color: var(--color-brand-border);
+}
+.q-item.running::before {
+  background: var(--color-brand);
 }
 .q-item.done {
-  background: var(--color-success-soft);
   border-color: var(--color-success-border);
 }
+.q-item.done::before {
+  background: var(--color-success);
+}
 .q-item.error {
-  background: var(--color-error-soft);
   border-color: var(--color-error-border);
+}
+.q-item.error::before {
+  background: var(--color-error);
 }
 .q-row1 {
   display: flex;
@@ -626,17 +822,17 @@ const tplPrompt = computed({
 .q-tag {
   font-size: 11px;
   color: var(--color-text-secondary);
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.04);
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  background: var(--color-ink-soft);
 }
 .q-tag.running {
-  color: var(--color-info);
-  background: rgba(32, 128, 240, 0.1);
+  color: var(--color-brand-pressed);
+  background: var(--color-brand-soft);
 }
 .q-tag.error {
   color: var(--color-error);
-  background: rgba(208, 48, 80, 0.1);
+  background: var(--color-error-soft);
 }
 .q-elapsed {
   font-size: 10px;
@@ -661,17 +857,18 @@ const tplPrompt = computed({
 }
 .q-bar {
   height: 4px;
-  background: rgba(32, 128, 240, 0.15);
-  border-radius: 999px;
+  background: var(--color-brand-soft);
+  border-radius: var(--radius-full);
   overflow: hidden;
 }
 .q-fill {
   height: 100%;
-  background: linear-gradient(90deg, #3b9eff, var(--color-info));
-  border-radius: 999px;
+  background: var(--color-brand);
+  border-radius: var(--radius-full);
   transition: width 0.3s ease;
 }
 
+/* ===== 登录抽屉 ===== */
 .login-body {
   display: flex;
   flex-direction: column;
@@ -698,7 +895,7 @@ const tplPrompt = computed({
 .login-avatar-lg {
   width: 72px;
   height: 72px;
-  border-radius: 999px;
+  border-radius: 50%;
   border: 3px solid var(--color-brand-soft);
   box-shadow: 0 8px 20px rgba(0, 174, 236, 0.18);
 }
@@ -717,12 +914,12 @@ const tplPrompt = computed({
 .qr-code-wrap {
   width: 208px;
   height: 208px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   position: relative;
   background: #fff;
   border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-xs);
 }
 .qr-code-img {
   width: 100%;
@@ -744,9 +941,9 @@ const tplPrompt = computed({
   cursor: default;
 }
 .qr-status {
-  padding: 6px 12px;
-  background: var(--color-bg);
-  border-radius: 999px;
+  padding: 5px 12px;
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-full);
   border: 1px solid var(--color-border);
 }
 .sms-section {
@@ -757,20 +954,22 @@ const tplPrompt = computed({
   max-width: 300px;
 }
 
+/* ===== 设置抽屉 ===== */
 .settings-body {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   padding-bottom: 12px;
 }
 .settings-section {
-  background: var(--color-bg);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 14px;
-  padding: 14px;
+  border-radius: var(--radius-lg);
+  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  box-shadow: var(--shadow-xs);
 }
 .settings-section-head {
   display: flex;
@@ -781,9 +980,7 @@ const tplPrompt = computed({
 .settings-section-title {
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.04em;
   color: var(--color-text-secondary);
-  text-transform: none;
 }
 .field {
   display: flex;
@@ -809,6 +1006,3 @@ const tplPrompt = computed({
   gap: 6px;
 }
 </style>
-
-
-

@@ -29,9 +29,9 @@ onMounted(async () => {
 });
 
 const filteredFolders = computed(() => {
-  if (!folderSearch.value.trim()) return store.favFolders;
+  if (!folderSearch.value.trim()) return createdFolders.value;
   const q = folderSearch.value.toLowerCase();
-  return store.favFolders.filter((f: any) => f.title.toLowerCase().includes(q));
+  return createdFolders.value.filter((f: any) => f.title.toLowerCase().includes(q));
 });
 
 const createdFolders = computed(() => store.favFolders.filter((f: any) => !f.collected));
@@ -70,17 +70,17 @@ function fmtDur(sec: number) {
 
 <template>
   <div class="source-root">
-    <div class="source-bar">
-      <n-button text @click="router.push('/')"><template #icon><n-icon><ArrowBackOutline /></n-icon></template>返回</n-button>
+    <div class="page-bar">
+      <n-button text class="bar-back" @click="router.push('/')"><template #icon><n-icon><ArrowBackOutline /></n-icon></template>返回</n-button>
       <div class="bar-title">
-        <n-icon :size="18" color="var(--color-warning)"><FolderOpenOutline /></n-icon>
+        <span class="bar-ic fav"><n-icon :size="15"><FolderOpenOutline /></n-icon></span>
         <n-text strong>B站收藏</n-text>
       </div>
     </div>
 
     <div class="source-body">
       <div v-if="!authStore.isLoggedIn" class="fav-empty">
-        <div class="empty-icon"><n-icon :size="32"><LogInOutline /></n-icon></div>
+        <div class="empty-icon"><n-icon :size="30"><LogInOutline /></n-icon></div>
         <div class="empty-title">需要登录 B 站账号</div>
         <div class="empty-desc">登录后可导入收藏夹、合集、稍后再看等内容</div>
         <n-button type="primary" round @click="authStore.startLogin()">去登录</n-button>
@@ -105,17 +105,17 @@ function fmtDur(sec: number) {
             </n-button>
           </div>
           <n-spin :show="store.favLoading">
-            <div class="folder-grid" v-if="createdFolders.length > 0">
-              <div v-for="f in createdFolders" :key="f.id" class="folder-card" @click="openFolder(f)">
-                <div class="folder-icon"><n-icon size="22" color="var(--color-brand)"><FolderOpenOutline /></n-icon></div>
+            <div class="folder-grid" v-if="filteredFolders.length > 0">
+              <div v-for="f in filteredFolders" :key="f.id" class="folder-card" @click="openFolder(f)">
+                <div class="folder-icon"><n-icon size="20" color="var(--color-accent-pink)"><FolderOpenOutline /></n-icon></div>
                 <div class="folder-info">
-                  <n-text style="font-size:14px;font-weight:500;">{{ f.title }}</n-text>
-                  <n-text depth="3" style="font-size:12px;">{{ f.count }} 个视频</n-text>
+                  <n-text style="font-size:14px;font-weight:600;">{{ f.title }}</n-text>
+                  <n-text depth="3" style="font-size:12px;" class="tnum">{{ f.count }} 个视频</n-text>
                 </div>
-                <span class="folder-arrow"><n-icon :size="16"><ChevronForwardOutline /></n-icon></span>
+                <span class="folder-arrow"><n-icon :size="15"><ChevronForwardOutline /></n-icon></span>
               </div>
             </div>
-            <div v-else class="fav-empty"><n-text depth="3">暂无收藏夹</n-text></div>
+            <div v-else class="fav-empty"><n-text depth="3">{{ folderSearch.trim() ? "未找到匹配的收藏夹" : "暂无收藏夹" }}</n-text></div>
           </n-spin>
         </div>
 
@@ -124,12 +124,12 @@ function fmtDur(sec: number) {
           <n-spin :show="store.favLoading">
             <div class="folder-grid" v-if="collectedFolders.length > 0">
               <div v-for="f in collectedFolders" :key="f.id" class="folder-card" @click="openFolder(f)">
-                <div class="folder-icon"><n-icon size="22" color="var(--color-warning)"><BookmarkOutline /></n-icon></div>
+                <div class="folder-icon"><n-icon size="20" color="var(--color-accent-pink)"><BookmarkOutline /></n-icon></div>
                 <div class="folder-info">
-                  <n-text style="font-size:14px;font-weight:500;">{{ f.title }}</n-text>
-                  <n-text depth="3" style="font-size:12px;">{{ f.count }} 个视频</n-text>
+                  <n-text style="font-size:14px;font-weight:600;">{{ f.title }}</n-text>
+                  <n-text depth="3" style="font-size:12px;" class="tnum">{{ f.count }} 个视频</n-text>
                 </div>
-                <span class="folder-arrow"><n-icon :size="16"><ChevronForwardOutline /></n-icon></span>
+                <span class="folder-arrow"><n-icon :size="15"><ChevronForwardOutline /></n-icon></span>
               </div>
             </div>
             <div v-else class="fav-empty"><n-text depth="3">暂无订阅合集</n-text></div>
@@ -147,7 +147,7 @@ function fmtDur(sec: number) {
               <div v-for="item in store.followItems" :key="item.season_id" class="follow-card" @click="store.addQueueItem({url:item.url,pageInfo:{page:1,part:item.title,cid:0,duration:0},source:'fav'});message.success('已添加: '+item.title)">
                 <img v-if="item.cover" :src="item.cover" class="follow-cover" referrerpolicy="no-referrer" />
                 <div class="follow-info">
-                  <n-text style="font-size:13px;font-weight:500;">{{ item.title }}</n-text>
+                  <n-text style="font-size:13px;font-weight:600;">{{ item.title }}</n-text>
                   <n-text depth="3" style="font-size:11px;">{{ item.type }}{{ item.area?' · '+item.area:'' }} · {{ item.new_ep||item.progress }}</n-text>
                   <n-text depth="3" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ item.desc }}</n-text>
                 </div>
@@ -166,7 +166,7 @@ function fmtDur(sec: number) {
                   <img v-if="v.cover" :src="v.cover" class="fav-thumb" referrerpolicy="no-referrer" />
                   <div class="fav-video-info">
                     <n-text style="font-size:13px;">{{ v.title }}</n-text>
-                    <n-text depth="3" style="font-size:11px;">{{ v.uploader }} · {{ fmtDur(v.duration) }}</n-text>
+                    <n-text depth="3" style="font-size:11px;" class="tnum">{{ v.uploader }} · {{ fmtDur(v.duration) }}</n-text>
                   </div>
                 </div>
               </div>
@@ -187,7 +187,7 @@ function fmtDur(sec: number) {
                   <img v-if="v.cover" :src="v.cover" class="fav-thumb" referrerpolicy="no-referrer" />
                   <div class="fav-video-info">
                     <n-text style="font-size:13px;">{{ v.title }}</n-text>
-                    <n-text depth="3" style="font-size:11px;">{{ v.uploader }} · {{ fmtDur(v.duration) }}</n-text>
+                    <n-text depth="3" style="font-size:11px;" class="tnum">{{ v.uploader }} · {{ fmtDur(v.duration) }}</n-text>
                   </div>
                 </div>
               </div>
@@ -201,10 +201,10 @@ function fmtDur(sec: number) {
 
         <!-- Folder content (videos) -->
         <div v-if="!showFolders">
-          <div class="fav-bar">
+          <div class="fav-bar folder-head">
             <n-button text @click="backToFolders"><template #icon><n-icon><ArrowBackOutline /></n-icon></template>返回目录</n-button>
-            <n-text style="font-size:14px;font-weight:500;flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 12px;">{{ store.favCurrentFolderTitle }}</n-text>
-            <n-text depth="3" style="font-size:12px;">共{{ store.favTotal }} 个视频</n-text>
+            <n-text class="folder-head-title">{{ store.favCurrentFolderTitle }}</n-text>
+            <n-text depth="3" style="font-size:12px;" class="tnum">共{{ store.favTotal }} 个视频</n-text>
           </div>
           <n-spin :show="store.favLoadingVideos">
             <div v-if="store.favVideos.length > 0">
@@ -217,13 +217,13 @@ function fmtDur(sec: number) {
                   <img v-if="v.cover" :src="v.cover" class="fav-thumb" referrerpolicy="no-referrer" />
                   <div class="fav-video-info">
                     <n-text style="font-size:13px;">{{ v.title }}</n-text>
-                    <n-text depth="3" style="font-size:11px;">{{ v.uploader }} · {{ fmtDur(v.duration) }}</n-text>
+                    <n-text depth="3" style="font-size:11px;" class="tnum">{{ v.uploader }} · {{ fmtDur(v.duration) }}</n-text>
                   </div>
                 </div>
               </div>
-              <n-text v-if="store.loginError" depth="3" type="error" style="font-size:12px;display:block;margin:8px 0;">{{ store.loginError }}</n-text>
+               <n-text v-if="authStore.loginError" depth="3" type="error" style="font-size:12px;display:block;margin:8px 0;">{{ authStore.loginError }}</n-text>
               <div class="fav-pagination" v-if="store.favTotalPages > 1">
-                <n-pagination :page="store.favPage" :page-count="store.favTotalPages" @update:page="(p:number) => { if (store.favIsCollected) store.loadCollectedVideos(store.favCurrentFolderId, store.favCurrentFolderMid, p); else store.loadFavVideos(store.favCurrentFolderId, p); }" size="small" />
+                <n-pagination :page="store.favPage" :page-count="store.favTotalPages" @update:page="loadPage" size="small" />
               </div>
               <n-button type="primary" block @click="addSelectedToQueue" :disabled="store.favSelectedVideos.size === 0" style="margin-top:14px;">
                 <template #icon><n-icon><AddCircleOutline /></n-icon></template>添加到处理队列
@@ -243,25 +243,40 @@ function fmtDur(sec: number) {
   flex-direction: column;
   height: 100%;
 }
-.source-bar {
+.page-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 18px;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(8px);
+  gap: 12px;
+  height: var(--header-height);
+  padding: 0 20px;
+  background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
+}
+.bar-back {
+  color: var(--color-text-secondary);
 }
 .bar-title {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   font-size: 15px;
 }
+.bar-ic {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+}
+.bar-ic.fav {
+  background: var(--color-accent-pink-soft);
+  color: var(--color-accent-pink);
+}
+
 .source-body {
   flex: 1;
-  padding: 16px 20px 28px;
+  padding: 16px 24px 32px;
   max-width: var(--content-max-wide);
   margin: 0 auto;
   width: 100%;
@@ -270,6 +285,8 @@ function fmtDur(sec: number) {
   flex-direction: column;
   gap: 12px;
 }
+
+/* ===== 空状态 ===== */
 .fav-empty {
   display: flex;
   flex-direction: column;
@@ -279,13 +296,13 @@ function fmtDur(sec: number) {
   text-align: center;
 }
 .empty-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 18px;
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
   display: grid;
   place-items: center;
-  background: var(--color-warning-soft);
-  color: var(--color-warning);
+  background: var(--color-accent-pink-soft);
+  color: var(--color-accent-pink);
   margin-bottom: 4px;
 }
 .empty-title {
@@ -298,12 +315,29 @@ function fmtDur(sec: number) {
   color: var(--color-text-secondary);
   margin-bottom: 8px;
 }
+
+/* ===== 工具行 ===== */
 .fav-bar {
   display: flex;
   align-items: center;
   gap: 8px;
   margin: 4px 0 8px;
 }
+.folder-head {
+  gap: 10px;
+}
+.folder-head-title {
+  font-size: 14px;
+  font-weight: 600;
+  flex: 1;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0 12px;
+}
+
+/* ===== 文件夹卡片 ===== */
 .folder-grid {
   display: flex;
   flex-direction: column;
@@ -312,27 +346,30 @@ function fmtDur(sec: number) {
 .folder-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
+  gap: 13px;
+  padding: 13px 14px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  box-shadow: var(--shadow-sm);
-  transition: transform 0.18s var(--ease-out), border-color 0.15s, box-shadow 0.18s;
+  box-shadow: var(--shadow-xs);
+  transition:
+    border-color var(--dur-1),
+    box-shadow var(--dur-2),
+    transform var(--dur-2) var(--ease-out);
 }
 .folder-card:hover {
   transform: translateY(-1px);
-  border-color: rgba(0, 174, 236, 0.35);
-  box-shadow: var(--shadow-brand-hover);
+  border-color: var(--color-accent-pink-border);
+  box-shadow: var(--shadow-card);
 }
 .folder-icon {
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
-  background: var(--color-brand-soft);
-  border-radius: 12px;
+  background: var(--color-accent-pink-soft);
+  border-radius: 10px;
   flex-shrink: 0;
 }
 .folder-info {
@@ -343,22 +380,25 @@ function fmtDur(sec: number) {
   gap: 3px;
 }
 .folder-arrow {
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
   display: grid;
   place-items: center;
   color: var(--color-text-tertiary);
-  background: var(--color-bg);
+  background: var(--color-ink-soft);
   flex-shrink: 0;
-  transition: background 0.15s, color 0.15s;
+  transition: background var(--dur-1), color var(--dur-1);
 }
 .folder-card:hover .folder-arrow {
-  background: var(--color-brand);
+  background: var(--color-ink);
   color: #fff;
 }
+
+/* ===== 视频行 ===== */
 .page-header-row {
   margin-bottom: 8px;
+  padding: 0 4px;
 }
 .fav-video-list {
   display: flex;
@@ -371,27 +411,28 @@ function fmtDur(sec: number) {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
-  border-radius: 12px;
+  padding: 9px 12px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background var(--dur-1), border-color var(--dur-1);
   border: 1px solid transparent;
   background: var(--color-surface);
 }
 .fav-video-row:hover {
-  background: var(--color-bg);
+  background: var(--color-surface-muted);
+  border-color: var(--color-border);
 }
 .fav-video-row.sel {
   background: var(--color-brand-soft);
-  border-color: rgba(0, 174, 236, 0.2);
+  border-color: var(--color-brand-border);
 }
 .fav-thumb {
   width: 96px;
-  height: 54px;
+  aspect-ratio: 16 / 9;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   flex-shrink: 0;
-  background: var(--color-bg);
+  background: var(--color-surface-muted);
 }
 .fav-video-info {
   flex: 1;
@@ -405,6 +446,8 @@ function fmtDur(sec: number) {
   justify-content: center;
   margin-top: 14px;
 }
+
+/* ===== 追番卡片 ===== */
 .follow-list {
   display: flex;
   flex-direction: column;
@@ -414,25 +457,28 @@ function fmtDur(sec: number) {
   display: flex;
   gap: 14px;
   padding: 12px;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
   cursor: pointer;
-  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+  transition:
+    transform var(--dur-2) var(--ease-out),
+    border-color var(--dur-1),
+    box-shadow var(--dur-2);
   background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-xs);
 }
 .follow-card:hover {
-  border-color: rgba(0, 174, 236, 0.35);
+  border-color: var(--color-accent-pink-border);
   transform: translateY(-1px);
-  box-shadow: var(--shadow-hover);
+  box-shadow: var(--shadow-card);
 }
 .follow-cover {
   width: 72px;
   height: 96px;
   object-fit: cover;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   flex-shrink: 0;
-  background: var(--color-bg);
+  background: var(--color-surface-muted);
 }
 .follow-info {
   flex: 1;
@@ -443,5 +489,3 @@ function fmtDur(sec: number) {
   padding-top: 2px;
 }
 </style>
-
-

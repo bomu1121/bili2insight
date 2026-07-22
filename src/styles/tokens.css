@@ -1,44 +1,64 @@
 /**
  * Bili2Insight design tokens
- * 浅色桌面生产力工具 —— 干净、克制、B 站蓝点缀
+ * 「纸面工作台」—— 浅色编辑感桌面生产力工具
+ * 纸面画布 + 纯白表面 + 发丝边界；墨色主导航，B站蓝只做交互信号
  */
 :root {
-  /* Brand */
+  /* Brand — B站信号蓝 */
   --color-brand: #00aeec;
-  --color-brand-hover: #0099d3;
-  --color-brand-soft: #e8f4fd;
-  --color-brand-shadow: rgba(0, 174, 236, 0.1);
+  --color-brand-hover: #00a1db;
+  --color-brand-pressed: #0090c4;
+  --color-brand-soft: #e4f5fe;
+  --color-brand-border: #b9e6f9;
+  --color-brand-shadow: rgba(0, 174, 236, 0.16);
+
+  /* Ink — 墨色（近黑微蓝）：导航激活、强调标题、主按钮 */
+  --color-ink: #16181d;
+  --color-ink-hover: #2b2f37;
+  --color-ink-soft: #eeeff2;
 
   /* Neutrals */
-  --color-bg: #f5f7fa;
+  --color-bg: #f4f5f7;
   --color-surface: #ffffff;
-  --color-surface-muted: #fafafa;
-  --color-border: #e8eaed;
-  --color-border-strong: #d0d3d9;
-  --color-text: #1a1a1a;
-  --color-text-secondary: #8a8f98;
-  --color-text-tertiary: #b0b4bc;
+  --color-surface-muted: #f8f9fa;
+  --color-border: #e5e7eb;
+  --color-border-strong: #d4d7dd;
+  --color-text: #1d2129;
+  --color-text-secondary: #6b7280;
+  --color-text-tertiary: #9ca3af;
   --color-text-inverse: #ffffff;
 
   /* Semantic */
   --color-success: #18a058;
-  --color-success-soft: #f6ffed;
-  --color-success-border: #c8e8b8;
+  --color-success-soft: #eaf8f0;
+  --color-success-border: #b8e5cb;
   --color-warning: #f0a020;
-  --color-warning-soft: #fef3e8;
+  --color-warning-soft: #fdf3e3;
+  --color-warning-border: #f3ddb0;
   --color-error: #d03050;
-  --color-error-soft: #fff2f0;
-  --color-error-border: #f0c8c0;
+  --color-error-soft: #fceef2;
+  --color-error-border: #f2c3cf;
   --color-info: #2080f0;
-  --color-info-soft: #f0f7ff;
-  --color-info-border: #c8ddf8;
-  --color-accent-purple: #7c3aed;
-  --color-accent-purple-soft: #f0e8fd;
+  --color-info-soft: #edf4fe;
+  --color-info-border: #c3dbf9;
 
-  /* Radius: control 6 / card 10 / entry 12 */
+  /* Source accents — 来源色彩映射 */
+  --color-accent-pink: #fb7299; /* B站粉：收藏夹 */
+  --color-accent-pink-soft: #feebf2;
+  --color-accent-pink-border: #f8cbda;
+  --color-accent-indigo: #6366f1; /* 靛蓝：历史 */
+  --color-accent-indigo-soft: #eeeefe;
+  --color-accent-indigo-border: #d0d2f8;
+  /* 兼容旧变量名 */
+  --color-accent-purple: #6366f1;
+  --color-accent-purple-soft: #eeeefe;
+
+  /* Radius: control 6 / chip 8 / card 12 / sheet 14 */
+  --radius-xs: 4px;
   --radius-sm: 6px;
-  --radius-md: 10px;
+  --radius-md: 8px;
   --radius-lg: 12px;
+  --radius-xl: 14px;
   --radius-full: 9999px;
 
   /* Spacing (4px base) */
@@ -55,45 +75,60 @@
   /* Typography */
   --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
     "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-mono: "Cascadia Code", ui-monospace, SFMono-Regular, Menlo, Consolas,
+    "Liberation Mono", monospace;
   --font-size-xs: 11px;
   --font-size-sm: 12px;
   --font-size-md: 13px;
-  --font-size-lg: 15px;
-  --font-size-xl: 17px;
-  --font-size-hero: 28px;
+  --font-size-lg: 14px;
+  --font-size-xl: 16px;
+  --font-size-page: 20px;
+  --font-size-hero: 30px;
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
   --line-height-tight: 1.35;
   --line-height-body: 1.6;
-  --line-height-loose: 1.8;
+  --line-height-loose: 1.85;
 
   /* Layout */
-  --header-height: 56px;
+  --sidebar-width: 216px;
+  --header-height: 52px;
   --content-max-narrow: 440px;
-  --content-max-home: 760px;
-  --content-max-source: 720px;
-  --content-max-wide: 880px;
-  --content-max-result: 800px;
-  --drawer-shadow: -8px 0 32px rgba(15, 23, 42, 0.08);
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
-  --shadow-hover: 0 8px 24px rgba(15, 23, 42, 0.08);
-  --shadow-brand-hover: 0 10px 28px rgba(0, 174, 236, 0.16);
+  --content-max-home: 720px;
+  --content-max-source: 680px;
+  --content-max-wide: 920px;
+  --content-max-result: 780px;
+
+  /* Elevation — 发丝边界为主，阴影极轻 */
+  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04),
+    0 4px 16px rgba(16, 24, 40, 0.05);
+  --shadow-hover: 0 2px 4px rgba(16, 24, 40, 0.04),
+    0 12px 32px rgba(16, 24, 40, 0.1);
+  --shadow-brand-hover: 0 8px 24px rgba(0, 174, 236, 0.18);
+  --drawer-shadow: -12px 0 40px rgba(16, 24, 40, 0.1);
+
+  /* Motion */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-1: 0.12s;
+  --dur-2: 0.18s;
+  --dur-3: 0.28s;
 
   /* Scrollbar */
-  --scrollbar-size: 6px;
-  --scrollbar-thumb: #c0c0c0;
-  --scrollbar-thumb-hover: #a0a0a0;
+  --scrollbar-size: 8px;
+  --scrollbar-thumb: #d4d7dd;
+  --scrollbar-thumb-hover: #b6bbc3;
 
   /* Log console (dark inset) */
-  --color-log-bg: #1e1e1e;
-  --color-log-text: #a0a0a0;
-  --color-log-border: #333;
-  --color-log-track: #2a2a2a;
-  --color-log-thumb: #555;
-  --color-log-thumb-hover: #777;
+  --color-log-bg: #16181d;
+  --color-log-text: #9aa1ac;
+  --color-log-border: #2b2f37;
+  --color-log-track: #1d2129;
+  --color-log-thumb: #444a55;
+  --color-log-thumb-hover: #5c6370;
 }
 
 *,
@@ -116,6 +151,12 @@ body {
   color: var(--color-text);
   background: var(--color-bg);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-brand-soft);
+  color: var(--color-brand-pressed);
 }
 
 ::-webkit-scrollbar {
@@ -127,14 +168,23 @@ body {
 }
 ::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb);
-  border-radius: 3px;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover);
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+/* 数字精密对齐：时长、计数、耗时 */
+.tnum {
+  font-variant-numeric: tabular-nums;
 }
 
 @keyframes spin {
@@ -147,4 +197,27 @@ body {
 }
 .spinning {
   animation: spin 1s linear infinite;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.82);
+  }
 }

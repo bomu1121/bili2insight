@@ -1,7 +1,7 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { computed, ref } from "vue";
 import { NButton, NText, NIcon, NDivider, NDrawer, NDrawerContent } from "naive-ui";
-import { ArrowBackOutline, CopyOutline, DownloadOutline, DocumentTextOutline } from "@vicons/ionicons5";
+import { ArrowBackOutline, CopyOutline, DownloadOutline, DocumentTextOutline, SparklesOutline } from "@vicons/ionicons5";
 import { useRoute, useRouter } from "vue-router";
 import { useAppStore } from "../stores/app";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
@@ -64,7 +64,7 @@ async function exportFile() {
 <template>
   <div class="result-root">
     <div class="result-header">
-      <n-button text @click="router.push('/')">
+      <n-button text class="bar-back" @click="router.push('/')">
         <template #icon><n-icon><ArrowBackOutline /></n-icon></template>返回首页
       </n-button>
       <n-text strong class="result-title">
@@ -84,7 +84,7 @@ async function exportFile() {
     </div>
 
     <div v-if="!item" class="result-empty">
-      <div class="empty-icon"><n-icon :size="32"><DocumentTextOutline /></n-icon></div>
+      <div class="empty-icon"><n-icon :size="30"><DocumentTextOutline /></n-icon></div>
       <div class="empty-title">未找到结果</div>
       <div class="empty-desc">该任务可能已从队列中清除</div>
     </div>
@@ -92,7 +92,10 @@ async function exportFile() {
     <div v-else class="result-scroll">
       <article class="result-body">
         <header class="doc-header">
-          <div class="doc-kicker">AI 观点笔记</div>
+          <div class="doc-kicker">
+            <n-icon :size="13"><SparklesOutline /></n-icon>
+            <span>AI 观点笔记</span>
+          </div>
           <h1 class="doc-title">{{ item.pageInfo.part }}</h1>
           <div class="doc-meta">
             <span class="source-pill">{{ item.source === 'url' ? 'B站链接' : item.source === 'fav' ? '收藏夹' : '本地文件' }}</span>
@@ -124,19 +127,21 @@ async function exportFile() {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background:
-    radial-gradient(ellipse 60% 40% at 50% 0%, rgba(0, 174, 236, 0.06), transparent 55%),
-    var(--color-bg);
+  background: var(--color-bg);
 }
 .result-header {
   display: flex;
   align-items: center;
-  padding: 10px 18px;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(8px);
+  height: var(--header-height);
+  padding: 0 20px;
+  background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
   gap: 12px;
+}
+.bar-back {
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
 }
 .result-title {
   flex: 1;
@@ -152,6 +157,8 @@ async function exportFile() {
   gap: 8px;
   flex-shrink: 0;
 }
+
+/* ===== 空状态 ===== */
 .result-empty {
   flex: 1;
   display: flex;
@@ -161,9 +168,9 @@ async function exportFile() {
   gap: 10px;
 }
 .empty-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 18px;
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
   display: grid;
   place-items: center;
   background: var(--color-brand-soft);
@@ -177,33 +184,41 @@ async function exportFile() {
   font-size: 13px;
   color: var(--color-text-secondary);
 }
+
+/* ===== 笔记纸 ===== */
 .result-scroll {
   flex: 1;
   overflow-y: auto;
 }
 .result-body {
-  margin: 24px auto 40px;
-  padding: 28px 32px 36px;
+  margin: 28px auto 48px;
+  padding: 36px 44px 44px;
   max-width: var(--content-max-result);
-  width: calc(100% - 40px);
+  width: calc(100% - 48px);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 18px;
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
 }
 .doc-header {
   margin-bottom: 4px;
 }
 .doc-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
-  font-weight: 700;
-  color: var(--color-brand);
-  letter-spacing: 0.04em;
-  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--color-brand-pressed);
+  background: var(--color-brand-soft);
+  border: 1px solid var(--color-brand-border);
+  padding: 4px 11px;
+  border-radius: var(--radius-full);
+  margin-bottom: 14px;
 }
 .doc-title {
-  margin: 0 0 12px;
-  font-size: 24px;
+  margin: 0 0 14px;
+  font-size: 25px;
   font-weight: 750;
   line-height: 1.35;
   letter-spacing: -0.02em;
@@ -221,51 +236,63 @@ async function exportFile() {
   display: inline-flex;
   align-items: center;
   padding: 2px 10px;
-  border-radius: 999px;
-  background: var(--color-brand-soft);
-  color: var(--color-brand);
+  border-radius: var(--radius-full);
+  background: var(--color-ink-soft);
+  color: var(--color-text);
   font-weight: 600;
 }
 .ref-link {
   color: var(--color-text-secondary);
   text-decoration: none;
   word-break: break-all;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
 }
 .ref-link:hover {
   color: var(--color-brand);
 }
 .ref-path {
   word-break: break-all;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
 }
+
+/* ===== Markdown 排版 ===== */
 .md-preview {
-  line-height: 1.85;
+  line-height: var(--line-height-loose);
   color: var(--color-text);
   font-size: 15px;
 }
 .md-preview :deep(h1) {
-  font-size: 22px;
-  margin: 20px 0 10px;
-  letter-spacing: -0.02em;
+  font-size: 21px;
+  margin: 22px 0 10px;
+  letter-spacing: -0.01em;
 }
 .md-preview :deep(h2) {
   font-size: 17px;
-  margin: 18px 0 8px;
+  margin: 22px 0 10px;
+  padding-left: 10px;
+  border-left: 3px solid var(--color-brand);
+  line-height: 1.4;
 }
 .md-preview :deep(h3) {
   font-size: 15px;
-  margin: 14px 0 6px;
+  margin: 16px 0 6px;
 }
 .md-preview :deep(p) {
   margin: 8px 0;
 }
 .md-preview :deep(strong) {
-  color: var(--color-brand);
+  color: var(--color-brand-pressed);
+  font-weight: 700;
 }
 .md-preview :deep(code) {
-  background: var(--color-bg);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 13px;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  font-size: 12.5px;
+  font-family: var(--font-mono);
 }
 .md-preview :deep(li) {
   margin-left: 22px;
@@ -274,14 +301,16 @@ async function exportFile() {
 .md-preview :deep(hr) {
   border: none;
   border-top: 1px solid var(--color-border);
-  margin: 18px 0;
+  margin: 20px 0;
 }
+
+/* ===== 日志控制台 ===== */
 .log-console {
   background: var(--color-log-bg);
   color: var(--color-log-text);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 16px;
-  font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.6;
   max-height: calc(100vh - 140px);
@@ -310,7 +339,7 @@ async function exportFile() {
 .log-tag {
   display: inline-block;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   font-size: 11px;
   font-weight: 600;
   margin-bottom: 8px;
@@ -335,5 +364,3 @@ async function exportFile() {
   overflow-y: auto;
 }
 </style>
-
-

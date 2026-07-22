@@ -5,7 +5,11 @@ import {
   FolderOpenOutline,
   CloudUploadOutline,
   TimeOutline,
-  ChevronForwardOutline,
+  ArrowForward,
+  DownloadOutline,
+  MicOutline,
+  SparklesOutline,
+  DocumentTextOutline,
 } from "@vicons/ionicons5";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
@@ -52,225 +56,300 @@ const entries = [
     action: () => router.push("/history"),
   },
 ];
+
+const flowSteps = [
+  { label: "链接 / 文件", icon: LinkOutline },
+  { label: "下载音频", icon: DownloadOutline },
+  { label: "语音识别", icon: MicOutline },
+  { label: "AI 提炼", icon: SparklesOutline },
+  { label: "导出笔记", icon: DocumentTextOutline },
+];
 </script>
 
 <template>
   <div class="home-root">
-    <div class="home-glow" aria-hidden="true" />
+    <div class="home-inner">
+      <section class="hero">
+        <div class="hero-kicker">
+          <span class="kicker-dot" />
+          <span>B站视频 · AI 观点提炼</span>
+        </div>
+        <h1 class="hero-title">把长视频，读成结构化笔记</h1>
+        <p class="hero-sub">粘贴 B 站链接或导入本地音视频，自动完成下载、转写与观点提炼，导出 Markdown。</p>
+      </section>
 
-    <section class="hero">
-      <div class="brand-mark" aria-hidden="true">
-        <span class="brand-mark-inner">B2</span>
-      </div>
-      <h1 class="hero-title">Bili2Insight</h1>
-      <p class="hero-sub">把 B 站长视频，变成可阅读、可导出的结构化笔记</p>
-      <div class="hero-chips">
-        <span class="chip">AI 观点提炼</span>
-        <span class="chip">语音识别</span>
-        <span class="chip">Markdown 导出</span>
-      </div>
-    </section>
+      <section class="entry-grid">
+        <button
+          v-for="item in entries"
+          :key="item.key"
+          type="button"
+          class="entry-card"
+          :class="item.tone"
+          @click="item.action()"
+        >
+          <div class="entry-icon">
+            <n-icon :size="22">
+              <component :is="item.icon" />
+            </n-icon>
+          </div>
+          <div class="entry-copy">
+            <div class="entry-label">{{ item.title }}</div>
+            <div class="entry-desc">{{ item.desc }}</div>
+          </div>
+          <div class="entry-go">
+            <n-icon :size="15"><ArrowForward /></n-icon>
+          </div>
+        </button>
+      </section>
 
-    <section class="entry-grid">
-      <button
-        v-for="item in entries"
-        :key="item.key"
-        type="button"
-        class="entry-card"
-        :class="item.tone"
-        @click="item.action()"
-      >
-        <div class="entry-icon">
-          <n-icon :size="26">
-            <component :is="item.icon" />
-          </n-icon>
+      <section class="flow">
+        <div class="flow-caption">处理流水线</div>
+        <div class="flow-steps">
+          <template v-for="(s, i) in flowSteps" :key="s.label">
+            <div class="flow-step" :class="{ last: i === flowSteps.length - 1 }">
+              <span class="flow-ic">
+                <n-icon :size="13"><component :is="s.icon" /></n-icon>
+              </span>
+              <span class="flow-label">{{ s.label }}</span>
+            </div>
+            <span v-if="i < flowSteps.length - 1" class="flow-line" />
+          </template>
         </div>
-        <div class="entry-copy">
-          <div class="entry-label">{{ item.title }}</div>
-          <div class="entry-desc">{{ item.desc }}</div>
-        </div>
-        <div class="entry-go">
-          <n-icon :size="18"><ChevronForwardOutline /></n-icon>
-        </div>
-      </button>
-    </section>
+      </section>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .home-root {
-  position: relative;
+  height: 100%;
+  overflow-y: auto;
+}
+.home-inner {
+  max-width: var(--content-max-home);
+  margin: 0 auto;
+  padding: 64px 32px 48px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100%;
-  padding: 48px var(--space-6) 56px;
-  overflow: auto;
 }
-.home-glow {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 70% 45% at 50% -10%, rgba(0, 174, 236, 0.14), transparent 60%),
-    radial-gradient(ellipse 40% 30% at 90% 80%, rgba(124, 58, 237, 0.06), transparent 55%);
-}
+
+/* ===== 品牌区 ===== */
 .hero {
-  position: relative;
-  z-index: 1;
-  text-align: center;
-  margin-bottom: 40px;
-  max-width: 560px;
+  margin-bottom: 36px;
 }
-.brand-mark {
-  width: 64px;
-  height: 64px;
-  margin: 0 auto 18px;
-  border-radius: 18px;
-  background: linear-gradient(145deg, var(--color-brand), #0088c9);
-  box-shadow: 0 12px 28px rgba(0, 174, 236, 0.28);
-  display: grid;
-  place-items: center;
+.hero-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-brand-pressed);
+  background: var(--color-brand-soft);
+  border: 1px solid var(--color-brand-border);
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  margin-bottom: 18px;
 }
-.brand-mark-inner {
-  color: #fff;
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -0.04em;
+.kicker-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-brand);
 }
 .hero-title {
-  font-size: 34px;
-  font-weight: 760;
-  letter-spacing: -0.03em;
-  margin: 0 0 10px;
+  font-size: 32px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
   color: var(--color-text);
+  margin: 0 0 12px;
 }
 .hero-sub {
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.6;
+  font-size: 14px;
+  line-height: 1.7;
   color: var(--color-text-secondary);
+  margin: 0;
+  max-width: 520px;
 }
-.hero-chips {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 18px;
-}
-.chip {
-  font-size: 12px;
-  color: var(--color-brand-hover);
-  background: var(--color-brand-soft);
-  border: 1px solid rgba(0, 174, 236, 0.18);
-  padding: 4px 10px;
-  border-radius: var(--radius-full);
-}
+
+/* ===== 入口卡片 ===== */
 .entry-grid {
-  position: relative;
-  z-index: 1;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  width: 100%;
-  max-width: var(--content-max-home);
+  gap: 12px;
 }
 .entry-card {
   display: flex;
   align-items: flex-start;
   gap: 14px;
-  min-height: 118px;
-  padding: 18px 16px 18px 18px;
+  padding: 16px;
   text-align: left;
   cursor: pointer;
   font-family: inherit;
   color: inherit;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 16px;
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
   transition:
-    transform 0.22s var(--ease-out),
-    box-shadow 0.22s var(--ease-out),
-    border-color 0.22s var(--ease-out);
+    border-color var(--dur-2),
+    box-shadow var(--dur-2),
+    transform var(--dur-2) var(--ease-out);
 }
 .entry-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-hover);
-  border-color: transparent;
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-2px);
 }
 .entry-card:focus-visible {
   outline: 2px solid var(--color-brand);
   outline-offset: 2px;
 }
 .entry-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  transition: transform 0.22s var(--ease-out);
-}
-.entry-card:hover .entry-icon {
-  transform: scale(1.05);
 }
 .entry-card.url .entry-icon {
   background: var(--color-brand-soft);
   color: var(--color-brand);
 }
 .entry-card.fav .entry-icon {
-  background: var(--color-warning-soft);
-  color: var(--color-warning);
+  background: var(--color-accent-pink-soft);
+  color: var(--color-accent-pink);
 }
 .entry-card.local .entry-icon {
   background: var(--color-success-soft);
   color: var(--color-success);
 }
 .entry-card.history .entry-icon {
-  background: var(--color-accent-purple-soft);
-  color: var(--color-accent-purple);
+  background: var(--color-accent-indigo-soft);
+  color: var(--color-accent-indigo);
 }
 .entry-copy {
   flex: 1;
   min-width: 0;
-  padding-top: 2px;
+  padding-top: 1px;
 }
 .entry-label {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 650;
   color: var(--color-text);
-  margin-bottom: 6px;
+  margin-bottom: 5px;
 }
 .entry-desc {
   font-size: 12.5px;
-  line-height: 1.5;
+  line-height: 1.55;
   color: var(--color-text-secondary);
 }
 .entry-go {
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-full);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
   display: grid;
   place-items: center;
   color: var(--color-text-tertiary);
-  background: var(--color-bg);
+  background: var(--color-ink-soft);
   flex-shrink: 0;
-  margin-top: 2px;
-  transition: background 0.2s, color 0.2s, transform 0.2s var(--ease-out);
+  margin-top: 4px;
+  transition:
+    background var(--dur-1),
+    color var(--dur-1),
+    transform var(--dur-2) var(--ease-out);
 }
 .entry-card:hover .entry-go {
-  background: var(--color-brand);
+  background: var(--color-ink);
   color: #fff;
   transform: translateX(2px);
 }
-@media (max-width: 720px) {
+
+/* ===== 流水线图示 ===== */
+.flow {
+  margin-top: 44px;
+}
+.flow-caption {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  margin-bottom: 14px;
+}
+.flow-steps {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.flow-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px 5px 5px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+.flow-ic {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-ink-soft);
+  color: var(--color-text-secondary);
+  display: grid;
+  place-items: center;
+}
+.flow-step.last {
+  border-color: var(--color-brand-border);
+  background: var(--color-brand-soft);
+}
+.flow-step.last .flow-ic {
+  background: var(--color-brand);
+  color: #fff;
+}
+.flow-step.last .flow-label {
+  color: var(--color-brand-pressed);
+  font-weight: 600;
+}
+.flow-label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.flow-line {
+  flex: 1;
+  min-width: 12px;
+  height: 1px;
+  background: var(--color-border-strong);
+  position: relative;
+}
+.flow-line::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: -2.5px;
+  border-left: 5px solid var(--color-border-strong);
+  border-top: 3px solid transparent;
+  border-bottom: 3px solid transparent;
+}
+
+@media (max-width: 860px) {
+  .home-inner {
+    padding: 44px 24px 36px;
+  }
   .entry-grid {
     grid-template-columns: 1fr;
   }
   .hero-title {
-    font-size: 28px;
+    font-size: 26px;
+  }
+  .flow-line {
+    display: none;
+  }
+  .flow-steps {
+    flex-wrap: wrap;
   }
 }
 </style>
