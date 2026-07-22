@@ -1,4 +1,4 @@
-use std::io::{BufRead, Write};
+﻿use std::io::{BufRead, Write};
 use std::path::PathBuf;
 use std::sync::Mutex;
 
@@ -75,6 +75,10 @@ impl HistoryStore {
 
     /// Append entry metadata and full result to persistent storage.
     pub fn add(&mut self, entry: HistoryEntry, full_result_json: &str) -> std::io::Result<()> {
+        // Ensure parent directories exist before writing
+        let _ = std::fs::create_dir_all(&self.data_dir);
+        let _ = std::fs::create_dir_all(self.data_dir.join("results"));
+
         let jsonl_path = self.data_dir.join("history.jsonl");
 
         let line = serde_json::to_string(&entry).unwrap_or_default();

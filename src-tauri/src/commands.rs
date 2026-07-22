@@ -1,4 +1,4 @@
-use crate::PipelineProgress;
+﻿use crate::PipelineProgress;
 use crate::pipeline;
 use crate::export;
 use crate::VideoInfo;
@@ -8,6 +8,17 @@ use std::path::PathBuf;
 
 fn emit_progress(app: &AppHandle, stage: &str, progress: f64, message: &str, queue_item_id: Option<&str>) {
     let _ = app.emit("pipeline-progress", PipelineProgress { stage: stage.to_string(), progress, message: message.to_string(), queue_item_id: queue_item_id.map(|s| s.to_string()) });
+}
+
+/// Helper to save a history entry and log any errors (instead of silent `let _ =`).
+fn save_history_entry(
+    store: &mut crate::history::HistoryStore,
+    entry: crate::history::HistoryEntry,
+    full_json: &str,
+) {
+    if let Err(e) = store.add(entry, full_json) {
+        eprintln!("[history] Failed to save history entry: {}", e);
+    }
 }
 
 #[tauri::command]
@@ -49,7 +60,6 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
     let mut video_info = pipeline::download_bili_audio(&app, &url, &output_dir, false, proxy.as_deref(), page_cid,
         move |s, p, m| { let _ = app_dl.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string(), queue_item_id: qid.clone() }); },
     ).await.map_err(|e| format!("Download failed: {}", e))?;
-    // If processing a specific page, override video_info with the page's part title
     if let Some(cid) = page_cid {
         if let Some(page) = video_info.pages.iter().find(|p| p.cid == cid) {
             if !page.part.is_empty() {
@@ -63,85 +73,105 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
     println!("  [STAGE:download] DONE, bvid={} title={}", video_info.bvid, video_info.title);
     emit_progress(&app, "download", 0.25, "Download complete", queue_item_id.as_deref());
 
-        // cid=0 means "unknown / use default page" - treat same as None
-    let audio_tag = match page_cid {
-        Some(cid) if cid > 0 => format!("{}_p{}", video_info.bvid, cid),
-        _ => video_info.bvid.clone(),
-    };
-    let audio_path = output_dir.join(format!("{}.m4a", audio_tag));
-    println!("  [STAGE:ffmpeg] audio_tag={} audio_path={}", audio_tag, audio_path.display());
-    emit_progress(&app, "ffmpeg", 0.30, "Converting audio format...", queue_item_id.as_deref());
-    let wav_path = pipeline::extract_audio_wav(&app, &audio_path.to_string_lossy(), &output_dir).await.map_err(|e| format!("FFmpeg error: {}", e))?;
-    println!("  [STAGE:ffmpeg] DONE, wav_path={}", wav_path);
-    emit_progress(&app, "ffmpeg", 0.40, "Audio conversion complete", queue_item_id.as_deref());
+    // Clone for potential error history entry
+    let vi_for_history = video_info.clone();
 
-    let asr_model_val = asr_model.unwrap_or_else(|| "paraformer".to_string());
-    println!("  [STAGE:asr] starting speech recognition, model={}...", asr_model_val);
-    emit_progress(&app, "asr", 0.45, "Running speech recognition...", queue_item_id.as_deref());
-    let qid2 = queue_item_id.clone();
-    let app_asr = app.clone();
-    let transcript = pipeline::run_asr(&app, &wav_path,
-        &asr_model_val, asr_api_url.as_deref(), asr_api_key.as_deref(),
-        move |s, p, m| { let _ = app_asr.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string(), queue_item_id: qid2.clone() }); },
-    ).await.map_err(|e| format!("ASR failed: {}", e))?;
-    println!("  [STAGE:asr] DONE, transcript_len={}", transcript.len());
-    emit_progress(&app, "asr", 0.75, "Speech recognition complete", queue_item_id.as_deref());
+    // Run remaining processing stages; errors are caught below for history
+    let process_result: Result<crate::PipelineResult, String> = async {
+        let audio_tag = match page_cid {
+            Some(cid) if cid > 0 => format!("{}_p{}", video_info.bvid, cid),
+            _ => video_info.bvid.clone(),
+        };
+        let audio_path = output_dir.join(format!("{}.m4a", audio_tag));
+        println!("  [STAGE:ffmpeg] audio_tag={} audio_path={}", audio_tag, audio_path.display());
+        emit_progress(&app, "ffmpeg", 0.30, "Converting audio format...", queue_item_id.as_deref());
+        let wav_path = pipeline::extract_audio_wav(&app, &audio_path.to_string_lossy(), &output_dir).await.map_err(|e| format!("FFmpeg error: {}", e))?;
+        println!("  [STAGE:ffmpeg] DONE, wav_path={}", wav_path);
+        emit_progress(&app, "ffmpeg", 0.40, "Audio conversion complete", queue_item_id.as_deref());
 
-    let ai_url = ai_api_url.unwrap_or_else(|| "https://api.deepseek.com".to_string());
-    let ai_key = ai_api_key.unwrap_or_default();
-    let model = ai_model.unwrap_or_else(|| "deepseek-chat".to_string());
+        let asr_model_val = asr_model.unwrap_or_else(|| "paraformer".to_string());
+        println!("  [STAGE:asr] starting speech recognition, model={}...", asr_model_val);
+        emit_progress(&app, "asr", 0.45, "Running speech recognition...", queue_item_id.as_deref());
+        let qid2 = queue_item_id.clone();
+        let app_asr = app.clone();
+        let transcript = pipeline::run_asr(&app, &wav_path,
+            &asr_model_val, asr_api_url.as_deref(), asr_api_key.as_deref(),
+            move |s, p, m| { let _ = app_asr.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string(), queue_item_id: qid2.clone() }); },
+        ).await.map_err(|e| format!("ASR failed: {}", e))?;
+        println!("  [STAGE:asr] DONE, transcript_len={}", transcript.len());
+        emit_progress(&app, "asr", 0.75, "Speech recognition complete", queue_item_id.as_deref());
 
-    let raw = transcript.clone();
-    println!("  [STAGE:refine] calling AI proofread, model={}", model);
-    emit_progress(&app, "refine", 0.76, "AI proofreading transcript...", queue_item_id.as_deref());
-    let client = app.state::<crate::AppState>().http_client.clone();
-    let transcript = pipeline::refine_transcript(&client, &ai_url, &ai_key, &model, &transcript).await.map_err(|e| format!("Refine failed: {}", e))?;
-    println!("  [STAGE:refine] DONE, refined_len={}", transcript.len());
-    emit_progress(&app, "refine", 0.80, "Transcript proofread", queue_item_id.as_deref());
+        let ai_url = ai_api_url.unwrap_or_else(|| "https://api.deepseek.com".to_string());
+        let ai_key = ai_api_key.unwrap_or_default();
+        let model = ai_model.unwrap_or_else(|| "deepseek-chat".to_string());
 
-    let prompt = ai_prompt.unwrap_or_else(|| "Please analyze the following video transcript...".to_string());
-    println!("  [STAGE:ai] calling AI insights, prompt_len={}", prompt.len());
-    emit_progress(&app, "ai", 0.81, "Extracting insights with AI...", queue_item_id.as_deref());
-    let (insights, ai_raw) = pipeline::extract_insights(&client, &ai_url, &ai_key, &model, &prompt, &transcript, &video_info.title).await.map_err(|e| format!("AI analysis failed: {}", e))?;
-    println!("  [STAGE:ai] DONE, ai_raw_len={}", ai_raw.len());
-    emit_progress(&app, "ai", 0.95, "AI insights ready", queue_item_id.as_deref());
+        let raw = transcript.clone();
+        println!("  [STAGE:refine] calling AI proofread, model={}", model);
+        emit_progress(&app, "refine", 0.76, "AI proofreading transcript...", queue_item_id.as_deref());
+        let client = app.state::<crate::AppState>().http_client.clone();
+        let transcript = pipeline::refine_transcript(&client, &ai_url, &ai_key, &model, &transcript).await.map_err(|e| format!("Refine failed: {}", e))?;
+        println!("  [STAGE:refine] DONE, refined_len={}", transcript.len());
+        emit_progress(&app, "refine", 0.80, "Transcript proofread", queue_item_id.as_deref());
 
-    let ai_req = format!("SYSTEM: {}\n\nUSER: Video title: {}\n\nTranscript:\n{}", prompt, video_info.title, transcript);
-    let markdown = export::generate_markdown(&video_info, &transcript, &insights);
-   println!("=== PIPELINE END [{:.1}s] ===", start.elapsed().as_secs_f64());
-   emit_progress(&app, "done", 1.0, "Complete", queue_item_id.as_deref());
+        let prompt = ai_prompt.unwrap_or_else(|| "Please analyze the following video transcript...".to_string());
+        println!("  [STAGE:ai] calling AI insights, prompt_len={}", prompt.len());
+        emit_progress(&app, "ai", 0.81, "Extracting insights with AI...", queue_item_id.as_deref());
+        let (insights, ai_raw) = pipeline::extract_insights(&client, &ai_url, &ai_key, &model, &prompt, &transcript, &video_info.title).await.map_err(|e| format!("AI analysis failed: {}", e))?;
+        println!("  [STAGE:ai] DONE, ai_raw_len={}", ai_raw.len());
+        emit_progress(&app, "ai", 0.95, "AI insights ready", queue_item_id.as_deref());
+
+        let ai_req = format!("SYSTEM: {}\n\nUSER: Video title: {}\n\nTranscript:\n{}", prompt, video_info.title, transcript);
+        let markdown = export::generate_markdown(&video_info, &transcript, &insights);
+        println!("=== PIPELINE END [{:.1}s] ===", start.elapsed().as_secs_f64());
+        emit_progress(&app, "done", 1.0, "Complete", queue_item_id.as_deref());
+
+        let _ = std::fs::remove_file(&audio_path);
+        let _ = std::fs::remove_file(&wav_path);
+
+        Ok(crate::PipelineResult { raw_transcript: raw, video_info, transcript, insights, markdown, ai_request: ai_req, ai_raw_response: ai_raw })
+    }.await;
+
+    // Always save a history entry, whether pipeline succeeded or failed
     let hs = app.state::<HistoryState>();
     if let Ok(mut store) = hs.0.lock() {
         let id = uuid::Uuid::new_v4().to_string();
-        let full_json = serde_json::to_string(&crate::PipelineResult {
-            raw_transcript: raw.clone(),
-            video_info: video_info.clone(),
-            transcript: transcript.clone(),
-            insights: insights.clone(),
-            markdown: markdown.clone(),
-            ai_request: ai_req.clone(),
-            ai_raw_response: ai_raw.clone(),
-        }).unwrap_or_default();
-        let _ = store.add(crate::history::HistoryEntry {
+        let (status, error_msg, summary, full_json) = match &process_result {
+            Ok(result) => {
+                let json = serde_json::to_string(result).unwrap_or_default();
+                ("done".to_string(), String::new(), result.insights.summary.chars().take(300).collect(), json)
+            }
+            Err(e) => {
+                let empty = crate::PipelineResult {
+                    raw_transcript: String::new(),
+                    video_info: vi_for_history.clone(),
+                    transcript: String::new(),
+                    insights: crate::InsightResult { summary: String::new(), key_points: vec![], tags: vec![] },
+                    markdown: String::new(),
+                    ai_request: String::new(),
+                    ai_raw_response: String::new(),
+                };
+                ("error".to_string(), e.clone(), String::new(), serde_json::to_string(&empty).unwrap_or_default())
+            }
+        };
+        save_history_entry(&mut store, crate::history::HistoryEntry {
             id,
             created_at: chrono::Utc::now().timestamp_millis(),
             source: "url".to_string(),
             url: url.clone(),
-            title: video_info.title.clone(),
-            bvid: video_info.bvid.clone(),
-            uploader: video_info.uploader.clone(),
-            duration: video_info.duration,
-            cover: video_info.cover.clone(),
-            summary: insights.summary.chars().take(300).collect(),
+            title: vi_for_history.title.clone(),
+            bvid: vi_for_history.bvid.clone(),
+            uploader: vi_for_history.uploader.clone(),
+            duration: vi_for_history.duration,
+            cover: vi_for_history.cover.clone(),
+            summary,
             elapsed_ms: start.elapsed().as_millis() as i64,
             template_name: String::new(),
-            status: "done".to_string(),
-            error_msg: String::new(),
+            status,
+            error_msg,
         }, &full_json);
     }
-   let _ = std::fs::remove_file(&audio_path);
-   let _ = std::fs::remove_file(&wav_path);
-   Ok(crate::PipelineResult { raw_transcript: raw, video_info, transcript, insights, markdown, ai_request: ai_req, ai_raw_response: ai_raw })
+
+    process_result
 }
 
 #[tauri::command]
@@ -154,7 +184,6 @@ pub async fn run_pipeline_local(app: AppHandle, file_path: String, file_name: St
     std::fs::create_dir_all(&output_dir).map_err(|e| e.to_string())?;
     let start = std::time::Instant::now();
     println!("=== PIPELINE LOCAL START [{:.0}s] file={} ===", start.elapsed().as_secs_f64(), file_path);
-
     let video_info = crate::VideoInfo {
         cid: 0,
         bvid: format!("local_{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs()),
@@ -162,12 +191,16 @@ pub async fn run_pipeline_local(app: AppHandle, file_path: String, file_name: St
         description: String::new(),
         duration: 0,
         cover: String::new(),
-        uploader: "本地文件".to_string(),
+        uploader: "鏈湴鏂囦欢".to_string(),
         uploader_uid: 0,
         pubdate: 0,
         pages: vec![],
     };
+    // Clone for potential error history entry
+    let vi_for_history = video_info.clone();
 
+    // Run remaining processing stages; errors are caught below for history
+    let process_result: Result<crate::PipelineResult, String> = async {
     emit_progress(&app, "ffmpeg", 0.10, "Converting audio format...", queue_item_id.as_deref());
     let wav_path = pipeline::extract_audio_wav(&app, &file_path, &output_dir).await.map_err(|e| format!("FFmpeg error: {}", e))?;
     println!("  [STAGE:ffmpeg] DONE, wav_path={}", wav_path);
@@ -208,19 +241,35 @@ pub async fn run_pipeline_local(app: AppHandle, file_path: String, file_name: St
     let markdown = crate::export::generate_markdown(&video_info, &transcript, &insights);
    println!("=== PIPELINE LOCAL END [{:.1}s] ===", start.elapsed().as_secs_f64());
    emit_progress(&app, "done", 1.0, "Complete", queue_item_id.as_deref());
+
+   let _ = std::fs::remove_file(&wav_path);
+
+   Ok(crate::PipelineResult { raw_transcript: raw, video_info, transcript, insights, markdown, ai_request: ai_req, ai_raw_response: ai_raw })
+    }.await;
+
+    // Always save a history entry, whether pipeline succeeded or failed
     let hs = app.state::<HistoryState>();
     if let Ok(mut store) = hs.0.lock() {
         let id = uuid::Uuid::new_v4().to_string();
-        let full_json = serde_json::to_string(&crate::PipelineResult {
-            raw_transcript: raw.clone(),
-            video_info: video_info.clone(),
-            transcript: transcript.clone(),
-            insights: insights.clone(),
-            markdown: markdown.clone(),
-            ai_request: ai_req.clone(),
-            ai_raw_response: ai_raw.clone(),
-        }).unwrap_or_default();
-        let _ = store.add(crate::history::HistoryEntry {
+        let (status, error_msg, summary, full_json) = match &process_result {
+            Ok(result) => {
+                let json = serde_json::to_string(result).unwrap_or_default();
+                ("done".to_string(), String::new(), result.insights.summary.chars().take(300).collect(), json)
+            }
+            Err(e) => {
+                let empty = crate::PipelineResult {
+                    raw_transcript: String::new(),
+                    video_info: vi_for_history.clone(),
+                    transcript: String::new(),
+                    insights: crate::InsightResult { summary: String::new(), key_points: vec![], tags: vec![] },
+                    markdown: String::new(),
+                    ai_request: String::new(),
+                    ai_raw_response: String::new(),
+                };
+                ("error".to_string(), e.clone(), String::new(), serde_json::to_string(&empty).unwrap_or_default())
+            }
+        };
+        save_history_entry(&mut store, crate::history::HistoryEntry {
             id,
             created_at: chrono::Utc::now().timestamp_millis(),
             source: "local".to_string(),
@@ -230,15 +279,15 @@ pub async fn run_pipeline_local(app: AppHandle, file_path: String, file_name: St
             uploader: String::new(),
             duration: 0,
             cover: String::new(),
-            summary: insights.summary.chars().take(300).collect(),
+            summary,
             elapsed_ms: start.elapsed().as_millis() as i64,
             template_name: String::new(),
-            status: "done".to_string(),
-            error_msg: String::new(),
+            status,
+            error_msg,
         }, &full_json);
     }
-   let _ = std::fs::remove_file(&wav_path);
-   Ok(crate::PipelineResult { raw_transcript: raw, video_info, transcript, insights, markdown, ai_request: ai_req, ai_raw_response: ai_raw })
+
+    process_result
 }
 
 #[tauri::command]
