@@ -137,6 +137,7 @@ export interface HistoryEntry {
   template_name: string;
   status: string;
   error_msg: string;
+  starred: boolean;
 }
 
 /** Response from history_list Tauri command. */

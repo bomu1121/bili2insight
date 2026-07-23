@@ -149,6 +149,7 @@ pub fn run() {
            commands::sms_captcha,
            commands::sms_send,
            commands::sms_login,
+            commands::history_toggle_star,
             commands::history_list,
             commands::history_get_result,
             commands::history_delete,

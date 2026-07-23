@@ -10,15 +10,55 @@ fn emit_progress(app: &AppHandle, stage: &str, progress: f64, message: &str, que
     let _ = app.emit("pipeline-progress", PipelineProgress { stage: stage.to_string(), progress, message: message.to_string(), queue_item_id: queue_item_id.map(|s| s.to_string()) });
 }
 
-/// Helper to save a history entry and log any errors (instead of silent `let _ =`).
+/// Helper to save a history entry. Returns an error message on failure.
 fn save_history_entry(
     store: &mut crate::history::HistoryStore,
     entry: crate::history::HistoryEntry,
     full_json: &str,
-) {
-    if let Err(e) = store.add(entry, full_json) {
-        eprintln!("[history] Failed to save history entry: {}", e);
-    }
+) -> Result<(), String> {
+    store.add(entry, full_json).map_err(|e| format!("History save failed: {}", e))
+}
+
+/// Save a history entry for a failed pipeline (download failure before full processing).
+fn save_history_for_failure(
+    app: &AppHandle,
+    video_info: &crate::VideoInfo,
+    url: &str,
+    source: &str,
+    start: std::time::Instant,
+    error_msg: &str,
+) -> Result<(), String> {
+    let hs = app.state::<HistoryState>();
+    let mut store = hs.0.lock().map_err(|e| format!("History lock error: {}", e))?;
+    let id = uuid::Uuid::new_v4().to_string();
+    let empty = crate::PipelineResult {
+        raw_transcript: String::new(),
+        video_info: video_info.clone(),
+        transcript: String::new(),
+        insights: crate::InsightResult { summary: String::new(), key_points: vec![], tags: vec![] },
+        markdown: String::new(),
+        ai_request: String::new(),
+        ai_raw_response: String::new(),
+    };
+    let full_json = serde_json::to_string(&empty).unwrap_or_default();
+    let entry = crate::history::HistoryEntry {
+        id,
+        created_at: chrono::Utc::now().timestamp_millis(),
+        source: source.to_string(),
+        url: url.to_string(),
+        title: video_info.title.clone(),
+        bvid: video_info.bvid.clone(),
+        uploader: video_info.uploader.clone(),
+        duration: video_info.duration,
+        cover: video_info.cover.clone(),
+        summary: String::new(),
+        elapsed_ms: start.elapsed().as_millis() as i64,
+        template_name: String::new(),
+        status: "error".to_string(),
+        error_msg: error_msg.to_string(),
+        starred: false,
+    };
+    store.add(entry, &full_json).map_err(|e| format!("History save failed: {}", e))
 }
 
 #[tauri::command]
@@ -57,9 +97,19 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
     emit_progress(&app, "download", 0.05, "Getting video info and downloading audio...", queue_item_id.as_deref());
     let qid = queue_item_id.clone();
     let app_dl = app.clone();
-    let mut video_info = pipeline::download_bili_audio(&app, &url, &output_dir, false, proxy.as_deref(), page_cid,
+    let download_result = pipeline::download_bili_audio(&app, &url, &output_dir, false, proxy.as_deref(), page_cid,
         move |s, p, m| { let _ = app_dl.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string(), queue_item_id: qid.clone() }); },
-    ).await.map_err(|e| format!("Download failed: {}", e))?;
+    ).await;
+
+    let mut video_info = match download_result {
+        Ok(vi) => vi,
+        Err(e) => {
+            let err_msg = format!("Download failed: {}", e);
+            let empty_vi = crate::VideoInfo { cid: page_cid.unwrap_or(0), bvid: String::new(), title: String::new(), description: String::new(), duration: 0, cover: String::new(), uploader: String::new(), uploader_uid: 0, pubdate: 0, pages: vec![] };
+            let _ = save_history_for_failure(&app, &empty_vi, &url, "url", start, &err_msg);
+            return Err(err_msg);
+        }
+    };
     if let Some(cid) = page_cid {
         if let Some(page) = video_info.pages.iter().find(|p| p.cid == cid) {
             if !page.part.is_empty() {
@@ -153,7 +203,7 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
                 ("error".to_string(), e.clone(), String::new(), serde_json::to_string(&empty).unwrap_or_default())
             }
         };
-        save_history_entry(&mut store, crate::history::HistoryEntry {
+        let _ = save_history_entry(&mut store, crate::history::HistoryEntry {
             id,
             created_at: chrono::Utc::now().timestamp_millis(),
             source: "url".to_string(),
@@ -168,6 +218,7 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
             template_name: String::new(),
             status,
             error_msg,
+            starred: false,
         }, &full_json);
     }
 
@@ -269,7 +320,7 @@ pub async fn run_pipeline_local(app: AppHandle, file_path: String, file_name: St
                 ("error".to_string(), e.clone(), String::new(), serde_json::to_string(&empty).unwrap_or_default())
             }
         };
-        save_history_entry(&mut store, crate::history::HistoryEntry {
+        let _ = save_history_entry(&mut store, crate::history::HistoryEntry {
             id,
             created_at: chrono::Utc::now().timestamp_millis(),
             source: "local".to_string(),
@@ -284,6 +335,7 @@ pub async fn run_pipeline_local(app: AppHandle, file_path: String, file_name: St
             template_name: String::new(),
             status,
             error_msg,
+            starred: false,
         }, &full_json);
     }
 
@@ -395,6 +447,12 @@ pub async fn sms_login(app: AppHandle, cid: String, tel: String, code: String, c
 }
 
 // --- History commands ---
+
+#[tauri::command]
+pub fn history_toggle_star(state: tauri::State<'_, HistoryState>, id: String) -> Result<bool, String> {
+    let mut store = state.0.lock().map_err(|e| format!("Lock error: {}", e))?;
+    store.toggle_star(&id).map_err(|e| format!("Toggle star error: {}", e))?.ok_or_else(|| "Entry not found".to_string())
+}
 
 #[tauri::command]
 pub fn history_list(state: tauri::State<'_, HistoryState>, page: u32, page_size: u32, search: Option<String>) -> Result<HistoryListResult, String> {

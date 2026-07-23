@@ -20,6 +20,8 @@ pub struct HistoryEntry {
     pub template_name: String,
     pub status: String,
     pub error_msg: String,
+    #[serde(default)]
+    pub starred: bool,
 }
 
 /// Paginated response for history listing.
@@ -97,7 +99,7 @@ impl HistoryStore {
     }
 
     pub fn list(&self, page: u32, page_size: u32, search: Option<&str>) -> HistoryListResult {
-        let filtered: Vec<&HistoryEntry> = if let Some(q) = search.filter(|s| !s.is_empty()) {
+        let mut filtered: Vec<&HistoryEntry> = if let Some(q) = search.filter(|s| !s.is_empty()) {
             let q = q.to_lowercase();
             self.entries
                 .iter()
@@ -110,6 +112,12 @@ impl HistoryStore {
         } else {
             self.entries.iter().collect()
         };
+        filtered.reverse(); // newest first
+        // Sort: starred entries first, then by time desc within each group
+        filtered.sort_by(|a, b| {
+            b.starred.cmp(&a.starred)
+                .then_with(|| b.created_at.cmp(&a.created_at))
+        });
 
         let total = filtered.len();
         let total_pages = if total == 0 {
@@ -160,19 +168,62 @@ impl HistoryStore {
     }
 
     pub fn clear(&mut self) -> std::io::Result<usize> {
-        let count = self.entries.len();
-        let jsonl_path = self.data_dir.join("history.jsonl");
-        std::fs::write(&jsonl_path, "")?;
-        self.bytes_written = 0;
+        let starred: Vec<HistoryEntry> = self.entries.iter()
+            .filter(|e| e.starred)
+            .cloned()
+            .collect();
+        let count = self.entries.len() - starred.len();
 
+        // Keep result files for starred entries
         let results_dir = self.data_dir.join("results");
+        let starred_ids: std::collections::HashSet<&str> = starred.iter().map(|e| e.id.as_str()).collect();
         if results_dir.exists() {
-            let _ = std::fs::remove_dir_all(&results_dir);
-            let _ = std::fs::create_dir_all(&results_dir);
+            if let Ok(read_dir) = std::fs::read_dir(&results_dir) {
+                for entry in read_dir.flatten() {
+                    let fname = entry.file_name();
+                    let name = fname.to_string_lossy();
+                    let id = name.strip_suffix(".json").unwrap_or(&name);
+                    if !starred_ids.contains(id) {
+                        let _ = std::fs::remove_file(entry.path());
+                    }
+                }
+            }
         }
 
-        self.entries.clear();
+        // Rewrite JSONL with only starred entries
+        let jsonl_path = self.data_dir.join("history.jsonl");
+        let mut file = std::fs::File::create(&jsonl_path)?;
+        for entry in &starred {
+            let line = serde_json::to_string(entry).unwrap_or_default();
+            writeln!(file, "{}", line)?;
+        }
+        self.bytes_written = 0;
+
+        self.entries = starred;
         Ok(count)
+    }
+
+    fn rewrite_jsonl(&mut self) -> std::io::Result<()> {
+        let jsonl_path = self.data_dir.join("history.jsonl");
+        let mut file = std::fs::File::create(&jsonl_path)?;
+        for entry in &self.entries {
+            let line = serde_json::to_string(entry).unwrap_or_default();
+            writeln!(file, "{}", line)?;
+        }
+        self.bytes_written = 0;
+        Ok(())
+    }
+
+    /// Toggle the star status of a history entry. Returns the new starred state.
+    pub fn toggle_star(&mut self, id: &str) -> std::io::Result<Option<bool>> {
+        if let Some(entry) = self.entries.iter_mut().find(|e| e.id == id) {
+            entry.starred = !entry.starred;
+            let new_val = entry.starred;
+            self.rewrite_jsonl()?;
+            Ok(Some(new_val))
+        } else {
+            Ok(None)
+        }
     }
 
     pub fn len(&self) -> usize {

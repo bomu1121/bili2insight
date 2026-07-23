@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from "vue";
 import { NButton, NText, NIcon, NInput, NPagination, NDrawer, NDrawerContent, NSpace, NDivider, NPopconfirm, createDiscreteApi } from "naive-ui";
-import { ArrowBackOutline, TrashOutline, EyeOutline, SearchOutline, RefreshOutline, CopyOutline, DownloadOutline, TimeOutline, DocumentTextOutline } from "@vicons/ionicons5";
+import { ArrowBackOutline, TrashOutline, EyeOutline, SearchOutline, RefreshOutline, CopyOutline, DownloadOutline, TimeOutline, DocumentTextOutline, Star, StarOutline } from "@vicons/ionicons5";
 import { useRouter } from "vue-router";
-import { fetchHistoryList, getHistoryResult, deleteHistoryItem, clearHistory } from "../utils/invoke";
+import { fetchHistoryList, getHistoryResult, deleteHistoryItem, clearHistory, toggleHistoryStar } from "../utils/invoke";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import type { HistoryEntry, HistoryListResult, PipelineResult } from "../utils/types";
 
@@ -75,7 +75,8 @@ async function exportDetail() {
 }
 
 async function doDelete(entry: HistoryEntry) { try { await deleteHistoryItem(entry.id); load(); } catch(e:any){ message.error("删除失败: "+String(e)); } }
-async function doClearAll() { try { await clearHistory(); data.value = null; message.success("已清空"); } catch(e:any){ message.error("清除失败: "+String(e)); } }
+async function toggleStar(entry: HistoryEntry) { try { const newVal = await toggleHistoryStar(entry.id); entry.starred = newVal; } catch(e:any){ message.error("操作失败: "+String(e)); } }
+async function doClearAll() { try { const count = await clearHistory(); load(); message.success(count > 0 ? `已清除${count}条记录，星标置顶已保留` : "无可清除记录"); } catch(e:any){ message.error("清除失败: "+String(e)); } }
 
 function fmtDate(ts: number) {
   const d = new Date(ts), now = new Date(), diffH = (now.getTime()-ts)/3600000;
@@ -120,7 +121,10 @@ function badgeStyle(source: string) {
       </div>
       <n-space :size="8">
         <n-button size="small" @click="load()" :loading="loading"><template #icon><n-icon><RefreshOutline /></n-icon></template></n-button>
-        <n-button size="small" type="error" secondary @click="doClearAll" :disabled="!data||data.total===0">清空全部</n-button>
+        <n-popconfirm @positive-click="doClearAll">
+          <template #trigger><n-button size="small" type="error" secondary :disabled="!data||data.total===0">清空全部</n-button></template>
+          {$“确认清空全部？星标置顶的记录会保留。”}
+        </n-popconfirm>
       </n-space>
     </div>
 
@@ -156,6 +160,14 @@ function badgeStyle(source: string) {
           </div>
         </div>
         <div class="h-actions" @click.stop>
+          <n-button size="tiny" text @click="toggleStar(entry)" :title="entry.starred ? '取消置顶' : '置顶星标'">
+            <template #icon>
+              <n-icon size="14" :color="entry.starred ? 'var(--color-warning)' : 'var(--color-text-tertiary)'">
+                <Star v-if="entry.starred" />
+                <StarOutline v-else />
+              </n-icon>
+            </template>
+          </n-button>
           <n-button size="tiny" text @click="openDetail(entry)"><template #icon><n-icon size="14"><EyeOutline /></n-icon></template></n-button>
           <n-popconfirm @positive-click="doDelete(entry)">
             <template #trigger><n-button size="tiny" text type="error"><template #icon><n-icon size="14"><TrashOutline /></n-icon></template></n-button></template>

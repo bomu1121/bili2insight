@@ -75,6 +75,10 @@ export async function deleteHistoryItem(id: string): Promise<boolean> {
     return invoke<boolean>("history_delete", { id });
 }
 
+export async function toggleHistoryStar(id: string): Promise<boolean> {
+    return invoke<boolean>("history_toggle_star", { id });
+}
+
 export async function clearHistory(): Promise<number> {
     return invoke<number>("history_clear");
 }
