@@ -1,6 +1,20 @@
-﻿use std::io::{BufRead, Write};
+use std::io::{BufRead, Write};
+use std::fs;
 use std::path::PathBuf;
 use std::sync::Mutex;
+
+/// Metadata for a single AI analysis run on a history entry.
+/// Analysis #0 is always the original result.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct AnalysisMeta {
+    pub id: String,
+    pub template_name: String,
+    pub created_at: i64,
+    pub summary: String,
+    pub elapsed_ms: i64,
+    pub status: String,
+    pub error_msg: String,
+}
 
 /// Lightweight metadata for history listing.
 /// Full pipeline results are stored separately as `{id}_result.json`.
@@ -224,6 +238,93 @@ impl HistoryStore {
         } else {
             Ok(None)
         }
+    }
+
+    /// List all analyses for a history entry.
+    /// Always includes the original result as analysis #0 (synthesized from
+    /// the history entry metadata).
+    pub fn get_analyses(&self, id: &str) -> Option<Vec<AnalysisMeta>> {
+        let entry = self.entries.iter().find(|e| e.id == id)?;
+
+        let mut analyses: Vec<AnalysisMeta> = Vec::new();
+
+        // Analysis #0: synthesize from the history entry itself
+        analyses.push(AnalysisMeta {
+            id: "0".to_string(),
+            template_name: if entry.template_name.is_empty() {
+                "默认".to_string()
+            } else {
+                entry.template_name.clone()
+            },
+            created_at: entry.created_at,
+            summary: entry.summary.clone(),
+            elapsed_ms: entry.elapsed_ms,
+            status: entry.status.clone(),
+            error_msg: entry.error_msg.clone(),
+        });
+
+        // Additional analyses: read from {id}_analyses.json
+        let meta_path = self.data_dir.join("results").join(format!("{}_analyses.json", id));
+        if meta_path.exists() {
+            if let Ok(contents) = fs::read_to_string(&meta_path) {
+                if let Ok(extra) = serde_json::from_str::<Vec<AnalysisMeta>>(&contents) {
+                    analyses.extend(extra);
+                }
+            }
+        }
+
+        Some(analyses)
+    }
+
+    /// Get the result JSON for a specific analysis.
+    /// analysis_id "0" returns the original result at {id}.json .
+    pub fn get_analysis_result(&self, id: &str, analysis_id: &str) -> Option<String> {
+        let result_path = if analysis_id == "0" {
+            self.data_dir.join("results").join(format!("{}.json", id))
+        } else {
+            self.data_dir.join("results").join(format!("{}_a_{}.json", id, analysis_id))
+        };
+        fs::read_to_string(&result_path).ok()
+    }
+
+    /// Add a new analysis to a history entry, returning the assigned analysis_id.
+    pub fn add_analysis(
+        &mut self,
+        entry_id: &str,
+        meta: AnalysisMeta,
+        result_json: &str,
+    ) -> std::io::Result<String> {
+        let results_dir = self.data_dir.join("results");
+        let _ = fs::create_dir_all(&results_dir);
+
+        // Read existing analyses metadata, determine next index
+        let meta_path = results_dir.join(format!("{}_analyses.json", entry_id));
+        let mut analyses: Vec<AnalysisMeta> = if meta_path.exists() {
+            let contents = fs::read_to_string(&meta_path).unwrap_or_default();
+            serde_json::from_str(&contents).unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+
+        let next_id = (analyses.len() + 1).to_string();
+
+        // Save result JSON
+        let result_path = results_dir.join(format!("{}_a_{}.json", entry_id, next_id));
+        fs::write(&result_path, result_json)?;
+
+        // Save metadata
+        let mut new_meta = meta;
+        new_meta.id = next_id.clone();
+        analyses.push(new_meta);
+        let meta_json = serde_json::to_string(&analyses).unwrap_or_default();
+        fs::write(&meta_path, meta_json)?;
+
+        Ok(next_id)
+    }
+
+    /// Get a history entry by id (for re-analysis).
+    pub fn get_entry(&self, id: &str) -> Option<&HistoryEntry> {
+        self.entries.iter().find(|e| e.id == id)
     }
 
     pub fn len(&self) -> usize {

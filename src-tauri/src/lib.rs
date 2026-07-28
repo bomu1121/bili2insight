@@ -155,6 +155,9 @@ pub fn run() {
             commands::history_delete,
             commands::history_clear,
             commands::history_add,
+            commands::history_get_analyses,
+            commands::history_get_analysis_result,
+            commands::history_rerun_ai,
        ])
        .setup(|app| {
            let http_client = reqwest::Client::builder()

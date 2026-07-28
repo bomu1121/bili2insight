@@ -14,10 +14,11 @@ export async function runPipelineWithPage(
   url: string, proxy?: string, aiApiUrl?: string, aiApiKey?: string,
   aiModel?: string, aiPrompt?: string, pageCid?: number,
   asrModel?: string, asrApiUrl?: string, asrApiKey?: string, queueItemId?: string,
+  templateName?: string,
 ): Promise<PipelineResult> {
   console.log("invoke run_pipeline", { url: url.slice(0,40), pageCid, queueItemId });
   try {
-    const r = await invoke<PipelineResult>("run_pipeline", { url, proxy: proxy || null, aiApiUrl: aiApiUrl || null, aiApiKey: aiApiKey || null, aiModel: aiModel || null, aiPrompt: aiPrompt || null, pageCid: pageCid ?? null, asrModel: asrModel || null, asrApiUrl: asrApiUrl || null, asrApiKey: asrApiKey || null, queueItemId: queueItemId || null });
+    const r = await invoke<PipelineResult>("run_pipeline", { url, proxy: proxy || null, aiApiUrl: aiApiUrl || null, aiApiKey: aiApiKey || null, aiModel: aiModel || null, aiPrompt: aiPrompt || null, pageCid: pageCid ?? null, asrModel: asrModel || null, asrApiUrl: asrApiUrl || null, asrApiKey: asrApiKey || null, queueItemId: queueItemId || null, templateName: templateName || null, templateName: templateName || null });
     console.log("invoke run_pipeline done");
     return r;
   } catch(e) { console.error("invoke run_pipeline FAILED:", e); throw e; }
@@ -36,8 +37,9 @@ export async function runPipelineLocal(
   aiApiUrl?: string, aiApiKey?: string,
   aiModel?: string, aiPrompt?: string,
   asrModel?: string, asrApiUrl?: string, asrApiKey?: string, queueItemId?: string,
+  templateName?: string,
 ): Promise<PipelineResult> {
-  return invoke<PipelineResult>("run_pipeline_local", { filePath, fileName, aiApiUrl: aiApiUrl || null, aiApiKey: aiApiKey || null, aiModel: aiModel || null, aiPrompt: aiPrompt || null, asrModel: asrModel || null, asrApiUrl: asrApiUrl || null, asrApiKey: asrApiKey || null, queueItemId: queueItemId || null });
+  return invoke<PipelineResult>("run_pipeline_local", { filePath, fileName, aiApiUrl: aiApiUrl || null, aiApiKey: aiApiKey || null, aiModel: aiModel || null, aiPrompt: aiPrompt || null, asrModel: asrModel || null, asrApiUrl: asrApiUrl || null, asrApiKey: asrApiKey || null, queueItemId: queueItemId || null, templateName: templateName || null });
 }
 
 export async function saveResultToFile(result: PipelineResult, outputPath: string): Promise<void> {
@@ -79,6 +81,24 @@ export async function toggleHistoryStar(id: string): Promise<boolean> {
     return invoke<boolean>("history_toggle_star", { id });
 }
 
+
+export async function historyGetAnalyses(historyId: string): Promise<any[]> {
+    return invoke<any[]>("history_get_analyses", { historyId });
+}
+
+export async function historyGetAnalysisResult(historyId: string, analysisId: string): Promise<string> {
+    return invoke<string>("history_get_analysis_result", { historyId, analysisId });
+}
+
+export async function historyRerunAi(
+    historyId: string, prompt: string, templateName: string,
+    aiApiUrl: string, aiApiKey: string, aiModel: string
+): Promise<string> {
+    return invoke<string>("history_rerun_ai", {
+        historyId, prompt, templateName,
+        aiApiUrl: aiApiUrl || "", aiApiKey: aiApiKey || "", aiModel: aiModel || ""
+    });
+}
 export async function clearHistory(): Promise<number> {
     return invoke<number>("history_clear");
 }

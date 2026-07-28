@@ -426,15 +426,18 @@ export const useAppStore = defineStore("app", () => {
     updated[idx] = { ...item, status: 'running' as const, stageLabel: '开始处理' };
     const startTime = performance.now();
     queue.value = updated;
-    const prompt = useTemplateStore().resolvePrompt(item.templateIndex);
+    const templateStore = useTemplateStore();
+    const prompt = templateStore.resolvePrompt(item.templateIndex);
+    const tplIdx = item.templateIndex ?? templateStore.selectedTemplateIndex;
+    const templateName = templateStore.allTemplates[tplIdx]?.name ?? "";
     console.log('processQueue: item', idx, 'set to running, url=', item.url?.slice(0,50), 'cid=', item.pageInfo.cid, 'part=', item.pageInfo.part);
     try {
       if (signal?.aborted) return;
       let result: PipelineResult;
       if (item.source === 'local') {
-        result = await runPipelineLocal(item.url!, item.pageInfo.part, aiApiUrl.value || undefined, aiApiKey.value || undefined, aiModel.value || undefined, prompt || undefined, asrModel.value, asrApiUrl.value || undefined, asrApiKey.value || undefined, item.id);
+        result = await runPipelineLocal(item.url!, item.pageInfo.part, aiApiUrl.value || undefined, aiApiKey.value || undefined, aiModel.value || undefined, prompt || undefined, asrModel.value, asrApiUrl.value || undefined, asrApiKey.value || undefined, item.id, templateName);
       } else {
-        result = await runPipelineWithPage(item.url!, proxy.value || undefined, aiApiUrl.value || undefined, aiApiKey.value || undefined, aiModel.value || undefined, prompt || undefined, item.pageInfo.cid, asrModel.value, asrApiUrl.value || undefined, asrApiKey.value || undefined, item.id);
+        result = await runPipelineWithPage(item.url!, proxy.value || undefined, aiApiUrl.value || undefined, aiApiKey.value || undefined, aiModel.value || undefined, prompt || undefined, item.pageInfo.cid, asrModel.value, asrApiUrl.value || undefined, asrApiKey.value || undefined, item.id, templateName);
       }
       if (signal?.aborted) return;
       console.log('processQueue: item', idx, 'DONE, bvid=', result.video_info.bvid, 'title=', result.video_info.title?.slice(0,40));
