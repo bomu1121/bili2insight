@@ -1,0 +1,843 @@
+/**
+ * Reading Steiner — 动画基元与交互效果
+ * 命运石之门 CRT 主题专用动画系统
+ */
+
+/* ============================================
+    Spring Physics Easing
+   ============================================ */
+:root {
+  --spring-soft: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --spring-bounce: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --spring-snappy: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --spring-elastic: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-expo-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-expo-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-crt: cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+/* ============================================
+    Glitch Text — 文字故障效果
+   ============================================ */
+@keyframes glitch-text {
+  0%, 100% { transform: translate(0); opacity: 1; }
+  2% { transform: translate(-2px, 1px); opacity: 0.8; }
+  4% { transform: translate(2px, -1px); opacity: 1; }
+  6% { transform: translate(0); opacity: 1; }
+  42% { transform: translate(0); }
+  44% { transform: translate(-3px, 2px); opacity: 0.75; }
+  46% { transform: translate(3px, -1px); opacity: 0.9; }
+  47% { transform: translate(0); opacity: 1; }
+}
+
+@keyframes glitch-clip {
+  0%, 100% { clip-path: inset(0 0 0 0); }
+  20% { clip-path: inset(20% -5px 60% -5px); }
+  40% { clip-path: inset(60% -5px 10% -5px); }
+  60% { clip-path: inset(40% -5px 30% -5px); }
+  80% { clip-path: inset(10% -5px 70% -5px); }
+}
+
+@keyframes glitch-skew {
+  0%, 100% { transform: skew(0deg); }
+  10% { transform: skew(0.5deg); }
+  30% { transform: skew(-0.5deg); }
+  50% { transform: skew(0.3deg); }
+  70% { transform: skew(-0.2deg); }
+}
+
+.glitch-hover:hover {
+  animation: glitch-text 0.4s var(--ease-crt) both;
+}
+.glitch-hover:hover::before {
+  content: attr(data-text);
+  position: absolute;
+  left: 2px;
+  text-shadow: -2px 0 #ff4444;
+  top: 0;
+  color: var(--color-text);
+  background: var(--color-bg);
+  overflow: hidden;
+  clip-path: inset(0 0 0 0);
+  animation: glitch-clip 0.3s var(--ease-crt) infinite;
+}
+.glitch-hover:hover::after {
+  content: attr(data-text);
+  position: absolute;
+  left: -2px;
+  text-shadow: 2px 0 #4488ff;
+  top: 0;
+  color: var(--color-text);
+  background: var(--color-bg);
+  overflow: hidden;
+  clip-path: inset(0 0 0 0);
+  animation: glitch-clip 0.3s var(--ease-crt) 0.1s infinite reverse;
+}
+
+/* ============================================
+    Typewriter — 打字机逐字揭示
+   ============================================ */
+@keyframes typewriter-reveal {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+@keyframes blink-cursor {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.typewriter {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  animation: typewriter-reveal 1.5s steps(30, end);
+}
+
+.typewriter-cursor::after {
+  content: '\258C';
+  display: inline-block;
+  color: var(--color-brand);
+  animation: blink-cursor 0.7s step-end infinite;
+  margin-left: 2px;
+  text-shadow: var(--divergence-glow);
+}
+
+/* Staggered children reveal */
+.stagger-reveal > * {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.5s var(--spring-snappy),
+              transform 0.5s var(--spring-snappy);
+}
+.stagger-reveal.revealed > *:nth-child(1) { transition-delay: 0s; }
+.stagger-reveal.revealed > *:nth-child(2) { transition-delay: 0.08s; }
+.stagger-reveal.revealed > *:nth-child(3) { transition-delay: 0.16s; }
+.stagger-reveal.revealed > *:nth-child(4) { transition-delay: 0.24s; }
+.stagger-reveal.revealed > *:nth-child(5) { transition-delay: 0.32s; }
+.stagger-reveal.revealed > *:nth-child(6) { transition-delay: 0.4s; }
+.stagger-reveal.revealed > *:nth-child(7) { transition-delay: 0.48s; }
+.stagger-reveal.revealed > *:nth-child(8) { transition-delay: 0.56s; }
+.stagger-reveal.revealed > * {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ============================================
+    Scanline Sweep — 水平扫描线扫过
+   ============================================ */
+@keyframes scanline-sweep {
+  0% { top: -2px; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: calc(100% + 2px); opacity: 0; }
+}
+
+.scanline-sweep {
+  position: relative;
+  overflow: hidden;
+}
+.scanline-sweep::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(111, 181, 132, 0.6),
+    transparent
+  );
+  animation: scanline-sweep 3s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Running border scan */
+@keyframes border-scan {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 300% 0%; }
+}
+
+.border-scan {
+  position: relative;
+}
+.border-scan::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--color-brand) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: border-scan 3s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ============================================
+    CRT Static / Noise
+   ============================================ */
+@keyframes crt-static {
+  0%, 100% { background-position: 0 0; }
+  10% { background-position: -10% -20%; }
+  20% { background-position: -40% 10%; }
+  30% { background-position: 10% -40%; }
+  40% { background-position: -30% 30%; }
+  50% { background-position: 20% -10%; }
+  60% { background-position: -20% -30%; }
+  70% { background-position: 40% 20%; }
+  80% { background-position: -10% 40%; }
+  90% { background-position: 30% -20%; }
+}
+
+.crt-static-overlay {
+  position: relative;
+}
+.crt-static-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-size: 128px 128px;
+  animation: crt-static 0.5s steps(10) infinite;
+  pointer-events: none;
+  z-index: 5;
+  border-radius: inherit;
+}
+
+/* ============================================
+    Digit Flip — 数字翻页效果
+   ============================================ */
+@keyframes digit-flip-in {
+  0% { transform: rotateX(-90deg); opacity: 0; }
+  60% { transform: rotateX(10deg); opacity: 1; }
+  80% { transform: rotateX(-3deg); }
+  100% { transform: rotateX(0deg); opacity: 1; }
+}
+
+.digit-flip {
+  display: inline-block;
+  perspective: 60px;
+  transform-style: preserve-3d;
+}
+.digit-flip.flipping {
+  animation: digit-flip-in 0.5s var(--spring-bounce) both;
+}
+
+/* ============================================
+    Magnetic / Tilt — 磁吸 + 倾斜
+   ============================================ */
+.magnetic {
+  transition: transform 0.15s var(--ease-expo-out);
+  will-change: transform;
+}
+
+.tilt-card {
+  transition: transform 0.2s var(--ease-expo-out);
+  transform-style: preserve-3d;
+  perspective: 800px;
+  will-change: transform;
+}
+
+/* ============================================
+    Particle / Energy Ring
+   ============================================ */
+@keyframes energy-ring {
+  0% { transform: scale(0.8); opacity: 0.8; border-color: var(--color-brand); }
+  50% { transform: scale(1.3); opacity: 0.4; border-color: transparent; }
+  100% { transform: scale(1.5); opacity: 0; border-color: transparent; }
+}
+
+.energy-pulse::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 1px solid var(--color-brand);
+  animation: energy-ring 2s var(--ease-expo-out) infinite;
+  pointer-events: none;
+}
+
+/* ============================================
+    Checkmark Draw — SVG 勾画
+   ============================================ */
+@keyframes checkmark-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+.checkmark-animated {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: checkmark-draw 0.5s var(--ease-expo-out) forwards;
+}
+
+/* ============================================
+    Ripple — Green 波纹扩散
+   ============================================ */
+@keyframes ripple-expand {
+  to { transform: scale(4); opacity: 0; }
+}
+
+.ripple-container {
+  position: relative;
+  overflow: hidden;
+}
+.ripple-effect {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(111, 181, 132, 0.2);
+  transform: scale(0);
+  animation: ripple-expand 0.6s var(--ease-expo-out) forwards;
+  pointer-events: none;
+}
+
+/* ============================================
+    Progress Segments — 分段发散度进度条
+   ============================================ */
+@keyframes segment-fill {
+  0% { transform: scaleX(0); transform-origin: left; }
+  60% { transform: scaleX(1.05); transform-origin: left; }
+  100% { transform: scaleX(1); transform-origin: left; }
+}
+
+.segmented-progress {
+  display: flex;
+  gap: 2px;
+  height: 4px;
+}
+.segment {
+  flex: 1;
+  background: rgba(111, 181, 132, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+.segment.filled::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--color-brand);
+  border-radius: 2px;
+  animation: segment-fill 0.4s var(--spring-bounce) both;
+  box-shadow: var(--divergence-glow);
+}
+
+/* ============================================
+    Card Materialize — 卡片物质化出现
+   ============================================ */
+@keyframes materialize {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+    filter: brightness(2);
+  }
+  60% {
+    opacity: 1;
+    filter: brightness(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: brightness(1);
+  }
+}
+
+.materialize {
+  animation: materialize 0.5s var(--spring-snappy) both;
+}
+
+/* ============================================
+    Dissolve — 溶解消失
+   ============================================ */
+@keyframes dissolve {
+  0% { opacity: 1; transform: scale(1); filter: blur(0); }
+  100% { opacity: 0; transform: scale(0.95); filter: blur(4px); }
+}
+
+.dissolve {
+  animation: dissolve 0.4s var(--ease-expo-in) forwards;
+}
+
+/* ============================================
+    Scroll-driven reveal
+   ============================================ */
+@supports (animation-timeline: view()) {
+  .scroll-reveal {
+    animation: scroll-enter 1s ease-out both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 100%;
+  }
+  .scroll-reveal-sm {
+    animation: scroll-enter-sm 0.8s ease-out both;
+    animation-timeline: view();
+    animation-range: entry 5% entry 100%;
+  }
+}
+
+@keyframes scroll-enter {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes scroll-enter-sm {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
+    View Transition — 页面切换
+   ============================================ */
+::view-transition-old(root) {
+  animation: vt-exit 0.3s var(--ease-expo-in) both;
+}
+::view-transition-new(root) {
+  animation: vt-enter 0.4s var(--spring-snappy) 0.05s both;
+}
+
+@keyframes vt-exit {
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+    filter: brightness(1.5) blur(2px);
+  }
+}
+
+@keyframes vt-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: brightness(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: brightness(1);
+  }
+}
+
+/* ============================================
+    Signal Dot — 信号脉冲点
+   ============================================ */
+@keyframes signal-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.8); opacity: 0.3; }
+}
+
+.signal-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-brand);
+  box-shadow: var(--brand-glow);
+  position: relative;
+}
+.signal-dot::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1px solid var(--color-brand);
+  animation: signal-pulse 2s var(--ease-expo-out) infinite;
+}
+
+/* ============================================
+    Skeleton CRT Shimmer — CRT 扫描骨架屏
+   ============================================ */
+@keyframes crt-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-crt {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-muted) 25%,
+    rgba(111, 181, 132, 0.05) 37%,
+    var(--color-surface-muted) 63%
+  );
+  background-size: 200% 100%;
+  animation: crt-shimmer 1.8s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================
+    Star Pop — 星标弹出
+   ============================================ */
+@keyframes star-pop {
+  0% { transform: scale(0) rotate(-30deg); opacity: 0; }
+  60% { transform: scale(1.4) rotate(5deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.star-pop {
+  animation: star-pop 0.4s var(--spring-elastic) both;
+}
+
+/* ============================================
+    Icon Bounce — 图标弹跳
+   ============================================ */
+@keyframes icon-bounce {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-6px); }
+  60% { transform: translateY(-2px); }
+}
+
+.icon-bounce {
+  animation: icon-bounce 0.6s var(--spring-snappy) both;
+}
+
+/* ============================================
+    Hover Lift — 悬浮抬升 (比普通 translateY 更细腻)
+   ============================================ */
+.hover-lift {
+  transition: transform 0.25s var(--spring-snappy),
+              box-shadow 0.3s var(--ease-expo-out),
+              border-color 0.25s var(--ease-expo-out);
+}
+.hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-hover);
+  border-color: var(--color-brand-border);
+}
+.hover-lift:active {
+  transform: translateY(-1px) scale(0.985);
+  transition-duration: 0.1s;
+}
+
+/* ============================================
+    Focus Ring — 聚焦绿光环
+   ============================================ */
+@keyframes focus-ring-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(111, 181, 132, 0.2); }
+  50% { box-shadow: 0 0 0 3px rgba(111, 181, 132, 0.35), 0 0 8px rgba(111, 181, 132, 0.1); }
+}
+
+.focus-ring:focus-visible {
+  outline: none;
+  animation: focus-ring-pulse 2s ease-in-out infinite;
+  border-color: var(--color-brand);
+}
+
+/* ============================================
+   spotlight — 光标跟随光斑
+   ============================================ */
+.spotlight {
+  position: relative;
+  overflow: hidden;
+}
+.spotlight::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle 280px at var(--cursor-x, 50%) var(--cursor-y, 50%),
+    rgba(111, 181, 132, 0.04) 0%,
+    rgba(111, 181, 132, 0.02) 30%,
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+  z-index: 1;
+  border-radius: inherit;
+}
+.spotlight:hover::before {
+  opacity: 1;
+}
+
+/* Cards ambient glow on hover */
+.spotlight:hover {
+  border-color: rgba(111, 181, 132, 0.15);
+  box-shadow: var(--shadow-hover);
+}
+
+/* ============================================
+   binary-rain — 二进制雨背景（输入框装饰）
+   ============================================ */
+@keyframes binary-fall {
+  0% { transform: translateY(-100%); opacity: 0; }
+  10% { opacity: 0.08; }
+  90% { opacity: 0.08; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+
+.binary-rain-bg {
+  position: relative;
+}
+.binary-rain-bg::before {
+  content: '010010100010111010100010100101110010101110001010100100011100101010011100010101011001010100010110101010111000101010011101010100100100010';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.8;
+  color: rgba(111, 181, 132, 0.04);
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow: hidden;
+  pointer-events: none;
+  animation: binary-fall 20s linear infinite;
+}
+
+/* ============================================
+   screen-tear — CRT 画面撕裂
+   ============================================ */
+@keyframes screen-tear {
+  0%, 100% { clip-path: inset(0 0 0 0); transform: translateX(0); }
+  3% { clip-path: inset(30% 0 25% 0); transform: translateX(-4px); }
+  6% { clip-path: inset(0 0 0 0); transform: translateX(0); }
+  48% { clip-path: inset(0 0 0 0); transform: translateX(0); }
+  50% { clip-path: inset(15% 0 60% 0); transform: translateX(3px); }
+  52% { clip-path: inset(0 0 0 0); transform: translateX(0); }
+}
+
+.screen-tear {
+  animation: screen-tear 4s ease-in-out infinite;
+}
+
+/* ============================================
+   text-reveal-line — 逐行文字揭示
+   ============================================ */
+@keyframes textRevealLine {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.text-reveal-line {
+  animation: textRevealLine 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+/* ============================================
+   timeline — 时间轴布局
+   ============================================ */
+.timeline {
+  position: relative;
+  padding-left: 32px;
+}
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(
+    180deg,
+    var(--color-brand) 0%,
+    var(--color-border-strong) 20%,
+    var(--color-border-strong) 80%,
+    var(--color-brand) 100%
+  );
+}
+.timeline-item {
+  position: relative;
+  margin-bottom: 16px;
+}
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -25px;
+  top: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-brand);
+  box-shadow: 0 0 6px rgba(111, 181, 132, 0.4);
+  border: 2px solid var(--color-surface);
+}
+.timeline-item.done::before {
+  background: var(--color-success);
+  box-shadow: 0 0 6px rgba(0, 204, 102, 0.4);
+}
+
+
+/* ============================================
+   particle-orbit — 粒子轨道装饰
+   ============================================ */
+@keyframes particle-float-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+  25% { transform: translate(30px, -20px) scale(1.3); opacity: 0.3; }
+  50% { transform: translate(-10px, -40px) scale(0.8); opacity: 0.5; }
+  75% { transform: translate(-25px, -10px) scale(1.1); opacity: 0.4; }
+}
+@keyframes particle-float-2 {
+  0%, 100% { transform: translate(0, 0) scale(0.8); opacity: 0.4; }
+  33% { transform: translate(-20px, -30px) scale(1.2); opacity: 0.3; }
+  66% { transform: translate(25px, -15px) scale(0.7); opacity: 0.5; }
+}
+@keyframes particle-float-3 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.5; }
+  50% { transform: translate(15px, -35px) scale(1.4); opacity: 0.2; }
+}
+
+.particle-orbit {
+  position: relative;
+}
+.particle-orbit::before,
+.particle-orbit::after {
+  content: '';
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--color-brand);
+  box-shadow: 0 0 4px var(--color-brand);
+  pointer-events: none;
+}
+.particle-orbit::before {
+  animation: particle-float-1 4s ease-in-out infinite;
+}
+.particle-orbit::after {
+  animation: particle-float-2 3.5s ease-in-out 0.5s infinite;
+}
+
+/* ============================================
+   scrollbar-glow — 滚动条 hover 辉光
+   ============================================ */
+::-webkit-scrollbar-thumb {
+  transition: background 0.2s, box-shadow 0.2s;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+  box-shadow: 0 0 6px rgba(111, 181, 132, 0.15);
+}
+
+/* ============================================
+   tab-char-scatter — Tab 文字 hover 散射
+   ============================================ */
+@keyframes char-scatter {
+  0%, 100% { letter-spacing: normal; }
+  50% { letter-spacing: 0.15em; }
+}
+.tab-char-scatter:hover {
+  animation: char-scatter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ============================================
+   page-glitch-transition — 页面切换 glitch
+   ============================================ */
+@keyframes page-glitch-out {
+  0% { opacity: 1; transform: translateX(0); clip-path: inset(0 0 0 0); }
+  20% { clip-path: inset(20% -5px 60% -5px); }
+  40% { clip-path: inset(60% -5px 10% -5px); }
+  60% { clip-path: inset(40% -5px 30% -5px); }
+  80% { clip-path: inset(10% -5px 70% -5px); }
+  100% { opacity: 0; transform: translateX(-8px); clip-path: inset(0 0 100% 0); }
+}
+@keyframes page-glitch-in {
+  0% { opacity: 0; transform: translateX(8px); filter: brightness(3) blur(1px); }
+  20% { filter: brightness(1) blur(0); }
+  100% { opacity: 1; transform: translateX(0); filter: brightness(1); }
+}
+
+/* ============================================
+   dropdown-stagger — 下拉选项 staggered 出现
+   ============================================ */
+.n-base-select-menu .n-base-select-option {
+  opacity: 0;
+  animation: dropdown-item-enter 0.3s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+.n-base-select-menu .n-base-select-option:nth-child(1) { animation-delay: 0.02s; }
+.n-base-select-menu .n-base-select-option:nth-child(2) { animation-delay: 0.06s; }
+.n-base-select-menu .n-base-select-option:nth-child(3) { animation-delay: 0.10s; }
+.n-base-select-menu .n-base-select-option:nth-child(4) { animation-delay: 0.14s; }
+.n-base-select-menu .n-base-select-option:nth-child(5) { animation-delay: 0.18s; }
+.n-base-select-menu .n-base-select-option:nth-child(6) { animation-delay: 0.22s; }
+.n-base-select-menu .n-base-select-option:nth-child(7) { animation-delay: 0.26s; }
+.n-base-select-menu .n-base-select-option:nth-child(8) { animation-delay: 0.30s; }
+
+@keyframes dropdown-item-enter {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================
+   dissolve 补充 — 用于 Toast 消失
+   ============================================ */
+@keyframes dissolve {
+  0% { opacity: 1; transform: scale(1); filter: blur(0); }
+  100% { opacity: 0; transform: scale(0.95) translateY(-4px); filter: blur(4px) brightness(2); }
+}
+
+/* ============================================
+   cursor-trail — 绿色光标拖尾（全局）
+   ============================================ */
+@keyframes cursorTrailFade {
+  0% { opacity: 0.6; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.3); }
+}
+
+
+/* ============================================
+   reactive-glow — 每卡片独立光标辉光
+   ============================================ */
+[data-reactive-glow] {
+  position: relative;
+  overflow: hidden;
+}
+[data-reactive-glow]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle 280px at var(--rx, 50%) var(--ry, 50%),
+    rgba(111, 181, 132, 0.09) 0%,
+    rgba(111, 181, 132, 0.04) 40%,
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+[data-reactive-glow]:hover::after {
+  opacity: 1;
+}
+
+/* Divergence meter loading spinner */
+@keyframes divergence-meter {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes divergence-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}

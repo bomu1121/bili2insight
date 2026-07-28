@@ -1,67 +1,53 @@
 /**
- * Bili2Insight design tokens
- * 「纸面工作台」—— 浅色编辑感桌面生产力工具
- * 纸面画布 + 纯白表面 + 发丝边界；墨色主导航，B站蓝只做交互信号
+ * Reading Steiner — 暗い実験室 (Dark Lab)
+ * 温暖暗色调 + 收敛 Sage Green + 舒适对比度
+ * 设计原则：生产力工具，非游戏终端。眼睛优先。
  */
 :root {
-  /* Brand — B站信号蓝 */
-  --color-brand: #00aeec;
-  --color-brand-hover: #00a1db;
-  --color-brand-pressed: #0090c4;
-  --color-brand-soft: #e4f5fe;
-  --color-brand-border: #b9e6f9;
-  --color-brand-shadow: rgba(0, 174, 236, 0.16);
-
-  /* Ink — 墨色（近黑微蓝）：导航激活、强调标题、主按钮 */
-  --color-ink: #16181d;
-  --color-ink-hover: #2b2f37;
-  --color-ink-soft: #eeeff2;
-
-  /* Neutrals */
-  --color-bg: #f4f5f7;
-  --color-surface: #ffffff;
-  --color-surface-muted: #f8f9fa;
-  --color-border: #e5e7eb;
-  --color-border-strong: #d4d7dd;
-  --color-text: #1d2129;
-  --color-text-secondary: #6b7280;
-  --color-text-tertiary: #9ca3af;
-  --color-text-inverse: #ffffff;
-
-  /* Semantic */
-  --color-success: #18a058;
-  --color-success-soft: #eaf8f0;
-  --color-success-border: #b8e5cb;
-  --color-warning: #f0a020;
-  --color-warning-soft: #fdf3e3;
-  --color-warning-border: #f3ddb0;
-  --color-error: #d03050;
-  --color-error-soft: #fceef2;
-  --color-error-border: #f2c3cf;
-  --color-info: #2080f0;
-  --color-info-soft: #edf4fe;
-  --color-info-border: #c3dbf9;
-
-  /* Source accents — 来源色彩映射 */
-  --color-accent-pink: #fb7299; /* B站粉：收藏夹 */
-  --color-accent-pink-soft: #feebf2;
-  --color-accent-pink-border: #f8cbda;
-  --color-accent-indigo: #6366f1; /* 靛蓝：历史 */
-  --color-accent-indigo-soft: #eeeefe;
-  --color-accent-indigo-border: #d0d2f8;
-  /* 兼容旧变量名 */
-  --color-accent-purple: #6366f1;
-  --color-accent-purple-soft: #eeeefe;
-
-  /* Radius: control 6 / chip 8 / card 12 / sheet 14 */
+  --color-brand: #6fb584;
+  --color-brand-hover: #81c193;
+  --color-brand-pressed: #5ea272;
+  --color-brand-soft: rgba(111, 181, 132, 0.07);
+  --color-brand-border: rgba(111, 181, 132, 0.16);
+  --color-brand-shadow: rgba(111, 181, 132, 0.18);
+  --color-ink: #1f2229;
+  --color-ink-hover: #272a32;
+  --color-ink-soft: rgba(255, 255, 255, 0.03);
+  --color-bg: #111316;
+  --color-surface: #181b20;
+  --color-surface-muted: #14161b;
+  --color-border: #23252d;
+  --color-border-strong: #2f3139;
+  --color-text: #e3e0d9;
+  --color-text-secondary: #96938c;
+  --color-text-tertiary: #5d5a54;
+  --color-text-inverse: #111316;
+  --color-success: #63a873;
+  --color-success-soft: rgba(99, 168, 115, 0.07);
+  --color-success-border: rgba(99, 168, 115, 0.18);
+  --color-warning: #c99a46;
+  --color-warning-soft: rgba(201, 154, 70, 0.07);
+  --color-warning-border: rgba(201, 154, 70, 0.18);
+  --color-error: #c46264;
+  --color-error-soft: rgba(196, 98, 100, 0.07);
+  --color-error-border: rgba(196, 98, 100, 0.18);
+  --color-info: #6088c0;
+  --color-info-soft: rgba(96, 136, 192, 0.07);
+  --color-info-border: rgba(96, 136, 192, 0.18);
+  --color-accent-pink: #d48795;
+  --color-accent-pink-soft: rgba(212, 135, 149, 0.07);
+  --color-accent-pink-border: rgba(212, 135, 149, 0.16);
+  --color-accent-indigo: #8794c2;
+  --color-accent-indigo-soft: rgba(135, 148, 194, 0.07);
+  --color-accent-indigo-border: rgba(135, 148, 194, 0.16);
+  --color-accent-purple: #8794c2;
+  --color-accent-purple-soft: rgba(135, 148, 194, 0.07);
   --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 8px;
-  --radius-lg: 12px;
+  --radius-lg: 10px;
   --radius-xl: 14px;
   --radius-full: 9999px;
-
-  /* Spacing (4px base) */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -71,12 +57,8 @@
   --space-8: 32px;
   --space-10: 40px;
   --space-12: 48px;
-
-  /* Typography */
-  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
-    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-  --font-mono: "Cascadia Code", ui-monospace, SFMono-Regular, Menlo, Consolas,
-    "Liberation Mono", monospace;
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --font-mono: "Cascadia Code", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --font-size-xs: 11px;
   --font-size-sm: 12px;
   --font-size-md: 13px;
@@ -91,8 +73,6 @@
   --line-height-tight: 1.35;
   --line-height-body: 1.6;
   --line-height-loose: 1.85;
-
-  /* Layout */
   --sidebar-width: 216px;
   --header-height: 52px;
   --content-max-narrow: 440px;
@@ -100,50 +80,126 @@
   --content-max-source: 680px;
   --content-max-wide: 920px;
   --content-max-result: 780px;
-
-  /* Elevation — 发丝边界为主，阴影极轻 */
-  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.04);
-  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
-  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04),
-    0 4px 16px rgba(16, 24, 40, 0.05);
-  --shadow-hover: 0 2px 4px rgba(16, 24, 40, 0.04),
-    0 12px 32px rgba(16, 24, 40, 0.1);
-  --shadow-brand-hover: 0 8px 24px rgba(0, 174, 236, 0.18);
-  --drawer-shadow: -12px 0 40px rgba(16, 24, 40, 0.1);
-
-  /* Motion */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(111, 181, 132, 0.03);
+  --shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(111, 181, 132, 0.06), 0 0 10px rgba(111, 181, 132, 0.04);
+  --shadow-brand-hover: 0 0 16px rgba(111, 181, 132, 0.18), 0 0 0 1px rgba(111, 181, 132, 0.12);
+  --drawer-shadow: -4px 0 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(111, 181, 132, 0.03);
+  --brand-glow: 0 0 4px rgba(111, 181, 132, 0.35), 0 0 10px rgba(111, 181, 132, 0.12);
+  --brand-glow-soft: 0 0 2px rgba(111, 181, 132, 0.2);
+  --amber-glow: 0 0 6px rgba(201, 154, 70, 0.25);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --dur-1: 0.12s;
   --dur-2: 0.18s;
   --dur-3: 0.28s;
-
-  /* Scrollbar */
-  --scrollbar-size: 8px;
-  --scrollbar-thumb: #d4d7dd;
-  --scrollbar-thumb-hover: #b6bbc3;
-
-  /* Log console (dark inset) */
-  --color-log-bg: #16181d;
-  --color-log-text: #9aa1ac;
-  --color-log-border: #2b2f37;
-  --color-log-track: #1d2129;
-  --color-log-thumb: #444a55;
-  --color-log-thumb-hover: #5c6370;
+  --dur-4: 0.4s;
+  --dur-5: 0.6s;
+  --scrollbar-size: 6px;
+  --scrollbar-thumb: #2c2e36;
+  --scrollbar-thumb-hover: #3d3f48;
+  --color-log-bg: #0d0f13;
+  --color-log-text: #7ebc92;
+  --color-log-border: #1e2a22;
+  --color-log-track: #0d0f13;
+  --color-log-thumb: #1c2e22;
+  --color-log-thumb-hover: #2a3d30;
+  --crt-scanline-opacity: 0.012;
+  --crt-vignette-strength: 0.3;
+  --crt-flicker-speed: 12s;
+  --divergence-color: #6fb584;
+  --divergence-glow: 0 0 3px rgba(111, 181, 132, 0.5), 0 0 8px rgba(111, 181, 132, 0.15);
 }
 
-*,
-*::before,
-*::after {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+
+
+/* ========================================
+   ☀️ Light Theme — 明るい実験室 (Morning Lab)
+   ======================================== */
+[data-theme="light"] {
+  --color-brand: #4a8c5e;
+  --color-brand-hover: #5ea272;
+  --color-brand-pressed: #3d7a4f;
+  --color-brand-soft: rgba(74, 140, 94, 0.08);
+  --color-brand-border: rgba(74, 140, 94, 0.18);
+  --color-brand-shadow: rgba(74, 140, 94, 0.12);
+
+  --color-ink: #e8e5df;
+  --color-ink-hover: #ddd9d3;
+  --color-ink-soft: rgba(0, 0, 0, 0.04);
+
+  --color-bg: #f5f3ef;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f9f8f6;
+  --color-border: #e2e0db;
+  --color-border-strong: #cfccc6;
+  --color-text: #1d1f24;
+  --color-text-secondary: #6b6d74;
+  --color-text-tertiary: #999ba0;
+  --color-text-inverse: #ffffff;
+
+  --color-success: #4a8c5e;
+  --color-success-soft: rgba(74, 140, 94, 0.08);
+  --color-success-border: rgba(74, 140, 94, 0.18);
+  --color-warning: #b8860b;
+  --color-warning-soft: rgba(184, 134, 11, 0.08);
+  --color-warning-border: rgba(184, 134, 11, 0.18);
+  --color-error: #c0392b;
+  --color-error-soft: rgba(192, 57, 43, 0.07);
+  --color-error-border: rgba(192, 57, 43, 0.16);
+  --color-info: #3a7bd5;
+  --color-info-soft: rgba(58, 123, 213, 0.07);
+  --color-info-border: rgba(58, 123, 213, 0.16);
+
+  --color-accent-pink: #c47080;
+  --color-accent-pink-soft: rgba(196, 112, 128, 0.08);
+  --color-accent-pink-border: rgba(196, 112, 128, 0.18);
+  --color-accent-indigo: #6b7db5;
+  --color-accent-indigo-soft: rgba(107, 125, 181, 0.08);
+  --color-accent-indigo-border: rgba(107, 125, 181, 0.18);
+  --color-accent-purple: #6b7db5;
+  --color-accent-purple-soft: rgba(107, 125, 181, 0.08);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(74, 140, 94, 0.03);
+  --shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(74, 140, 94, 0.05);
+  --shadow-brand-hover: 0 0 12px rgba(74, 140, 94, 0.12);
+  --drawer-shadow: -4px 0 20px rgba(0, 0, 0, 0.08);
+
+  --brand-glow: 0 0 4px rgba(74, 140, 94, 0.25);
+  --brand-glow-soft: 0 0 2px rgba(74, 140, 94, 0.15);
+  --amber-glow: 0 0 4px rgba(184, 134, 11, 0.2);
+
+  --scrollbar-thumb: #cfccc6;
+  --scrollbar-thumb-hover: #b5b2ac;
+
+  --color-log-bg: #1a1d22;
+  --color-log-text: #7ebc92;
+  --color-log-border: #2d3238;
+  --color-log-track: #1a1d22;
+  --color-log-thumb: #3d4249;
+  --color-log-thumb-hover: #50555e;
+
+  --crt-scanline-opacity: 0;
+  --crt-vignette-strength: 0;
+
+  --divergence-color: #4a8c5e;
+  --divergence-glow: 0 0 2px rgba(74, 140, 94, 0.4), 0 0 6px rgba(74, 140, 94, 0.1);
 }
 
-html,
-body,
-#app {
-  height: 100%;
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 99999;
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,var(--crt-scanline-opacity)) 3px, rgba(0,0,0,var(--crt-scanline-opacity)) 4px);
 }
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body, #app { height: 100%; }
 
 body {
   font-family: var(--font-family);
@@ -154,70 +210,17 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-::selection {
-  background: var(--color-brand-soft);
-  color: var(--color-brand-pressed);
-}
+::selection { background: rgba(111, 181, 132, 0.18); color: var(--color-text); }
 
-::-webkit-scrollbar {
-  width: var(--scrollbar-size);
-  height: var(--scrollbar-size);
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: 4px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover);
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) transparent;
-}
+::-webkit-scrollbar { width: var(--scrollbar-size); height: var(--scrollbar-size); }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; transition: background 0.2s, box-shadow 0.2s; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); box-shadow: 0 0 6px rgba(111, 181, 132, 0.1); }
+* { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) transparent; }
 
-/* 数字精密对齐：时长、计数、耗时 */
-.tnum {
-  font-variant-numeric: tabular-nums;
-}
+.tnum { font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
 
-@keyframes spin {
-  from {
-    transform: rotate(0);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-.spinning {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes pulse-dot {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.45;
-    transform: scale(0.82);
-  }
-}
+@keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+.spinning { animation: spin 1s linear infinite; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes pulse-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.45; transform: scale(0.82); } }

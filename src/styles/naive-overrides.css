@@ -1,0 +1,629 @@
+/**
+ * Reading Steiner — Naive UI 全面交互覆盖
+ * 将 Naive UI 所有原生交互替换为命运石之门 CRT 主题自定义交互
+ */
+
+/* ============================================
+   n-button — CRT 静态点击 + 绿磷光拖尾
+   ============================================ */
+.n-button {
+  --n-ripple-color: transparent !important;
+  --n-ripple-duration: 0s !important;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s cubic-bezier(0.22, 0.61, 0.36, 1),
+              box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease !important;
+}
+
+/* 隐藏 Naive UI 原生波纹元素 */
+.n-button .n-button__border,
+.n-button .n-button__state-border {
+  display: none !important;
+}
+
+/* hover: 微抬 + 绿辉光 */
+.n-button:not(.n-button--disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 12px rgba(111, 181, 132, 0.15), 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* active: 按压深度 + CRT 静态闪烁 */
+.n-button:not(.n-button--disabled):active {
+  transform: translateY(1px) scale(0.97) !important;
+  transition-duration: 0.08s !important;
+}
+
+.n-button:not(.n-button--disabled):active::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 1px,
+    rgba(111, 181, 132, 0.08) 1px,
+    rgba(111, 181, 132, 0.08) 2px
+  );
+  animation: crtFlicker 0.3s ease-out;
+  pointer-events: none;
+  z-index: 2;
+  border-radius: inherit;
+}
+
+/* focus-visible: 绿光环 */
+.n-button:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(111, 181, 132, 0.35), 0 0 10px rgba(111, 181, 132, 0.15) !important;
+}
+
+/* primary 按钮特殊样式 */
+.n-button--primary-type {
+  position: relative;
+}
+.n-button--primary-type::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(135deg, rgba(111, 181, 132, 0.3), transparent 50%, rgba(111, 181, 132, 0.1));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.6;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.n-button--primary-type:hover::after {
+  opacity: 1;
+  animation: border-scan 3s linear infinite;
+}
+
+/* ghost/text 按钮 */
+.n-button--default-type.n-button--text-type:hover,
+.n-button--default-type.n-button--ghost-type:hover {
+  background: rgba(111, 181, 132, 0.05) !important;
+  box-shadow: none !important;
+}
+
+/* ============================================
+   n-input — 终端光标 + 扫描线聚焦
+   ============================================ */
+
+/* 隐藏 Naive UI 原生边框动画 */
+.n-input .n-input__border,
+.n-input .n-input__state-border {
+  opacity: 0 !important;
+}
+
+.n-input {
+  --n-border: 1px solid var(--color-border) !important;
+  --n-border-hover: 1px solid var(--color-brand-border) !important;
+  --n-border-focus: 1px solid var(--color-brand) !important;
+  --n-box-shadow-focus: none !important;
+  --n-caret-color: var(--color-brand) !important;
+  --n-placeholder-color: var(--color-text-tertiary) !important;
+  --n-text-color: var(--color-text) !important;
+  --n-color: var(--color-surface-muted) !important;
+  --n-color-focus: var(--color-surface-muted) !important;
+  border-radius: 6px !important;
+  transition: box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* focus: 扫描线扫过 + 绿辉光 */
+.n-input--focus {
+  box-shadow: 0 0 0 2px rgba(111, 181, 132, 0.12), 0 0 12px rgba(111, 181, 132, 0.08) !important;
+  position: relative;
+  overflow: hidden;
+}
+.n-input--focus::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -2px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-brand), transparent);
+  animation: scanline-sweep 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* 输入文字绿磷光 */
+.n-input .n-input__input-el,
+.n-input .n-input__textarea-el {
+  caret-color: var(--color-brand) !important;
+  text-shadow: 0 0 1px rgba(111, 181, 132, 0.15);
+}
+
+/* Large input (URL 输入) 特殊 */
+.n-input--large .n-input__input-el {
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
+/* Password toggle 按钮 */
+.n-input .n-input__eye {
+  color: var(--color-text-tertiary) !important;
+  transition: color 0.2s, text-shadow 0.2s !important;
+}
+.n-input .n-input__eye:hover {
+  color: var(--color-brand) !important;
+  text-shadow: 0 0 4px rgba(111, 181, 132, 0.4);
+}
+
+/* ============================================
+   n-select / n-base-selection — 下拉菜单 CRT 化
+   ============================================ */
+.n-base-selection {
+  --n-border: 1px solid var(--color-border) !important;
+  --n-border-hover: 1px solid var(--color-brand-border) !important;
+  --n-border-focus: 1px solid var(--color-brand) !important;
+  --n-box-shadow-focus: 0 0 0 2px rgba(111, 181, 132, 0.12) !important;
+  --n-color: var(--color-surface-muted) !important;
+  transition: box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* 下拉菜单面板 */
+.n-base-select-menu {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border-strong) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(111, 181, 132, 0.06) !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+  animation: materialize 0.25s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+/* 下拉选项 */
+.n-base-select-option {
+  transition: background 0.15s, color 0.15s !important;
+  font-size: 13px !important;
+}
+.n-base-select-option:hover {
+  background: rgba(111, 181, 132, 0.05) !important;
+}
+.n-base-select-option--selected {
+  color: var(--color-brand) !important;
+  background: rgba(111, 181, 132, 0.06) !important;
+}
+
+/* 下拉选项 hover 扫描线 */
+.n-base-select-option:hover::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 100%;
+  background: linear-gradient(180deg, transparent 40%, rgba(111, 181, 132, 0.03) 50%, transparent 60%);
+  pointer-events: none;
+}
+
+/* ============================================
+   n-tabs — 弹簧滑动 + Glitch 切换
+   ============================================ */
+.n-tabs {
+  --n-bar-color: var(--color-brand) !important;
+  --n-tab-text-color: var(--color-text-secondary) !important;
+  --n-tab-text-color-active: var(--color-brand) !important;
+  --n-tab-text-color-hover: var(--color-text) !important;
+  --n-close-color: var(--color-text-tertiary) !important;
+}
+
+.n-tabs .n-tabs-bar {
+  background: linear-gradient(90deg, var(--color-brand-pressed), var(--color-brand), var(--color-brand-hover)) !important;
+  height: 2px !important;
+  border-radius: 1px !important;
+  box-shadow: 0 0 6px rgba(111, 181, 132, 0.4), 0 0 12px rgba(111, 181, 132, 0.15) !important;
+  transition: left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+              width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+/* Tab 标签 hover */
+.n-tabs .n-tabs-tab {
+  transition: color 0.2s !important;
+}
+.n-tabs .n-tabs-tab:hover {
+  color: var(--color-brand) !important;
+}
+
+/* Tab pane 切换动画 */
+.n-tab-pane {
+  animation: materialize 0.35s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+/* ============================================
+   n-drawer — 弹簧滑入 + CRT 静态背景
+   ============================================ */
+.n-drawer {
+  --n-color: var(--color-surface) !important;
+  --n-text-color: var(--color-text) !important;
+  --n-border-color: var(--color-border) !important;
+  --n-title-text-color: var(--color-text) !important;
+  --n-title-font-size: 15px !important;
+  --n-title-font-weight: 650 !important;
+  --n-header-border-bottom: 1px solid var(--color-border) !important;
+  --n-footer-border-top: 1px solid var(--color-border) !important;
+}
+
+/* Drawer 滑入动画重写 — 弹簧 + 绿边辉光 */
+.n-drawer.n-drawer--right-placement {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+.n-drawer.n-drawer--right-placement .n-drawer__content {
+  border-left: 1px solid rgba(111, 181, 132, 0.1) !important;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.4), -1px 0 0 rgba(111, 181, 132, 0.05) !important;
+}
+
+/* Drawer mask — CRT 静态 */
+.n-drawer-mask {
+  backdrop-filter: blur(2px) !important;
+  background: rgba(0, 0, 0, 0.55) !important;
+}
+
+/* Drawer 关闭按钮 */
+.n-drawer .n-base-close {
+  color: var(--color-text-secondary) !important;
+  transition: color 0.2s, text-shadow 0.2s !important;
+}
+.n-drawer .n-base-close:hover {
+  color: var(--color-brand) !important;
+  text-shadow: 0 0 6px rgba(111, 181, 132, 0.4);
+}
+
+/* ============================================
+   n-checkbox — 勾画 + CRT 翻转
+   ============================================ */
+.n-checkbox {
+  --n-color-checked: var(--color-brand) !important;
+  --n-border-checked: 1px solid var(--color-brand) !important;
+  --n-box-shadow-focus: 0 0 0 2px rgba(111, 181, 132, 0.2) !important;
+  --n-color: transparent !important;
+  --n-border: 1px solid var(--color-border-strong) !important;
+  --n-border-hover: 1px solid var(--color-brand) !important;
+  --n-text-color: var(--color-text) !important;
+}
+
+.n-checkbox .n-checkbox-box {
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s !important;
+  border-radius: 3px !important;
+  position: relative;
+  overflow: hidden;
+}
+
+/* CRT 静态翻转: 切换时短暂噪声 */
+.n-checkbox--checked .n-checkbox-box::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 1px,
+    rgba(0,255,65,0.15) 1px, rgba(0,255,65,0.15) 2px
+  );
+  animation: checkbox-crt-flip 0.3s ease-out forwards;
+  pointer-events: none;
+  border-radius: inherit;
+}
+@keyframes checkbox-crt-flip {
+  0% { opacity: 0.8; }
+  100% { opacity: 0; }
+}
+
+.n-checkbox--checked .n-checkbox-box {
+  box-shadow: 0 0 6px rgba(111, 181, 132, 0.3) !important;
+}
+
+.n-checkbox .n-checkbox-box-wrapper .check-icon {
+  stroke-dasharray: 16;
+  stroke-dashoffset: 16;
+  animation: checkmark-draw 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+/* ============================================
+   n-pagination — 数字辉光
+   ============================================ */
+.n-pagination {
+  --n-item-color: var(--color-surface) !important;
+  --n-item-color-hover: var(--color-ink) !important;
+  --n-item-color-active: var(--color-surface-muted) !important;
+  --n-item-text-color: var(--color-text-secondary) !important;
+  --n-item-text-color-hover: var(--color-text) !important;
+  --n-item-text-color-active: var(--color-brand) !important;
+  --n-item-border: 1px solid var(--color-border) !important;
+  --n-item-border-hover: 1px solid var(--color-brand-border) !important;
+  --n-item-border-active: 1px solid var(--color-brand) !important;
+}
+
+.n-pagination .n-pagination-item--active {
+  box-shadow: 0 0 8px rgba(111, 181, 132, 0.2) !important;
+  font-weight: 700 !important;
+}
+
+.n-pagination .n-pagination-item:not(.n-pagination-item--disabled):hover {
+  box-shadow: 0 0 6px rgba(111, 181, 132, 0.08) !important;
+}
+
+/* ============================================
+   n-spin — 雷达扫描世界线
+   ============================================ */
+.n-spin {
+  --n-color: transparent !important;
+  --n-opacity-spin: 0 !important;
+}
+.n-spin .n-spin-container > svg {
+  display: none !important;
+}
+/* 外层慢速环 */
+.n-spin::before {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 56px; height: 56px;
+  margin: -28px 0 0 -28px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(111,181,132,0.3);
+  animation: ring-expand 2s ease-out infinite;
+  pointer-events: none;
+}
+/* 中层中速环 */
+.n-spin::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 40px; height: 40px;
+  margin: -20px 0 0 -20px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(111,181,132,0.5);
+  animation: ring-expand 2s ease-out 0.5s infinite;
+  pointer-events: none;
+}
+/* 内层快速环 */
+.n-spin .n-spin-container::before {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 24px; height: 24px;
+  margin: -12px 0 0 -12px;
+  border-radius: 50%;
+  border: 2px solid var(--color-brand);
+  animation: ring-expand 2s ease-out 1s infinite;
+  box-shadow: 0 0 6px rgba(111,181,132,0.2);
+}
+/* 中心脉冲点 */
+.n-spin .n-spin-container::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 4px; height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 50%;
+  background: var(--color-brand);
+  box-shadow: 0 0 8px rgba(111,181,132,0.6), 0 0 16px rgba(111,181,132,0.3);
+  animation: divergence-pulse 1.4s ease-in-out infinite;
+}
+@keyframes ring-expand {
+  0% { transform: scale(0.6); opacity: 0.8; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+/* 加载文字 */
+.n-spin .n-spin-content::after {
+  content: 'observing world line...';
+  display: block;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.04em;
+  margin-top: 44px;
+}
+
+/* ============================================
+   n-popconfirm/* ============================================
+   n-popconfirm — CRT 弹窗
+   ============================================ */
+.n-popconfirm {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border-strong) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(111, 181, 132, 0.04) !important;
+  border-radius: 8px !important;
+  animation: materialize 0.2s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+/* ============================================
+   n-divider — 微弱绿线
+   ============================================ */
+.n-divider:not(.n-divider--vertical) .n-divider__line {
+  border-top-color: var(--color-border) !important;
+}
+
+/* ============================================
+   n-tag — 终端标签
+   ============================================ */
+.n-tag {
+  font-family: var(--font-mono) !important;
+  font-size: 11px !important;
+  border-radius: 4px !important;
+}
+
+/* ============================================
+   n-message (Toast) — CRT Glitch 进出
+   ============================================ */
+.n-message {
+  animation: toast-crt-enter 0.45s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  border-radius: 8px !important;
+  border: 1px solid var(--color-brand-border) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 12px !important;
+  position: relative;
+  overflow: hidden;
+}
+/* Toast 进入: CRT 静态闪烁 → 清晰 */
+@keyframes toast-crt-enter {
+  0% { opacity: 0; transform: translateY(-12px) scale(0.95); filter: brightness(3) blur(2px); }
+  15% { opacity: 1; filter: brightness(0.5) blur(0); }
+  25% { filter: brightness(1.5); }
+  35% { filter: brightness(0.8); }
+  50% { filter: brightness(1.2); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: brightness(1) blur(0); }
+}
+/* Toast 静态扫描线进入时扫过 */
+.n-message::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 1px,
+    rgba(0,255,65,0.06) 1px, rgba(0,255,65,0.06) 2px
+  );
+  animation: toast-scanline 0.5s ease-out forwards;
+  pointer-events: none;
+  z-index: 1;
+}
+@keyframes toast-scanline {
+  0% { opacity: 0.8; }
+  100% { opacity: 0; }
+}
+/* Toast 消失: dissolve */
+.n-message.n-message--leave {
+  animation: dissolve 0.3s cubic-bezier(0.7, 0, 0.84, 0) forwards !important;
+}
+
+/* ============================================
+   n-scrollbar 覆盖（哪里出现哪里有效）
+   ============================================ */
+.n-scrollbar > .n-scrollbar-rail .n-scrollbar-rail__thumb {
+  background: var(--scrollbar-thumb) !important;
+}
+.n-scrollbar > .n-scrollbar-rail .n-scrollbar-rail__thumb:hover {
+  background: var(--scrollbar-thumb-hover) !important;
+}
+
+/* ============================================
+   n-collapse / n-collapse-item (如有)
+   ============================================ */
+.n-collapse-item__header {
+  font-family: var(--font-mono);
+}
+
+/* ============================================
+   n-modal / n-dialog (如有)
+   ============================================ */
+.n-modal {
+  --n-color: var(--color-surface);
+  --n-text-color: var(--color-text);
+}
+
+/* ============================================
+   n-slider (如有)
+   ============================================ */
+.n-slider .n-slider__fill {
+  background: var(--color-brand) !important;
+}
+.n-slider .n-slider__handle {
+  border-color: var(--color-brand) !important;
+  box-shadow: 0 0 6px rgba(111, 181, 132, 0.3) !important;
+}
+
+
+/* ============================================
+   n-drawer header / footer — 内边距
+   ============================================ */
+.n-drawer .n-drawer-header {
+  padding: 18px 24px 14px !important;
+}
+.n-drawer .n-drawer-footer {
+  padding: 14px 24px 18px !important;
+}
+
+/* ============================================
+   n-input clear button
+   ============================================ */
+.n-input .n-input__clear {
+  color: var(--color-text-tertiary) !important;
+  transition: color 0.2s, text-shadow 0.2s !important;
+}
+.n-input .n-input__clear:hover {
+  color: var(--color-brand) !important;
+  text-shadow: 0 0 4px rgba(111,181,132,0.4);
+}
+
+/* ============================================
+   n-tabs bar — 弹簧动画确认
+   ============================================ */
+.n-tabs .n-tabs-bar {
+  transition: left 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+              max-width 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+/* ============================================
+   n-pagination item — 数字按钮精调
+   ============================================ */
+.n-pagination .n-pagination-item {
+  min-width: 32px !important;
+  height: 32px !important;
+  font-size: 13px !important;
+  border-radius: 6px !important;
+  transition: all 0.2s cubic-bezier(0.22, 0.61, 0.36, 1) !important;
+}
+.n-pagination .n-pagination-item:not(.n-pagination-item--disabled):hover {
+  background: rgba(111,181,132,0.06) !important;
+  border-color: rgba(111,181,132,0.2) !important;
+}
+
+/* ============================================
+   n-checkbox box — 精调
+   ============================================ */
+.n-checkbox .n-checkbox-box {
+  width: 16px !important;
+  height: 16px !important;
+  border-radius: 4px !important;
+}
+
+/* ============================================
+   n-spin — 降低内容遮罩
+   ============================================ */
+.n-spin--active > .n-spin-content {
+  opacity: 0.55 !important;
+}
+
+/* ============================================
+   n-select 下拉面板 — 内部间距
+   ============================================ */
+.n-base-select-menu .n-base-select-option {
+  padding: 10px 14px !important;
+  border-radius: 6px !important;
+  margin: 2px 8px !important;
+}
+
+/* ============================================
+   n-tag 关闭按钮
+   ============================================ */
+.n-tag .n-tag__close {
+  color: var(--color-text-tertiary) !important;
+  transition: color 0.2s !important;
+}
+.n-tag .n-tag__close:hover {
+  color: var(--color-brand) !important;
+}
+
+/* ============================================
+   n-popconfirm — 按钮间距
+   ============================================ */
+.n-popconfirm .n-popconfirm__action {
+  gap: 10px !important;
+}
+
+/* ============================================
+   n-divider — 微妙绿色
+   ============================================ */
+.n-divider:not(.n-divider--vertical) .n-divider__line {
+  border-color: var(--color-border) !important;
+}
+
+/* ============================================
+   n-empty / placeholder (如有)
+   ============================================ */
+.n-empty .n-empty__icon {
+  color: var(--color-text-tertiary) !important;
+}
