@@ -203,7 +203,7 @@ async function refreshPreview() {
   background: var(--color-surface);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-hover), 0 0 0 1px rgba(111,181,132,0.04);
+  box-shadow: var(--shadow-hover), 0 0 0 1px rgba(139, 62, 62,0.04);
   padding: 32px 28px 28px;
   display: flex; flex-direction: column; gap: 16px;
   animation: panelEnter 0.4s var(--spring-snappy) both;
@@ -221,8 +221,8 @@ async function refreshPreview() {
 .preview-section { display: flex; flex-direction: column; gap: 14px; animation: fadeUp var(--dur-3) var(--ease-out); }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-.preview-card { display: flex; gap: 14px; align-items: center; background: linear-gradient(90deg, rgba(111,181,132,0.08), rgba(111,181,132,0.02)); background-size: 0% 100%; background-repeat: no-repeat; border-radius: var(--radius-lg); padding: 14px; border: 1px solid var(--color-border); box-shadow: var(--shadow-xs); transition: background-size 0.4s cubic-bezier(0.22,0.61,0.36,1), border-color var(--dur-2), box-shadow var(--dur-2); }
-.preview-card:hover { background-size: 100% 100%; border-color: rgba(111,181,132,0.35); box-shadow: 0 0 0 1px rgba(111,181,132,0.15), 0 4px 20px rgba(0,0,0,0.3), 0 0 14px rgba(111,181,132,0.06); }
+.preview-card { display: flex; gap: 14px; align-items: center; background: linear-gradient(90deg, rgba(139, 62, 62,0.08), rgba(139, 62, 62,0.02)); background-size: 0% 100%; background-repeat: no-repeat; border-radius: var(--radius-lg); padding: 14px; border: 1px solid var(--color-border); box-shadow: var(--shadow-xs); transition: background-size 0.4s cubic-bezier(0.22,0.61,0.36,1), border-color var(--dur-2), box-shadow var(--dur-2); }
+.preview-card:hover { background-size: 100% 100%; border-color: rgba(139, 62, 62,0.35); box-shadow: 0 0 0 1px rgba(139, 62, 62,0.15), 0 4px 20px rgba(0,0,0,0.3), 0 0 14px rgba(139, 62, 62,0.06); }
 .cover-wrap { position: relative; flex-shrink: 0; }
 .preview-img { width: 152px; aspect-ratio: 16/9; object-fit: cover; border-radius: var(--radius-md); background: var(--color-surface-muted); display: block; }
 .cover-badge { position: absolute; right: 6px; bottom: 6px; background: rgba(10,10,16,0.8); color: var(--color-brand); font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: var(--radius-full); font-family: var(--font-mono); }

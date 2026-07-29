@@ -156,14 +156,14 @@ const flowSteps = [
 .hero-bg {
   position: absolute; inset: 0;
   background:
-    radial-gradient(ellipse at 30% 20%, rgba(111,181,132,0.06) 0%, transparent 50%),
-    radial-gradient(ellipse at 70% 80%, rgba(111,181,132,0.04) 0%, transparent 40%);
+    radial-gradient(ellipse at 30% 20%, rgba(139, 62, 62,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(139, 62, 62,0.04) 0%, transparent 40%);
 }
 .hero-bg-grid {
   position: absolute; inset: 0;
   background-image:
-    linear-gradient(rgba(111,181,132,0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(111,181,132,0.025) 1px, transparent 1px);
+    linear-gradient(rgba(139, 62, 62,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139, 62, 62,0.025) 1px, transparent 1px);
   background-size: 48px 48px;
   mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
   -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
@@ -208,7 +208,7 @@ const flowSteps = [
   box-shadow: 0 8px 32px rgba(0,0,0,0.25);
 }
 
-.glass-card.url:hover { border-color: color-mix(in srgb, var(--color-brand) 50%, transparent); box-shadow: 0 8px 32px rgba(0,0,0,0.25), 0 0 20px rgba(111,181,132,0.15); }
+.glass-card.url:hover { border-color: color-mix(in srgb, var(--color-brand) 50%, transparent); box-shadow: 0 8px 32px rgba(0,0,0,0.25), 0 0 20px rgba(139, 62, 62,0.15); }
 .glass-card.fav:hover { border-color: rgba(212,135,149,0.5); box-shadow: 0 8px 32px rgba(0,0,0,0.25), 0 0 20px rgba(212,135,149,0.15); }
 .glass-card.local:hover { border-color: rgba(99,168,115,0.5); box-shadow: 0 8px 32px rgba(0,0,0,0.25), 0 0 20px rgba(99,168,115,0.15); }
 .glass-card.history:hover { border-color: rgba(135,148,194,0.5); box-shadow: 0 8px 32px rgba(0,0,0,0.25), 0 0 20px rgba(135,148,194,0.15); }
