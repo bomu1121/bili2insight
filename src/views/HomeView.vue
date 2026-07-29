@@ -142,7 +142,7 @@ const flowSteps = [
 .home-root { overflow-y: auto; scrollbar-gutter: stable; }
 .home-inner { max-width: var(--content-max-home); margin: 0 auto; padding: 64px 32px 48px; display: flex; flex-direction: column; }
 
-.hero { margin-bottom: 40px; }
+.hero { margin-bottom: 52px; }
 .hero-kicker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--color-brand); background: var(--color-brand-soft); border: 1px solid var(--color-brand-border); padding: 5px 12px; border-radius: var(--radius-full); margin-bottom: 20px; font-family: var(--font-mono); letter-spacing: 0.03em; animation: heroSubFade 0.6s var(--spring-snappy) both; }
 .kicker-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-brand); box-shadow: var(--brand-glow); animation: pulse-dot 2s var(--ease-out) infinite; }
 .hero-title { font-size: 32px; font-weight: 750; letter-spacing: -0.02em; line-height: 1.25; color: var(--color-text); margin: 0 0 14px; animation: heroTitleReveal 0.7s var(--spring-snappy) 0.15s both; transition: text-shadow 0.3s ease; }
@@ -152,7 +152,7 @@ const flowSteps = [
 @keyframes heroTitleReveal { from { opacity: 0; transform: translateY(12px); filter: blur(4px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
 
 .entry-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-.entry-card { display: flex; align-items: flex-start; gap: 14px; padding: 18px; text-align: left; cursor: pointer; font-family: inherit; color: inherit; background: var(--color-surface); border: 1.5px solid var(--color-border-strong); border-radius: var(--radius-lg); box-shadow: var(--shadow-xs); transition: border-color 0.18s, box-shadow 0.18s, background 0.18s; transform-style: preserve-3d; perspective: 800px; }
+.entry-card { display: flex; align-items: flex-start; gap: 14px; padding: 20px; text-align: left; cursor: pointer; font-family: inherit; color: inherit; background: linear-gradient(135deg, var(--color-surface), var(--color-surface-muted)); border: 1.5px solid var(--color-border-strong); border-radius: var(--radius-lg); box-shadow: var(--shadow-xs); transition: border-color var(--dur-2), box-shadow var(--dur-2), background var(--dur-2); transform-style: preserve-3d; perspective: 800px; }
 /* Per-card hover colors */
 .entry-card.url:hover { border-color: rgba(111,181,132,0.45); box-shadow: 0 0 0 2px rgba(111,181,132,0.25), var(--shadow-entry-hover-depth), 0 0 20px rgba(111,181,132,0.1); }
 .entry-card.fav:hover { border-color: rgba(212,135,149,0.45); box-shadow: 0 0 0 2px rgba(212,135,149,0.25), var(--shadow-entry-hover-depth), 0 0 20px rgba(212,135,149,0.1); }
@@ -175,12 +175,13 @@ const flowSteps = [
 .entry-card.history:hover .entry-go { background: rgba(135,148,194,0.15); color: var(--color-accent-indigo); box-shadow: 0 0 10px rgba(135,148,194,0.25); }
 
 .flow { margin-top: 48px; }
+.flow { margin-top: 56px; }
 .flow-caption { font-size: 12px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 16px; font-family: var(--font-mono); letter-spacing: 0.04em; }
 .flow-steps { display: flex; align-items: center; gap: 0; }
 .flow-step { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 6px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-full); flex-shrink: 0; transition: border-color 0.25s, box-shadow 0.25s; }
-.flow-step { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 6px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-full); flex-shrink: 0; transition: border-color var(--dur-2), box-shadow var(--dur-2); }
-.flow-step:hover { border-color: var(--color-border-strong); }
-.flow-ic { width: 26px; height: 26px; border-radius: 50%; background: var(--color-ink-soft); color: var(--color-text-tertiary); display: grid; place-items: center; transition: background 0.25s, color 0.25s; }
+.flow-step { display: inline-flex; align-items: center; gap: 10px; padding: 8px 16px 8px 6px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-full); flex-shrink: 0; transition: border-color var(--dur-2), box-shadow var(--dur-2), background var(--dur-2); }
+.flow-step:hover { border-color: var(--color-brand-border); background: var(--color-brand-soft); }
+.flow-ic { width: 28px; height: 28px; border-radius: 50%; background: var(--color-ink-soft); color: var(--color-text-tertiary); display: grid; place-items: center; transition: background var(--dur-2), color var(--dur-2); }
 .flow-step:hover .flow-ic { background: var(--color-ink); color: var(--color-text); }
 .flow-step.last { border-color: var(--color-brand-border); background: var(--color-brand-soft); }
 .flow-step.last .flow-ic { background: var(--color-brand); color: var(--color-text-inverse); box-shadow: var(--brand-glow-soft); }
