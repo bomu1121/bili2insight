@@ -145,9 +145,16 @@ const flowSteps = [
 .hero { margin-bottom: 52px; }
 .hero-kicker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--color-brand); background: var(--color-brand-soft); border: 1px solid var(--color-brand-border); padding: 5px 12px; border-radius: var(--radius-full); margin-bottom: 20px; font-family: var(--font-mono); letter-spacing: 0.03em; animation: heroSubFade 0.6s var(--spring-snappy) both; }
 .kicker-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-brand); box-shadow: var(--brand-glow); animation: pulse-dot 2s var(--ease-out) infinite; }
+
+/* ref: terminal cursor — blinking underscore */
+.hero-kicker::after { content: "_"; color: var(--color-brand); font-family: var(--font-mono); animation: blink 1s step-end infinite; margin-left: 2px; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 .hero-title { font-size: 32px; font-weight: 750; letter-spacing: -0.02em; line-height: 1.25; color: var(--color-text); margin: 0 0 14px; animation: heroTitleReveal 0.7s var(--spring-snappy) 0.15s both; transition: text-shadow 0.3s ease; }
+
+/* ref: VS Code terminal prompt — $ prefix in brand color */
+.hero-title::before { content: "> "; color: var(--color-brand); font-family: var(--font-mono); font-weight: 400; }
 .hero-title:hover { text-shadow: var(--text-glow-brand); }
-.hero-sub { font-size: 14px; line-height: 1.7; color: var(--color-text-secondary); margin: 0; max-width: 520px; animation: heroSubFade 0.8s var(--spring-snappy) 0.3s both; }
+.hero-sub { font-family: var(--font-mono); font-size: 13px; line-height: 1.7; color: var(--color-brand); margin: 0; max-width: 560px; animation: heroSubFade 0.8s var(--spring-snappy) 0.3s both; opacity: 0.85; }
 @keyframes heroSubFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes heroTitleReveal { from { opacity: 0; transform: translateY(12px); filter: blur(4px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
 
@@ -177,7 +184,8 @@ const flowSteps = [
 .entry-card.history .entry-icon { background: var(--color-accent-indigo-soft); color: var(--color-accent-indigo); }
 .entry-copy { flex: 1; min-width: 0; padding-top: 1px; }
 .entry-label { font-size: 15px; font-weight: 650; color: var(--color-text); margin-bottom: 5px; }
-.entry-desc { font-size: 12.5px; line-height: 1.55; color: var(--color-text-secondary); }
+.entry-label { font-family: var(--font-mono); font-size: 14px; font-weight: 600; color: var(--color-brand); margin-bottom: 6px; letter-spacing: 0.02em; }
+.entry-desc { font-family: var(--font-mono); font-size: 11.5px; line-height: 1.55; color: var(--color-text-tertiary); }
 .entry-go { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: var(--color-text-secondary); background: var(--entry-go-bg); flex-shrink: 0; margin-top: 5px; transition: background var(--dur-2), color var(--dur-2), box-shadow var(--dur-2); }
 .entry-go { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: var(--color-text-secondary); background: var(--entry-go-bg); flex-shrink: 0; margin-top: 5px; transition: background var(--dur-2), color var(--dur-2), box-shadow var(--dur-2), transform var(--dur-2); }
 .entry-card.url:hover .entry-go { background: rgba(111,181,132,0.15); color: var(--color-brand); box-shadow: 0 0 10px rgba(111,181,132,0.25); }
@@ -188,6 +196,7 @@ const flowSteps = [
 .flow { margin-top: 48px; }
 .flow { margin-top: 56px; }
 .flow-caption { font-size: 12px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 16px; font-family: var(--font-mono); letter-spacing: 0.04em; }
+.flow-caption { font-size: 11px; font-weight: 600; color: var(--color-brand); margin-bottom: 16px; font-family: var(--font-mono); letter-spacing: 0.06em; opacity: 0.7; }
 .flow-steps { display: flex; align-items: center; gap: 0; }
 .flow-steps { display: flex; align-items: center; gap: 0; counter-reset: flow-step; }
 .flow-step { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 6px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-full); flex-shrink: 0; transition: border-color 0.25s, box-shadow 0.25s; }
@@ -204,9 +213,12 @@ const flowSteps = [
 .flow-step.last { border-color: var(--color-brand-border); background: var(--color-brand-soft); }
 .flow-step.last .flow-ic { background: var(--color-brand); color: var(--color-text-inverse); box-shadow: var(--brand-glow-soft); }
 .flow-step.last .flow-label { color: var(--color-brand); font-weight: 600; }
-.flow-label { font-size: 12.5px; color: var(--color-text-secondary); font-weight: 500; white-space: nowrap; }
+.flow-label { font-size: 11.5px; color: var(--color-text-secondary); font-weight: 500; white-space: nowrap; font-family: var(--font-mono); }
 .flow-line { flex: 1; min-width: 16px; height: 1.5px; background: var(--color-border-strong); margin: 0 6px; position: relative; }
 .flow-line { flex: 1; min-width: 16px; height: 1.5px; background: linear-gradient(90deg, var(--color-border-strong), var(--color-brand-border), var(--color-border-strong)); background-size: 200% 100%; animation: flowPulse 3s ease-in-out infinite; margin: 0 6px; position: relative; }
+
+/* ref: terminal pipe operator — shell | style */
+.flow-line::before { content: "|"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-family: var(--font-mono); font-size: 10px; color: var(--color-brand); font-weight: 700; letter-spacing: 0; }
 
 @keyframes flowPulse { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
 .flow-line::after { content: ""; position: absolute; right: -1px; top: -3px; width: 0; height: 0; border-left: 5px solid var(--color-border-strong); border-top: 3.5px solid transparent; border-bottom: 3.5px solid transparent; }
