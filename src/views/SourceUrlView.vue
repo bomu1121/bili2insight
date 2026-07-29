@@ -40,7 +40,6 @@ onUnmounted(() => {
   if (previewTimer) clearTimeout(previewTimer);
 });
 
-const activeIndex = ref<number | null>(null);
 const videoPages = computed<PageInfo[]>(() => store.preview?.pages ?? []);
 const hasMultiPages = computed(() => videoPages.value.length > 1);
 
@@ -150,35 +149,23 @@ async function refreshPreview() {
         </div>
 
         <div v-if="hasMultiPages" class="page-section">
-          <div class="page-strip-header">
+          <div class="page-header">
             <n-checkbox :checked="store.selectedPages.size === videoPages.length" @update:checked="selectAll()">
               全选 ({{ store.selectedPages.size }}/{{ videoPages.length }})
             </n-checkbox>
           </div>
-          <div class="index-panel">
-            <div class="index-list">
-              <div
-                v-for="(p, i) in videoPages"
-                :key="i"
-                class="index-row"
-                :class="{ sel: store.selectedPages.has(i), active: activeIndex === i }"
-                @click="togglePage(i)"
-                @mouseenter="activeIndex = i"
-              >
-                <span class="index-num tnum">P{{ p.page }}</span>
-                <span v-if="store.selectedPages.has(i)" class="index-dot"></span>
-              </div>
-            </div>
-            <div class="index-detail">
-              <div v-if="activeIndex !== null && activeIndex < videoPages.length" class="id-card">
-                <div class="id-num tnum">P{{ videoPages[activeIndex].page }}</div>
-                <div class="id-name">{{ videoPages[activeIndex].part }}</div>
-                <div class="id-time tnum">{{ fmtDur(videoPages[activeIndex].duration) }}</div>
-                <div class="id-status" :class="{ selected: store.selectedPages.has(activeIndex) }">
-                  {{ store.selectedPages.has(activeIndex) ? '已选择' : '点击选择' }}
-                </div>
-              </div>
-              <div v-else class="id-empty">悬停编号查看详情</div>
+          <div class="page-list">
+            <div
+              v-for="(p, i) in videoPages"
+              :key="i"
+              class="page-row"
+              :class="{ sel: store.selectedPages.has(i) }"
+              @click="togglePage(i)"
+            >
+              <n-checkbox :checked="store.selectedPages.has(i)" size="small" />
+              <span class="page-idx tnum">P{{ p.page }}</span>
+              <span class="page-name">{{ p.part }}</span>
+              <span class="page-time tnum">{{ fmtDur(p.duration) }}</span>
             </div>
           </div>
         </div>
@@ -245,26 +232,12 @@ async function refreshPreview() {
 .meta-item { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--color-text-secondary); }
 
 .page-section { background: var(--color-surface); border-radius: var(--radius-lg); padding: 12px 14px; border: 1px solid var(--color-border); box-shadow: var(--shadow-xs); }
-
-/* Index + Detail panel (ref: macOS installer package selector, Figma component panel) */
-.page-strip-header { margin-bottom: 10px; padding: 0 4px; flex-shrink: 0; }
-.index-panel { display: flex; gap: 12px; }
-.index-list { flex-shrink: 0; display: flex; flex-direction: column; gap: 2px; max-height: 240px; overflow-y: auto; min-width: 80px; }
-.index-row { display: flex; align-items: center; gap: 8px; padding: 5px 10px; border-radius: var(--radius-md); cursor: pointer; transition: all var(--dur-1); position: relative; }
-.index-row:hover { background: var(--color-ink-soft); }
-.index-row.active { background: var(--color-brand-soft); }
-.index-row.sel { background: var(--color-brand-soft); }
-.index-num { font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--color-text-tertiary); }
-.index-row.active .index-num { color: var(--color-brand); }
-.index-row.sel .index-num { color: var(--color-brand); }
-.index-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-brand); box-shadow: var(--brand-glow-soft); flex-shrink: 0; margin-left: auto; }
-
-.index-detail { flex: 1; min-height: 100px; display: flex; align-items: center; justify-content: center; }
-.id-empty { font-size: 12px; color: var(--color-text-tertiary); }
-.id-card { display: flex; flex-direction: column; gap: 8px; padding: 16px; background: var(--color-surface-muted); border: 1px solid var(--color-border); border-radius: var(--radius-lg); width: 100%; }
-.id-num { font-family: var(--font-mono); font-size: 20px; font-weight: 700; color: var(--color-brand); }
-.id-name { font-size: 14px; font-weight: 600; color: var(--color-text); line-height: 1.4; }
-.id-time { font-family: var(--font-mono); font-size: 12px; color: var(--color-text-secondary); }
-.id-status { font-size: 12px; color: var(--color-text-tertiary); }
-.id-status.selected { color: var(--color-success); font-weight: 600; }
+.page-header { margin-bottom: 8px; padding: 0 4px; }
+.page-list { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; }
+.page-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--radius-md); cursor: pointer; font-size: 13px; border: 1px solid transparent; transition: background var(--dur-1), border-color var(--dur-1); }
+.page-row:hover { background: var(--color-surface-muted); }
+.page-row.sel { background: var(--color-brand-soft); border-color: var(--color-brand-border); animation: materialize 0.3s var(--spring-snappy) both; }
+.page-idx { color: var(--color-brand); font-weight: 700; min-width: 30px; font-size: 12px; font-family: var(--font-mono); }
+.page-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.page-time { color: var(--color-text-tertiary); flex-shrink: 0; font-size: 11px; font-family: var(--font-mono); }
 </style>
