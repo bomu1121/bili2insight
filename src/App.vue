@@ -45,7 +45,18 @@ const lightOverrides: GlobalThemeOverrides = {
   Menu: { itemColorActive: "rgba(74,140,94,0.07)", itemTextColorActive: "#4a8c5e" },
 };
 const themeOverrides = computed(() => isDarkMode.value ? darkOverrides : lightOverrides);
-function toggleTheme() { isDarkMode.value = !isDarkMode.value; document.documentElement.dataset.theme = isDarkMode.value ? 'dark' : 'light'; localStorage.setItem('theme', isDarkMode.value ? 'dark' : 'light'); }
+function toggleTheme() {
+  const apply = () => {
+    isDarkMode.value = !isDarkMode.value;
+    document.documentElement.dataset.theme = isDarkMode.value ? 'dark' : 'light';
+    localStorage.setItem('theme', isDarkMode.value ? 'dark' : 'light');
+  };
+  if (document.startViewTransition) {
+    document.startViewTransition(() => apply());
+  } else {
+    apply();
+  }
+}
 
 const router = useRouter();
 const route = useRoute();
@@ -189,7 +200,7 @@ const tplPrompt = computed({
             <span class="side-user-hint">{{ authStore.isLoggedIn ? "B站账号" : "点击登录" }}</span>
           </span>
         </button>
-        <button type="button" class="side-set theme-btn" @click="toggleTheme" :title="isDarkMode ? '切换亮色模式' : '切换暗色模式'"><n-icon :size="17"><Moon v-if="isDarkMode" /><Sun v-else /></n-icon></button><button type="button" class="side-set" @click="showSettings = true" title="设置">
+        <div class="worldline-toggle" @click="toggleTheme" :title="isDarkMode ? '世界线跳跃: α → β 吸引子场' : '世界线跳跃: β → α 吸引子场'"><span class="wl-field" :class="{ on: isDarkMode }">α</span><span class="wl-track"><span class="wl-thumb" :class="{ right: !isDarkMode }"></span></span><span class="wl-field" :class="{ on: !isDarkMode }">β</span></div><button type="button" class="side-set" @click="showSettings = true" title="设置">
           <n-icon :size="17"><Settings /></n-icon>
         </button>
       </div>
@@ -478,6 +489,64 @@ const tplPrompt = computed({
 .side-user-hint { font-size: 10px; color: var(--color-text-tertiary); white-space: nowrap; font-family: var(--font-mono); letter-spacing: 0.02em; }
 .side-set { width: 30px; height: 30px; border: none; border-radius: var(--radius-md); background: transparent; color: var(--color-text-secondary); display: grid; place-items: center; cursor: pointer; flex-shrink: 0; transition: background var(--dur-2), color var(--dur-2), box-shadow var(--dur-2); }
 .side-set:hover { background: var(--color-ink-soft); color: var(--color-brand); box-shadow: var(--brand-glow-soft); }
+/* Worldline Toggle — α/β attractor field switch */
+.worldline-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: border-color var(--dur-2), box-shadow var(--dur-2), background var(--dur-2);
+  user-select: none;
+  flex-shrink: 0;
+}
+.worldline-toggle:hover {
+  border-color: var(--color-brand-border);
+  box-shadow: var(--brand-glow-soft);
+}
+.wl-field {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+  transition: color var(--dur-2), text-shadow var(--dur-2);
+  width: 14px;
+  text-align: center;
+  line-height: 1;
+}
+.wl-field.on {
+  color: var(--color-brand);
+  text-shadow: var(--divergence-glow);
+}
+.wl-track {
+  width: 24px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+  position: relative;
+  transition: background var(--dur-2);
+}
+.worldline-toggle:hover .wl-track {
+  background: var(--color-border-strong);
+}
+.wl-thumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-brand);
+  box-shadow: var(--brand-glow);
+  transition: left var(--dur-3) var(--ease-out), background var(--dur-2);
+}
+.wl-thumb.right {
+  left: 15px;
+}
+
 .app-main { min-width: 0; overflow: hidden; display: flex; flex-direction: column; }
 
 /* Nav scanline */
@@ -534,4 +603,34 @@ const tplPrompt = computed({
 .field-row { display: flex; gap: 8px; align-items: center; }
 .field-grow { flex: 1; min-width: 0; }
 .tpl-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+/* === View Transition — theme switch crossfade === */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+  animation: vt-fade-out 0.35s var(--ease-out) both;
+}
+::view-transition-new(root) {
+  animation: vt-fade-in 0.35s var(--ease-out) both;
+}
+@keyframes vt-fade-out {
+  to { opacity: 0; }
+}
+@keyframes vt-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Smooth color transitions for theme switch — VS Code pattern (ref: VS Code) */
+html[data-theme] *,
+html[data-theme] *::before,
+html[data-theme] *::after {
+  transition: background-color 0.3s ease,
+              color 0.3s ease,
+              border-color 0.3s ease,
+              box-shadow 0.3s ease;
+}
+
 </style>
