@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { NButton, NText, NIcon, createDiscreteApi } from "naive-ui";
-import { AddCircleOutline, ArrowBackOutline, CloudUploadOutline, DocumentOutline, CloseOutline } from "@vicons/ionicons5";
+import { CirclePlus, ArrowLeft, CloudUpload, File, X } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/app";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -74,10 +74,10 @@ function addToQueue() {
   <div class="source-root">
     <div class="page-bar">
       <n-button text class="bar-back" @click="router.push('/')">
-        <template #icon><n-icon><ArrowBackOutline /></n-icon></template>返回
+        <template #icon><n-icon><ArrowLeft /></n-icon></template>返回
       </n-button>
       <div class="bar-title">
-        <span class="bar-ic local"><n-icon :size="15"><CloudUploadOutline /></n-icon></span>
+        <span class="bar-ic local"><n-icon :size="15"><CloudUpload /></n-icon></span>
         <n-text strong>本地文件</n-text>
       </div>
     </div>
@@ -90,7 +90,7 @@ function addToQueue() {
 
       <div class="upload-area" role="button" tabindex="0" @click="pickFile" @keydown.enter="pickFile">
         <div class="upload-icon">
-          <n-icon :size="30"><CloudUploadOutline /></n-icon>
+          <n-icon :size="30"><CloudUpload /></n-icon>
         </div>
         <div class="upload-title">点击选择文件</div>
         <div class="upload-hint">支持 mp3 / wav / m4a / flac / mp4 / mkv 等</div>
@@ -98,18 +98,18 @@ function addToQueue() {
       </div>
 
       <div v-if="hasFile" class="file-card">
-        <div class="file-icon"><n-icon :size="20"><DocumentOutline /></n-icon></div>
+        <div class="file-icon"><n-icon :size="20"><File /></n-icon></div>
         <div class="file-info">
           <div class="file-name">{{ fileName }}</div>
           <div class="file-size tnum">{{ fileSize }}</div>
         </div>
         <n-button quaternary circle size="small" @click="clearFile" title="移除">
-          <template #icon><n-icon><CloseOutline /></n-icon></template>
+          <template #icon><n-icon><X /></n-icon></template>
         </n-button>
       </div>
 
       <n-button type="primary" block size="large" round @click="addToQueue" :disabled="!hasFile || store.isProcessing">
-        <template #icon><n-icon><AddCircleOutline /></n-icon></template>
+        <template #icon><n-icon><CirclePlus /></n-icon></template>
         加入队列
       </n-button>
     </div>

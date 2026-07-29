@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { NButton, NText, NIcon, NDivider, NDrawer, NDrawerContent } from "naive-ui";
-import { ArrowBackOutline, CopyOutline, DownloadOutline, DocumentTextOutline, SparklesOutline } from "@vicons/ionicons5";
+import { ArrowLeft, Copy, Download, FileText, Sparkles } from "lucide-vue-next";
 import { useRoute, useRouter } from "vue-router";
 import { useAppStore } from "../stores/app";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
@@ -65,26 +65,26 @@ async function exportFile() {
   <div class="result-root">
     <div class="result-header">
       <n-button text class="bar-back" @click="router.push('/')">
-        <template #icon><n-icon><ArrowBackOutline /></n-icon></template>返回首页
+        <template #icon><n-icon><ArrowLeft /></n-icon></template>返回首页
       </n-button>
       <n-text strong class="result-title">
         {{ item?.pageInfo.part ?? "结果" }}
       </n-text>
       <div class="result-actions">
         <n-button size="small" secondary @click="copyContent">
-          <template #icon><n-icon><CopyOutline /></n-icon></template>复制
+          <template #icon><n-icon><Copy /></n-icon></template>复制
         </n-button>
         <n-button size="small" type="primary" @click="exportFile">
-          <template #icon><n-icon><DownloadOutline /></n-icon></template>导出
+          <template #icon><n-icon><Download /></n-icon></template>导出
         </n-button>
         <n-button size="small" quaternary @click="showLog = true">
-          <template #icon><n-icon><DocumentTextOutline /></n-icon></template>日志
+          <template #icon><n-icon><FileText /></n-icon></template>日志
         </n-button>
       </div>
     </div>
 
     <div v-if="!item" class="result-empty">
-      <div class="empty-icon"><n-icon :size="30"><DocumentTextOutline /></n-icon></div>
+      <div class="empty-icon"><n-icon :size="30"><FileText /></n-icon></div>
       <div class="empty-title">未找到结果</div>
       <div class="empty-desc">该任务可能已从队列中清除</div>
     </div>
@@ -93,7 +93,7 @@ async function exportFile() {
       <article class="result-body">
         <header class="doc-header">
           <div class="doc-kicker">
-            <n-icon :size="13"><SparklesOutline /></n-icon>
+            <n-icon :size="13"><Sparkles /></n-icon>
             <span>AI 观点笔记</span>
           </div>
           <h1 class="doc-title">{{ item.pageInfo.part }}</h1>

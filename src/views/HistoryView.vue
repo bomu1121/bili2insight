@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from "vue";
 import { NButton, NText, NIcon, NInput, NPagination, NDrawer, NDrawerContent, NSpace, NDivider, NPopconfirm, createDiscreteApi } from "naive-ui";
-import { ArrowBackOutline, TrashOutline, EyeOutline, SearchOutline, RefreshOutline, CopyOutline, DownloadOutline, TimeOutline, DocumentTextOutline, Star, StarOutline } from "@vicons/ionicons5";
+import { ArrowLeft, Trash2, Eye, Search, RotateCw, Copy, Download, Clock, FileText, Star, StarOutline } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import { fetchHistoryList, getHistoryResult, deleteHistoryItem, clearHistory, toggleHistoryStar } from "../utils/invoke";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
@@ -113,14 +113,14 @@ function badgeStyle(source: string) {
   <div class="history-root">
     <div class="history-header">
       <div class="header-left">
-        <n-button text class="bar-back" @click="router.push('/')"><template #icon><n-icon><ArrowBackOutline /></n-icon></template>返回</n-button>
+        <n-button text class="bar-back" @click="router.push('/')"><template #icon><n-icon><ArrowLeft /></n-icon></template>返回</n-button>
         <div class="title-wrap">
-          <span class="bar-ic history"><n-icon :size="15"><TimeOutline /></n-icon></span>
+          <span class="bar-ic history"><n-icon :size="15"><Clock /></n-icon></span>
           <n-text strong>历史记录</n-text>
         </div>
       </div>
       <n-space :size="8">
-        <n-button size="small" @click="load()" :loading="loading"><template #icon><n-icon><RefreshOutline /></n-icon></template></n-button>
+        <n-button size="small" @click="load()" :loading="loading"><template #icon><n-icon><RotateCw /></n-icon></template></n-button>
         <n-popconfirm @positive-click="doClearAll">
           <template #trigger><n-button size="small" type="error" secondary :disabled="!data||data.total===0">清空全部</n-button></template>
           {$“确认清空全部？星标置顶的记录会保留。”}
@@ -130,7 +130,7 @@ function badgeStyle(source: string) {
 
     <div class="history-bar">
       <n-input v-model:value="search" placeholder="搜索标题、UP主、BV号..." size="small" clearable round style="width:320px;">
-        <template #prefix><n-icon><SearchOutline /></n-icon></template>
+        <template #prefix><n-icon><Search /></n-icon></template>
       </n-input>
       <n-text depth="3" class="total-text tnum" v-if="data&&!loading">共 {{ data.total }} 条</n-text>
     </div>
@@ -141,7 +141,7 @@ function badgeStyle(source: string) {
         @click="openDetail(entry)">
         <div class="h-thumb">
           <img v-if="entry.cover" :src="entry.cover+'@160w_100h_1c'" class="h-cover" referrerpolicy="no-referrer" />
-          <div v-else class="h-cover-fb"><n-icon size="20" color="var(--color-text-tertiary)"><EyeOutline /></n-icon></div>
+          <div v-else class="h-cover-fb"><n-icon size="20" color="var(--color-text-tertiary)"><Eye /></n-icon></div>
         </div>
         <div class="h-body">
           <div class="h-line1">
@@ -168,9 +168,9 @@ function badgeStyle(source: string) {
               </n-icon>
             </template>
           </n-button>
-          <n-button size="tiny" text @click="openDetail(entry)"><template #icon><n-icon size="14"><EyeOutline /></n-icon></template></n-button>
+          <n-button size="tiny" text @click="openDetail(entry)"><template #icon><n-icon size="14"><Eye /></n-icon></template></n-button>
           <n-popconfirm @positive-click="doDelete(entry)">
-            <template #trigger><n-button size="tiny" text type="error"><template #icon><n-icon size="14"><TrashOutline /></n-icon></template></n-button></template>
+            <template #trigger><n-button size="tiny" text type="error"><template #icon><n-icon size="14"><Trash2 /></n-icon></template></n-button></template>
             确认删除此记录？
           </n-popconfirm>
         </div>
@@ -178,7 +178,7 @@ function badgeStyle(source: string) {
     </div>
 
     <div class="history-empty" v-else-if="!loading">
-      <div class="empty-icon"><n-icon :size="30"><DocumentTextOutline /></n-icon></div>
+      <div class="empty-icon"><n-icon :size="30"><FileText /></n-icon></div>
       <div class="empty-title">{{ search ? "未找到匹配记录" : "暂无历史记录" }}</div>
       <div class="empty-desc">{{ search ? "试试换个关键词" : "处理视频后会自动保存在这里" }}</div>
     </div>
@@ -201,8 +201,8 @@ function badgeStyle(source: string) {
             <a v-if="detailEntry.url&&detailEntry.source!=='local'" :href="detailEntry.url" target="_blank" class="detail-link">{{ detailEntry.bvid||detailEntry.url }}</a>
           </div>
           <n-space style="margin:10px 0 0;">
-            <n-button size="small" @click="copyDetail"><template #icon><n-icon><CopyOutline /></n-icon></template>复制</n-button>
-            <n-button size="small" @click="exportDetail"><template #icon><n-icon><DownloadOutline /></n-icon></template>导出</n-button>
+            <n-button size="small" @click="copyDetail"><template #icon><n-icon><Copy /></n-icon></template>复制</n-button>
+            <n-button size="small" @click="exportDetail"><template #icon><n-icon><Download /></n-icon></template>导出</n-button>
           </n-space>
           <n-divider />
           <div class="md-preview" v-html="renderMarkdown(aiContent)" />

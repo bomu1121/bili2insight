@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed, onUnmounted } from "vue";
 import { NInput, NButton, NText, NIcon, NCheckbox, NSpin, createDiscreteApi } from "naive-ui";
-import { AddCircleOutline, ArrowBackOutline, RefreshOutline, LinkOutline, PersonOutline, TimeOutline } from "@vicons/ionicons5";
+import { CirclePlus, ArrowLeft, RotateCw, LinkIcon, User, Clock } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/app";
 import type { PageInfo } from "../utils/types";
@@ -100,10 +100,10 @@ async function refreshPreview() {
   <div class="source-root">
     <div class="page-bar">
       <n-button text class="bar-back" @click="router.push('/')">
-        <template #icon><n-icon><ArrowBackOutline /></n-icon></template>返回
+        <template #icon><n-icon><ArrowLeft /></n-icon></template>返回
       </n-button>
       <div class="bar-title">
-        <span class="bar-ic url"><n-icon :size="15"><LinkOutline /></n-icon></span>
+        <span class="bar-ic url"><n-icon :size="15"><Link /></n-icon></span>
         <n-text strong>B站链接</n-text>
       </div>
     </div>
@@ -123,7 +123,7 @@ async function refreshPreview() {
         round
       >
         <template #prefix>
-          <n-icon color="var(--color-text-tertiary)"><LinkOutline /></n-icon>
+          <n-icon color="var(--color-text-tertiary)"><Link /></n-icon>
         </template>
       </n-input>
 
@@ -141,12 +141,12 @@ async function refreshPreview() {
           <div class="preview-info">
             <div class="preview-title">{{ store.preview.title }}</div>
             <div class="preview-meta">
-              <span class="meta-item"><n-icon :size="14"><PersonOutline /></n-icon>{{ store.preview.uploader }}</span>
-              <span class="meta-item tnum"><n-icon :size="14"><TimeOutline /></n-icon>{{ fmtDur(store.preview.duration) }}</span>
+              <span class="meta-item"><n-icon :size="14"><User /></n-icon>{{ store.preview.uploader }}</span>
+              <span class="meta-item tnum"><n-icon :size="14"><Clock /></n-icon>{{ fmtDur(store.preview.duration) }}</span>
             </div>
           </div>
           <n-button quaternary circle size="small" @click="refreshPreview" title="刷新预览（绕过缓存）">
-            <template #icon><n-icon :size="16"><RefreshOutline /></n-icon></template>
+            <template #icon><n-icon :size="16"><RotateCw /></n-icon></template>
           </n-button>
         </div>
 
@@ -173,7 +173,7 @@ async function refreshPreview() {
         </div>
 
         <n-button type="primary" block size="large" round @click="addToQueue" :disabled="!store.preview || store.isProcessing">
-          <template #icon><n-icon><AddCircleOutline /></n-icon></template>
+          <template #icon><n-icon><CirclePlus /></n-icon></template>
           加入队列
         </n-button>
       </div>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from "vue";
 import { NButton, NText, NIcon, NCheckbox, NSpin, NPagination, NInput, createDiscreteApi, NTabs, NTabPane } from "naive-ui";
-import { ArrowBackOutline, AddCircleOutline, FolderOpenOutline, RefreshOutline, BookmarkOutline, ChevronForwardOutline, LogInOutline } from "@vicons/ionicons5";
+import { ArrowLeft, CirclePlus, FolderOpen, RotateCw, Bookmark, ChevronRight, LogIn } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 import { useAppStore } from "../stores/app";
@@ -71,16 +71,16 @@ function fmtDur(sec: number) {
 <template>
   <div class="source-root">
     <div class="page-bar">
-      <n-button text class="bar-back" @click="router.push('/')"><template #icon><n-icon><ArrowBackOutline /></n-icon></template>返回</n-button>
+      <n-button text class="bar-back" @click="router.push('/')"><template #icon><n-icon><ArrowLeft /></n-icon></template>返回</n-button>
       <div class="bar-title">
-        <span class="bar-ic fav"><n-icon :size="15"><FolderOpenOutline /></n-icon></span>
+        <span class="bar-ic fav"><n-icon :size="15"><FolderOpen /></n-icon></span>
         <n-text strong>B站收藏</n-text>
       </div>
     </div>
 
     <div class="source-body">
       <div v-if="!authStore.isLoggedIn" class="fav-empty">
-        <div class="empty-icon"><n-icon :size="30"><LogInOutline /></n-icon></div>
+        <div class="empty-icon"><n-icon :size="30"><LogIn /></n-icon></div>
         <div class="empty-title">需要登录 B 站账号</div>
         <div class="empty-desc">登录后可导入收藏夹、合集、稍后再看等内容</div>
         <n-button type="primary" round @click="authStore.startLogin()">去登录</n-button>
@@ -101,18 +101,18 @@ function fmtDur(sec: number) {
           <div class="fav-bar">
             <n-input v-model:value="folderSearch" placeholder="搜索收藏夹..." size="small" clearable style="width:220px;" />
             <n-button size="small" @click="store.loadFavFolders()" :loading="store.favLoading">
-              <template #icon><n-icon><RefreshOutline /></n-icon></template>
+              <template #icon><n-icon><RotateCw /></n-icon></template>
             </n-button>
           </div>
           <n-spin :show="store.favLoading">
             <div class="folder-grid" v-if="filteredFolders.length > 0">
               <div v-for="f in filteredFolders" :key="f.id" class="folder-card" @click="openFolder(f)">
-                <div class="folder-icon"><n-icon size="20" color="var(--color-accent-pink)"><FolderOpenOutline /></n-icon></div>
+                <div class="folder-icon"><n-icon size="20" color="var(--color-accent-pink)"><FolderOpen /></n-icon></div>
                 <div class="folder-info">
                   <n-text style="font-size:14px;font-weight:600;">{{ f.title }}</n-text>
                   <n-text depth="3" style="font-size:12px;" class="tnum">{{ f.count }} 个视频</n-text>
                 </div>
-                <span class="folder-arrow"><n-icon :size="15"><ChevronForwardOutline /></n-icon></span>
+                <span class="folder-arrow"><n-icon :size="15"><ChevronRight /></n-icon></span>
               </div>
             </div>
             <div v-else class="fav-empty"><n-text depth="3">{{ folderSearch.trim() ? "未找到匹配的收藏夹" : "暂无收藏夹" }}</n-text></div>
@@ -124,12 +124,12 @@ function fmtDur(sec: number) {
           <n-spin :show="store.favLoading">
             <div class="folder-grid" v-if="collectedFolders.length > 0">
               <div v-for="f in collectedFolders" :key="f.id" class="folder-card" @click="openFolder(f)">
-                <div class="folder-icon"><n-icon size="20" color="var(--color-accent-pink)"><BookmarkOutline /></n-icon></div>
+                <div class="folder-icon"><n-icon size="20" color="var(--color-accent-pink)"><Bookmark /></n-icon></div>
                 <div class="folder-info">
                   <n-text style="font-size:14px;font-weight:600;">{{ f.title }}</n-text>
                   <n-text depth="3" style="font-size:12px;" class="tnum">{{ f.count }} 个视频</n-text>
                 </div>
-                <span class="folder-arrow"><n-icon :size="15"><ChevronForwardOutline /></n-icon></span>
+                <span class="folder-arrow"><n-icon :size="15"><ChevronRight /></n-icon></span>
               </div>
             </div>
             <div v-else class="fav-empty"><n-text depth="3">暂无订阅合集</n-text></div>
@@ -202,7 +202,7 @@ function fmtDur(sec: number) {
         <!-- Folder content (videos) -->
         <div v-if="!showFolders">
           <div class="fav-bar folder-head">
-            <n-button text @click="backToFolders"><template #icon><n-icon><ArrowBackOutline /></n-icon></template>返回目录</n-button>
+            <n-button text @click="backToFolders"><template #icon><n-icon><ArrowLeft /></n-icon></template>返回目录</n-button>
             <n-text class="folder-head-title">{{ store.favCurrentFolderTitle }}</n-text>
             <n-text depth="3" style="font-size:12px;" class="tnum">共{{ store.favTotal }} 个视频</n-text>
           </div>
@@ -226,7 +226,7 @@ function fmtDur(sec: number) {
                 <n-pagination :page="store.favPage" :page-count="store.favTotalPages" @update:page="loadPage" size="small" />
               </div>
               <n-button type="primary" block @click="addSelectedToQueue" :disabled="store.favSelectedVideos.size === 0" style="margin-top:14px;">
-                <template #icon><n-icon><AddCircleOutline /></n-icon></template>添加到处理队列
+                <template #icon><n-icon><CirclePlus /></n-icon></template>添加到处理队列
               </n-button>
             </div>
             <div v-else class="fav-empty"><n-text depth="3">此收藏夹为空</n-text></div>

@@ -2,16 +2,16 @@
 import { computed } from "vue";
 import { NButton, NText, NIcon, NSpace, NSelect } from "naive-ui";
 import {
-  TrashOutline,
-  PlayOutline,
-  EyeOutline,
-  CheckmarkCircle,
-  CloseCircle,
-  SyncOutline,
-  CopyOutline,
-  StopCircleOutline,
-  ListOutline,
-} from "@vicons/ionicons5";
+  Trash2,
+  Play,
+  Eye,
+  CircleCheckBig,
+  CircleX,
+  RefreshCw,
+  Copy,
+  CircleStop,
+  List,
+} from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/app";
 import { useTemplateStore } from "../stores/templates";
@@ -79,7 +79,7 @@ function updateItemTemplate(itemId: string, val: number) {
   <div class="queue-root">
     <div class="queue-header">
       <div class="header-left">
-        <span class="bar-ic queue"><n-icon :size="15"><ListOutline /></n-icon></span>
+        <span class="bar-ic queue"><n-icon :size="15"><List /></n-icon></span>
         <n-text strong class="page-title">处理队列</n-text>
         <span class="count-pill tnum">{{ store.queue.length }}</span>
       </div>
@@ -90,26 +90,26 @@ function updateItemTemplate(itemId: string, val: number) {
           @click="startProcessing"
           :disabled="store.isProcessing || store.queue.filter((q) => q.status === 'pending').length === 0"
         >
-          <template #icon><n-icon><PlayOutline /></n-icon></template>开始处理
+          <template #icon><n-icon><Play /></n-icon></template>开始处理
         </n-button>
         <n-button v-if="store.isProcessing" size="small" type="warning" @click="stopProcessing">
-          <template #icon><n-icon><StopCircleOutline /></n-icon></template>停止
+          <template #icon><n-icon><CircleStop /></n-icon></template>停止
         </n-button>
         <n-button
           size="small"
           @click="clearDone"
           :disabled="store.queue.filter((q) => q.status === 'done' || q.status === 'error').length === 0"
         >
-          <template #icon><n-icon><TrashOutline /></n-icon></template>清除已完成
+          <template #icon><n-icon><Trash2 /></n-icon></template>清除已完成
         </n-button>
         <n-button size="small" @click="copyAllTitles" :disabled="store.queue.length === 0">
-          <template #icon><n-icon><CopyOutline /></n-icon></template>复制标题
+          <template #icon><n-icon><Copy /></n-icon></template>复制标题
         </n-button>
       </n-space>
     </div>
 
     <div v-if="store.queue.length === 0" class="queue-empty">
-      <div class="empty-icon"><n-icon :size="30"><ListOutline /></n-icon></div>
+      <div class="empty-icon"><n-icon :size="30"><List /></n-icon></div>
       <div class="empty-title">队列为空</div>
       <div class="empty-desc">返回首页添加视频后再来处理</div>
       <n-button type="primary" round @click="router.push('/')">去添加</n-button>
@@ -124,9 +124,9 @@ function updateItemTemplate(itemId: string, val: number) {
       >
         <div class="q-row1">
           <span class="q-status">
-            <n-icon v-if="item.status === 'done'" color="var(--color-success)" :size="17"><CheckmarkCircle /></n-icon>
-            <n-icon v-else-if="item.status === 'error'" color="var(--color-error)" :size="17"><CloseCircle /></n-icon>
-            <n-icon v-else-if="item.status === 'running'" color="var(--color-brand)" :size="17" class="spinning"><SyncOutline /></n-icon>
+            <n-icon v-if="item.status === 'done'" color="var(--color-success)" :size="17"><CircleCheckBig /></n-icon>
+            <n-icon v-else-if="item.status === 'error'" color="var(--color-error)" :size="17"><CircleX /></n-icon>
+            <n-icon v-else-if="item.status === 'running'" color="var(--color-brand)" :size="17" class="spinning"><RefreshCw /></n-icon>
             <span v-else class="q-pending-dot">&#9679;</span>
           </span>
           <span class="q-title" :title="item.pageInfo.part">{{ item.pageInfo.part }}</span>
@@ -148,7 +148,7 @@ function updateItemTemplate(itemId: string, val: number) {
               @update:value="(v: number) => updateItemTemplate(item.id, v)"
             />
             <n-button v-if="item.status === 'done'" size="tiny" type="primary" secondary @click="viewResult(item.id)">
-              <template #icon><n-icon :size="15"><EyeOutline /></n-icon></template>
+              <template #icon><n-icon :size="15"><Eye /></n-icon></template>
               查看
             </n-button>
           </div>

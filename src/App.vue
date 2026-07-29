@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch, computed } from "vue";
 import { NInput, NButton, NSpace, NText, NIcon, NTabs, NTabPane, createDiscreteApi, NDrawer, NDrawerContent, NSelect, NConfigProvider, type GlobalThemeOverrides } from "naive-ui";
-import { SettingsSharp, ListOutline, PlayOutline, TrashOutline, EyeOutline, CheckmarkCircle, CloseCircle, SyncOutline, PersonCircleOutline, LogOutOutline, RefreshOutline, PhonePortraitOutline, QrCodeOutline, ArrowForward, CopyOutline, LinkOutline, FolderOpenOutline, CloudUploadOutline, TimeOutline, MoonOutline, SunnyOutline } from "@vicons/ionicons5";
+import { Settings, List, Play, Trash2, Eye, CircleCheckBig, CircleX, RefreshCw, CircleUserRound, LogOut, RotateCw, Smartphone, QrCode, ArrowRight, Copy, LinkIcon, FolderOpen, CloudUpload, Clock, Moon, Sun } from "lucide-vue-next";
 import { useRoute, useRouter } from "vue-router";
 import { useAppStore } from "./stores/app";
 import { useAuthStore } from "./stores/auth";
@@ -19,19 +19,7 @@ const avatarRef = ref<HTMLElement | null>(null);
 useMagnetic(logoRef, { strength: 0.6, radius: 120 });
 useTilt(avatarRef, { maxTilt: 12 });
 const { createRipple } = useRipple();
-const scrambledSet = new Set<string>();
-const scramblePool = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%&*+-=<>?";
-function doScramble(e: MouseEvent) {
-  const el = e.currentTarget as HTMLElement; const key = el.textContent || "";
-  if (scrambledSet.has(key)) return; scrambledSet.add(key);
-  const chars = [...key]; let frame = 0; const maxFrames = 10;
-  function step() {
-    const prog = frame / maxFrames;
-    el.textContent = chars.map((c,i) => prog > i/chars.length ? c : scramblePool[Math.floor(Math.random()*scramblePool.length)]).join("");
-    frame++; if (frame < maxFrames) requestAnimationFrame(step); else el.textContent = key;
-  }
-  requestAnimationFrame(step);
-}
+
 
 const isDarkMode = ref(true);
 const darkOverrides: GlobalThemeOverrides = {
@@ -157,29 +145,29 @@ const tplPrompt = computed({
         <div class="nav-group">
           <div class="nav-caption">> 信号源</div>
           <button type="button" class="nav-item" :class="{ on: route.path === '/source/url' }" @click="router.push('/source/url'); createRipple()">
-            <n-icon :size="17"><LinkOutline /></n-icon>
-            <span class="nav-label" @mouseenter="doScramble">B站链接</span>
+            <n-icon :size="17"><LinkIcon /></n-icon>
+            <span class="nav-label">B站链接</span>
           </button>
           <button type="button" class="nav-item" :class="{ on: route.path === '/source/fav' }" @click="router.push('/source/fav'); createRipple()">
-            <n-icon :size="17"><FolderOpenOutline /></n-icon>
-            <span class="nav-label" @mouseenter="doScramble">收藏夹</span>
+            <n-icon :size="17"><FolderOpen /></n-icon>
+            <span class="nav-label">收藏夹</span>
           </button>
           <button type="button" class="nav-item" :class="{ on: route.path === '/source/local' }" @click="router.push('/source/local'); createRipple()">
-            <n-icon :size="17"><CloudUploadOutline /></n-icon>
-            <span class="nav-label" @mouseenter="doScramble">本地文件</span>
+            <n-icon :size="17"><CloudUpload /></n-icon>
+            <span class="nav-label">本地文件</span>
           </button>
         </div>
         <div class="nav-group">
           <div class="nav-caption">> 观测台</div>
           <button type="button" class="nav-item" :class="{ on: isQueueRoute }" @click="showQueue = true; createRipple()">
-            <n-icon :size="17"><ListOutline /></n-icon>
-            <span class="nav-label" @mouseenter="doScramble">处理队列</span>
+            <n-icon :size="17"><List /></n-icon>
+            <span class="nav-label">处理队列</span>
             <span v-if="store.isProcessing" class="nav-pulse signal-dot" title="正在处理" />
             <span v-if="store.queueCount > 0" class="nav-badge tnum">{{ store.queueCount }}</span>
           </button>
           <button type="button" class="nav-item" :class="{ on: route.path === '/history' }" @click="router.push('/history'); createRipple()">
-            <n-icon :size="17"><TimeOutline /></n-icon>
-            <span class="nav-label" @mouseenter="doScramble">历史记录</span>
+            <n-icon :size="17"><Clock /></n-icon>
+            <span class="nav-label">历史记录</span>
           </button>
         </div>
       </nav>
@@ -193,7 +181,7 @@ const tplPrompt = computed({
         >
           <span ref="avatarRef" class="side-avatar tilt-card">
             <img v-if="authStore.isLoggedIn && authStore.loginFace" :src="authStore.loginFace" referrerpolicy="no-referrer" />
-            <n-icon v-else :size="18" color="var(--color-text-secondary)"><PersonCircleOutline /></n-icon>
+            <n-icon v-else :size="18" color="var(--color-text-secondary)"><CircleUserRound /></n-icon>
             <span v-if="authStore.isLoggedIn" class="side-online" />
           </span>
           <span class="side-user-meta">
@@ -201,8 +189,8 @@ const tplPrompt = computed({
             <span class="side-user-hint">{{ authStore.isLoggedIn ? "B站账号" : "点击登录" }}</span>
           </span>
         </button>
-        <button type="button" class="side-set theme-btn" @click="toggleTheme" :title="isDarkMode ? '切换亮色模式' : '切换暗色模式'"><n-icon :size="17"><MoonOutline v-if="isDarkMode" /><SunnyOutline v-else /></n-icon></button><button type="button" class="side-set" @click="showSettings = true" title="设置">
-          <n-icon :size="17"><SettingsSharp /></n-icon>
+        <button type="button" class="side-set theme-btn" @click="toggleTheme" :title="isDarkMode ? '切换亮色模式' : '切换暗色模式'"><n-icon :size="17"><Moon v-if="isDarkMode" /><Sun v-else /></n-icon></button><button type="button" class="side-set" @click="showSettings = true" title="设置">
+          <n-icon :size="17"><Settings /></n-icon>
         </button>
       </div>
     </aside>
@@ -217,25 +205,25 @@ const tplPrompt = computed({
         <div class="queue-drawer" v-if="store.queue.length > 0">
           <div class="queue-actions">
             <n-button size="small" type="primary" @click="startProcessing" :disabled="store.isProcessing || store.queue.filter(q=>q.status==='pending').length===0">
-              <template #icon><n-icon><PlayOutline /></n-icon></template>开始观测
+              <template #icon><n-icon><Play /></n-icon></template>开始观测
             </n-button>
             <n-button v-if="store.isProcessing" size="small" type="warning" @click="stopProcessing">
-              <template #icon><n-icon><CloseCircle /></n-icon></template>停止
+              <template #icon><n-icon><CircleX /></n-icon></template>停止
             </n-button>
             <n-button size="small" @click="clearDone" :disabled="store.queue.filter(q=>q.status==='done'||q.status==='error').length===0">
-              <template #icon><n-icon><TrashOutline /></n-icon></template>清除已完成
+              <template #icon><n-icon><Trash2 /></n-icon></template>清除已完成
             </n-button>
             <n-button size="small" @click="copyAllTitles" :disabled="store.queue.length===0">
-              <template #icon><n-icon><CopyOutline /></n-icon></template>复制标题
+              <template #icon><n-icon><Copy /></n-icon></template>复制标题
             </n-button>
           </div>
           <div class="queue-list">
             <div v-for="item in store.queue" :key="item.id" class="q-item" :class="{ running: item.status === 'running', done: item.status === 'done', error: item.status === 'error' }">
               <div class="q-row1">
                 <span class="q-s">
-                  <n-icon v-if="item.status === 'done'" color="var(--color-success)" size="16"><CheckmarkCircle /></n-icon>
-                  <n-icon v-else-if="item.status === 'error'" color="var(--color-error)" size="16"><CloseCircle /></n-icon>
-                  <n-icon v-else-if="item.status === 'running'" color="var(--color-brand)" size="16" class="spinning"><SyncOutline /></n-icon>
+                  <n-icon v-if="item.status === 'done'" color="var(--color-success)" size="16"><CircleCheckBig /></n-icon>
+                  <n-icon v-else-if="item.status === 'error'" color="var(--color-error)" size="16"><CircleX /></n-icon>
+                  <n-icon v-else-if="item.status === 'running'" color="var(--color-brand)" size="16" class="spinning"><RefreshCw /></n-icon>
                   <span v-else class="q-pending-dot">&#9679;</span>
                 </span>
                 <span class="q-title" :title="item.pageInfo.part">{{ item.pageInfo.part }}</span>
@@ -257,7 +245,7 @@ const tplPrompt = computed({
                     @update:value="(v: number) => updateItemTemplate(item.id, v)"
                   />
                   <n-button v-if="item.status === 'done'" size="tiny" text @click="viewResult(item.id)" style="padding:0 4px;">
-                    <template #icon><n-icon size="16"><EyeOutline /></n-icon></template>
+                    <template #icon><n-icon size="16"><Eye /></n-icon></template>
                   </n-button>
                 </div>
               </div>
@@ -268,14 +256,14 @@ const tplPrompt = computed({
           </div>
         </div>
         <n-text depth="3" v-else class="queue-empty">
-          <n-icon :size="40" color="var(--color-text-tertiary)"><ListOutline /></n-icon>
+          <n-icon :size="40" color="var(--color-text-tertiary)"><List /></n-icon>
           <span>队列为空</span>
           <span class="queue-empty-hint">返回首页添加视频后在此处理</span>
         </n-text>
         <template #footer>
           <button type="button" class="queue-full-link" @click="openQueuePage">
             打开完整队列页
-            <n-icon :size="14"><ArrowForward /></n-icon>
+            <n-icon :size="14"><ArrowRight /></n-icon>
           </button>
         </template>
       </n-drawer-content>
@@ -288,11 +276,11 @@ const tplPrompt = computed({
         <div class="login-body" v-if="authStore.isLoggedIn">
           <div class="login-success">
             <img v-if="authStore.loginFace" :src="authStore.loginFace" class="login-avatar-lg" referrerpolicy="no-referrer" />
-            <n-icon v-else size="64" color="var(--color-brand)"><PersonCircleOutline /></n-icon>
+            <n-icon v-else size="64" color="var(--color-brand)"><CircleUserRound /></n-icon>
             <n-text strong class="login-uname">{{ authStore.loginUname }}</n-text>
             <n-text depth="3" class="login-uid">UID: {{ authStore.loginUid }}</n-text>
             <n-button type="error" size="small" @click="authStore.doLogout()" style="margin-top:18px;">
-              <template #icon><n-icon><LogOutOutline /></n-icon></template>退出登录
+              <template #icon><n-icon><LogOut /></n-icon></template>退出登录
             </n-button>
           </div>
         </div>
@@ -302,7 +290,7 @@ const tplPrompt = computed({
           <n-tabs v-model:value="qrTab" type="line" size="medium" animated>
             <n-tab-pane name="qr" tab="扫码登录">
               <template #tab>
-                <n-icon size="18"><QrCodeOutline /></n-icon>
+                <n-icon size="18"><QrCode /></n-icon>
                 <span style="margin-left:6px;">扫码登录</span>
               </template>
               <div class="tab-content">
@@ -310,11 +298,11 @@ const tplPrompt = computed({
                   <div class="qr-code-wrap">
                     <img v-if="authStore.qrUrl" :src="'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(authStore.qrUrl)" class="qr-code-img" referrerpolicy="no-referrer" />
                     <div v-if="authStore.qrStatus === 'expired'" class="qr-overlay" @click="refreshLogin">
-                      <n-icon size="28"><RefreshOutline /></n-icon>
+                      <n-icon size="28"><RotateCw /></n-icon>
                       <n-text depth="3">二维码已过期，点击刷新</n-text>
                     </div>
                     <div v-if="authStore.qrStatus === 'success'" class="qr-overlay success">
-                      <n-icon size="32" color="var(--color-success)"><CheckmarkCircle /></n-icon>
+                      <n-icon size="32" color="var(--color-success)"><CircleCheckBig /></n-icon>
                       <n-text class="login-ok-text">登录成功</n-text>
                     </div>
                   </div>
@@ -328,7 +316,7 @@ const tplPrompt = computed({
 
             <n-tab-pane name="sms" tab="短信登录">
               <template #tab>
-                <n-icon size="18"><PhonePortraitOutline /></n-icon>
+                <n-icon size="18"><Smartphone /></n-icon>
                 <span style="margin-left:6px;">短信登录</span>
               </template>
               <div class="tab-content">
@@ -341,7 +329,7 @@ const tplPrompt = computed({
                     </n-button>
                   </n-space>
                   <n-button type="primary" block @click="message.info('短信登录需要验证码，即将开发')" style="margin-top:16px;">
-                    <template #icon><n-icon><ArrowForward /></n-icon></template>登录
+                    <template #icon><n-icon><ArrowRight /></n-icon></template>登录
                   </n-button>
                 </div>
               </div>
@@ -463,12 +451,12 @@ const tplPrompt = computed({
 .nav-group { display: flex; flex-direction: column; gap: 3px; }
 .nav-caption { font-size: 10.5px; font-weight: 600; color: var(--color-text-tertiary); padding: 0 20px 7px; font-family: var(--font-mono); letter-spacing: 0.04em; }
 .nav-item { display: flex; align-items: center; gap: 10px; height: 38px; margin: 0 8px; padding: 0 14px; border: none; border-radius: var(--radius-md); background: linear-gradient(90deg, rgba(111,181,132,0.12), rgba(111,181,132,0.04)); background-size: 0% 100%; background-repeat: no-repeat; font-family: inherit; font-size: 13px; font-weight: 500; color: var(--color-text-secondary); cursor: pointer; text-align: left; transition: background-size 0.45s cubic-bezier(0.22,0.61,0.36,1), color 0.25s cubic-bezier(0.22,0.61,0.36,1); position: relative; }
-.nav-item .n-icon { color: var(--color-text-tertiary); flex-shrink: 0; transition: color 0.25s cubic-bezier(0.22,0.61,0.36,1), transform 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+.nav-item .n-icon { color: var(--color-text-tertiary); flex-shrink: 0; transition: color 0.25s cubic-bezier(0.22,0.61,0.36,1), filter 0.3s ease; }
 .nav-item::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 2.5px; border-radius: 0 1.5px 1.5px 0; background: transparent; transition: background 0.3s cubic-bezier(0.22,0.61,0.36,1), box-shadow 0.3s; }
 .nav-item:hover { background-size: 100% 100%; }
-.nav-item:hover .n-icon { color: var(--color-text); transform: scale(1.08); }
+.nav-item:hover .n-icon { color: var(--color-text); filter: drop-shadow(0 0 3px rgba(255,255,255,0.15)); }
 .nav-item.on { background: rgba(111, 181, 132, 0.06); background-size: auto; color: var(--color-brand); letter-spacing: 0.015em; }
-.nav-item.on .n-icon { color: var(--color-brand); transform: scale(1.05); }
+.nav-item.on .n-icon { color: var(--color-brand); filter: drop-shadow(0 0 3px rgba(111,181,132,0.3)); }
 .nav-item.on::before { background: var(--color-brand); box-shadow: 0 0 4px rgba(111,181,132,0.5), 0 0 8px rgba(111,181,132,0.2); }
 .nav-item.on .nav-label { text-shadow: 0 0 10px rgba(111,181,132,0.12); }
 .nav-label { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
