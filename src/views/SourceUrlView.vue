@@ -13,9 +13,6 @@ const { message } = createDiscreteApi(["message"]);
 const url = ref("");
 let previewTimer: ReturnType<typeof setTimeout> | null = null;
 
-// Step state: 0 = input URL, 1 = preview + submit
-const currentStep = computed(() => store.preview ? 1 : 0);
-
 watch(url, (val) => {
   if (previewTimer) clearTimeout(previewTimer);
   store.preview = null;
@@ -72,7 +69,7 @@ function addToQueue() {
     if (pages.length === 1 && store.preview) page.part = store.preview.title;
     store.addQueueItem({ url: url.value, pageInfo: page });
   });
-  message.success("已加入 " + sel.length + " 个视频到队列");
+  message.success(`已加入 ${sel.length} 个视频到队列`);
   url.value = "";
   store.preview = null;
 }
@@ -82,8 +79,8 @@ const fmtDur = (sec: number) => {
     m = Math.floor((sec % 3600) / 60),
     s = sec % 60;
   return h > 0
-    ? String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0")
-    : String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+    ? `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
+    : `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 };
 
 async function refreshPreview() {
@@ -101,22 +98,16 @@ async function refreshPreview() {
 
 <template>
   <div class="source-root">
-
-    <!-- Step indicator top bar (ref: GitHub Actions workflow visualization, Linear onboarding) -->
-    <div class="step-bar">
-      <n-button text class="step-back" @click="router.push('/')">
-        <template #icon><n-icon size="16"><ArrowLeft /></n-icon></template>
+    <div class="page-bar">
+      <n-button text class="bar-back" @click="router.push('/')">
+        <template #icon><n-icon><ArrowLeft /></n-icon></template>返回
       </n-button>
-      <div class="step-indicator">
-        <div class="step-dot" :class="{ active: currentStep >= 0, done: currentStep > 0 }">1</div>
-        <span class="step-label" :class="{ active: currentStep >= 0 }">输入链接</span>
-        <span class="step-connector" :class="{ done: currentStep > 0 }"></span>
-        <div class="step-dot" :class="{ active: currentStep >= 1 }">2</div>
-        <span class="step-label" :class="{ active: currentStep >= 1 }">预览 &amp; 加入队列</span>
+      <div class="bar-title">
+        <span class="bar-ic url"><n-icon :size="15"><Link /></n-icon></span>
+        <n-text strong>B站链接</n-text>
       </div>
     </div>
 
-    <!-- Content area: single column, centered -->
     <div class="source-body">
       <div class="intro-card">
         <div class="intro-title">粘贴视频链接</div>
@@ -125,15 +116,14 @@ async function refreshPreview() {
 
       <n-input
         v-model:value="url"
-        placeholder="https://www.bilibili.com/video/BVxxxx"
+        placeholder="例如 https://www.bilibili.com/video/BVxxxx"
         :disabled="store.isProcessing"
         clearable
         size="large"
         round
-        autofocus
       >
         <template #prefix>
-          <n-icon color="var(--color-text-tertiary)"><LinkIcon /></n-icon>
+          <n-icon color="var(--color-text-tertiary)"><Link /></n-icon>
         </template>
       </n-input>
 
@@ -155,7 +145,7 @@ async function refreshPreview() {
               <span class="meta-item tnum"><n-icon :size="14"><Clock /></n-icon>{{ fmtDur(store.preview.duration) }}</span>
             </div>
           </div>
-          <n-button quaternary circle size="small" @click="refreshPreview" title="刷新预览">
+          <n-button quaternary circle size="small" @click="refreshPreview" title="刷新预览（绕过缓存）">
             <template #icon><n-icon :size="16"><RotateCw /></n-icon></template>
           </n-button>
         </div>
@@ -192,30 +182,19 @@ async function refreshPreview() {
 </template>
 
 <style scoped>
-.source-root { display: flex; flex-direction: column; height: 100%; }
-
-/* Step indicator bar (ref: GitHub Actions workflow visualization) */
-.step-bar { display: flex; align-items: center; gap: 20px; height: 48px; padding: 0 20px; background: var(--color-surface); border-bottom: 1px solid var(--color-border); flex-shrink: 0; }
-.step-back { color: var(--color-text-secondary); flex-shrink: 0; }
-.step-indicator { display: flex; align-items: center; gap: 8px; flex: 1; }
-.step-dot { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-mono); font-size: 11px; font-weight: 700; border: 2px solid var(--color-border-strong); color: var(--color-text-tertiary); background: transparent; flex-shrink: 0; transition: all var(--dur-2); }
-.step-dot.active { border-color: var(--color-brand); background: var(--color-brand); color: var(--color-text-inverse); box-shadow: var(--brand-glow-soft); }
-.step-dot.done { border-color: var(--color-success); background: var(--color-success-soft); color: var(--color-success); }
-.step-label { font-size: 12.5px; color: var(--color-text-tertiary); font-weight: 500; white-space: nowrap; transition: color var(--dur-2); }
-.step-label.active { color: var(--color-text); font-weight: 600; }
-.step-connector { width: 28px; height: 2px; background: var(--color-border-strong); border-radius: 1px; flex-shrink: 0; transition: background var(--dur-2); }
-.step-connector.done { background: var(--color-brand); }
-
-/* Content area: single column, centered, scrollable */
-.source-body { flex: 1; overflow-y: auto; scrollbar-gutter: stable; padding: 32px 28px 40px; max-width: var(--content-max-source); margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 16px; }
+.source-root { display: flex; flex-direction: column; height: 100%; overflow-y: auto; scrollbar-gutter: stable; }
+.page-bar { display: flex; align-items: center; gap: 12px; height: var(--header-height); padding: 0 20px; background: var(--color-surface); border-bottom: 1px solid var(--color-border); flex-shrink: 0; position: sticky; top: 0; z-index: 5; }
+.bar-back { color: var(--color-text-secondary); }
+.bar-title { display: inline-flex; align-items: center; gap: 9px; font-size: 15px; }
+.bar-ic { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; }
+.bar-ic.url { background: var(--color-brand-soft); color: var(--color-brand); }
+.source-body { flex: 1; padding: 32px 28px 40px; max-width: var(--content-max-source); margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 16px; }
 .intro-card { padding: 0 2px 6px; }
 .intro-title { font-size: var(--font-size-page); font-weight: 700; letter-spacing: -0.01em; color: var(--color-text); margin-bottom: 7px; }
 .intro-desc { font-size: 13px; color: var(--color-text-secondary); line-height: 1.6; }
 .preview-loading { display: inline-flex; align-items: center; gap: 10px; font-size: 13px; color: var(--color-text-secondary); padding: 8px 0; font-family: var(--font-mono); }
 .preview-section { display: flex; flex-direction: column; gap: 14px; animation: fadeUp var(--dur-3) var(--ease-out); }
-@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-
-.preview-card { display: flex; gap: 14px; align-items: center; background: linear-gradient(90deg, rgba(111,181,132,0.08), rgba(111,181,132,0.02)); background-size: 0% 100%; background-repeat: no-repeat; border-radius: var(--radius-lg); padding: 14px; border: 1px solid var(--color-border); box-shadow: var(--shadow-xs); transition: background-size 0.4s cubic-bezier(0.22,0.61,0.36,1), border-color var(--dur-2), box-shadow var(--dur-2); }
+.preview-card { display: flex; gap: 14px; align-items: center; background: linear-gradient(90deg, rgba(111,181,132,0.08), rgba(111,181,132,0.02)); background-size: 0% 100%; background-repeat: no-repeat; border-radius: var(--radius-lg); padding: 14px; border: 1px solid var(--color-border); box-shadow: var(--shadow-xs); transition: background-size 0.4s cubic-bezier(0.22,0.61,0.36,1), border-color 0.3s, box-shadow 0.3s; }
 .preview-card:hover { background-size: 100% 100%; border-color: rgba(111,181,132,0.35); box-shadow: 0 0 0 1px rgba(111,181,132,0.15), 0 4px 20px rgba(0,0,0,0.3), 0 0 14px rgba(111,181,132,0.06); }
 .cover-wrap { position: relative; flex-shrink: 0; }
 .preview-img { width: 152px; aspect-ratio: 16/9; object-fit: cover; border-radius: var(--radius-md); background: var(--color-surface-muted); display: block; }
@@ -224,20 +203,13 @@ async function refreshPreview() {
 .preview-title { font-size: 15px; font-weight: 650; color: var(--color-text); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .preview-meta { display: flex; flex-wrap: wrap; gap: 12px; }
 .meta-item { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--color-text-secondary); }
-
 .page-section { background: var(--color-surface); border-radius: var(--radius-lg); padding: 12px 14px; border: 1px solid var(--color-border); box-shadow: var(--shadow-xs); }
 .page-header { margin-bottom: 8px; padding: 0 4px; }
 .page-list { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; }
-.page-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--radius-md); cursor: pointer; font-size: 13px; border: 1px solid transparent; transition: background var(--dur-1), border-color var(--dur-1); }
+.page-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--radius-md); cursor: pointer; font-size: 13px; border: 1px solid transparent; transition: background var(--dur-1), border-color var(--dur-1), transform 0.2s; }
 .page-row:hover { background: var(--color-surface-muted); }
 .page-row.sel { background: var(--color-brand-soft); border-color: var(--color-brand-border); animation: materialize 0.3s var(--spring-snappy) both; }
 .page-idx { color: var(--color-brand); font-weight: 700; min-width: 30px; font-size: 12px; font-family: var(--font-mono); }
 .page-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .page-time { color: var(--color-text-tertiary); flex-shrink: 0; font-size: 11px; font-family: var(--font-mono); }
-
-@media (max-width: 600px) {
-  .step-label { display: none; }
-  .step-indicator { gap: 4px; }
-  .step-connector { width: 16px; }
-}
 </style>
