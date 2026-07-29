@@ -149,22 +149,23 @@ async function refreshPreview() {
         </div>
 
         <div v-if="hasMultiPages" class="page-section">
-          <div class="page-strip-header">
+          <div class="page-header">
             <n-checkbox :checked="store.selectedPages.size === videoPages.length" @update:checked="selectAll()">
               全选 ({{ store.selectedPages.size }}/{{ videoPages.length }})
             </n-checkbox>
           </div>
-          <div class="page-gallery">
+          <div class="page-list">
             <div
               v-for="(p, i) in videoPages"
               :key="i"
-              class="gallery-card"
+              class="page-row"
               :class="{ sel: store.selectedPages.has(i) }"
               @click="togglePage(i)"
             >
-              <div class="gallery-num tnum">P{{ p.page }}</div>
-              <div class="gallery-name">{{ p.part }}</div>
-              <div class="gallery-time tnum">{{ fmtDur(p.duration) }}</div>
+              <n-checkbox :checked="store.selectedPages.has(i)" size="small" />
+              <span class="page-idx tnum">P{{ p.page }}</span>
+              <span class="page-name">{{ p.part }}</span>
+              <span class="page-time tnum">{{ fmtDur(p.duration) }}</span>
             </div>
           </div>
         </div>
@@ -231,15 +232,12 @@ async function refreshPreview() {
 .meta-item { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--color-text-secondary); }
 
 .page-section { background: var(--color-surface); border-radius: var(--radius-lg); padding: 12px 14px; border: 1px solid var(--color-border); box-shadow: var(--shadow-xs); }
-
-/* Gallery grid (ref: Notion gallery view, Spotify album list) */
-.page-strip-header { margin-bottom: 10px; padding: 0 4px; flex-shrink: 0; }
-.page-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
-.gallery-card { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 20px 12px 14px; background: var(--color-surface-muted); border: 1.5px solid var(--color-border); border-radius: var(--radius-lg); cursor: pointer; transition: all var(--dur-2); }
-.gallery-card:hover { border-color: var(--color-border-strong); background: var(--color-surface); box-shadow: var(--shadow-sm); }
-.gallery-card.sel { border-color: var(--color-brand-border); background: var(--color-brand-soft); box-shadow: var(--brand-glow-soft), 0 0 0 1px rgba(111,181,132,0.25); }
-.gallery-num { font-family: var(--font-mono); font-size: 28px; font-weight: 700; color: var(--color-brand); line-height: 1; }
-.gallery-card.sel .gallery-num { text-shadow: var(--brand-glow); }
-.gallery-name { font-size: 12px; line-height: 1.35; color: var(--color-text); text-align: center; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; width: 100%; }
-.gallery-time { font-family: var(--font-mono); font-size: 10px; color: var(--color-text-tertiary); margin-top: auto; }
+.page-header { margin-bottom: 8px; padding: 0 4px; }
+.page-list { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; }
+.page-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--radius-md); cursor: pointer; font-size: 13px; border: 1px solid transparent; transition: background var(--dur-1), border-color var(--dur-1); }
+.page-row:hover { background: var(--color-surface-muted); }
+.page-row.sel { background: var(--color-brand-soft); border-color: var(--color-brand-border); animation: materialize 0.3s var(--spring-snappy) both; }
+.page-idx { color: var(--color-brand); font-weight: 700; min-width: 30px; font-size: 12px; font-family: var(--font-mono); }
+.page-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.page-time { color: var(--color-text-tertiary); flex-shrink: 0; font-size: 11px; font-family: var(--font-mono); }
 </style>
