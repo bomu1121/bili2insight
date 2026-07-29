@@ -198,6 +198,6 @@ function updateItemTemplate(itemId: string, val: number) {
 .q-elapsed { font-size: 11px; color: var(--color-text-tertiary); font-family: var(--font-mono); }
 .q-action { flex-shrink: 0; }
 .q-progress { width: 100%; height: 4px; background: rgba(139, 62, 62,0.08); border-radius: var(--radius-full); overflow: hidden; }
-.q-bar-fill { height: 100%; background: linear-gradient(90deg, #783030, #8B3E3E, #A04A4A); border-radius: var(--radius-full); transition: width 0.3s ease; animation: scanBar 2s ease-in-out infinite; box-shadow: var(--brand-glow-soft); position: relative; }
+.q-bar-fill { height: 100%; background: linear-gradient(90deg, #D4702A, #FF8C42, #FFA364); border-radius: var(--radius-full); transition: width 0.3s ease; animation: scanBar 2s ease-in-out infinite; box-shadow: var(--brand-glow-soft); position: relative; }
 .q-bar-fill::after { content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 20px; background: linear-gradient(90deg, transparent, rgba(139, 62, 62,0.3)); animation: phosphorScan 2s ease-in-out infinite; }
 </style>

@@ -274,7 +274,7 @@ function fmtDur(sec: number) {
 .follow-card:hover { background-size: 100% 100%; border-color: rgba(212,135,149,0.5); box-shadow: 0 0 0 2px rgba(212,135,149,0.3), 0 8px 32px rgba(0,0,0,0.4); }
 .follow-cover { width: 72px; height: 96px; object-fit: cover; border-radius: var(--radius-md); flex-shrink: 0; background: var(--color-surface-muted); }
 .follow-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding-top: 2px; }
-.fav-video-row { animation: materialize 0.35s var(--spring-snappy) both; }
+.fav-video-row { animation: materialize 0.35s var(--ease-out) both; }
 .fav-video-row:nth-child(1) { animation-delay: 0s; }
 .fav-video-row:nth-child(2) { animation-delay: 0.05s; }
 .fav-video-row:nth-child(3) { animation-delay: 0.1s; }

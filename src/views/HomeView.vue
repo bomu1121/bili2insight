@@ -240,7 +240,7 @@ const flowSteps = [
 
 .glass-card.url:hover { border-color: color-mix(in srgb, var(--color-brand) 50%, transparent); box-shadow: 0 8px 32px rgba(0,0,0,0.25), 0 0 20px rgba(139, 62, 62,0.15); }
 .glass-card.fav:hover { border-color: rgba(212,135,149,0.5); box-shadow: 0 8px 32px rgba(0,0,0,0.25), 0 0 20px rgba(212,135,149,0.15); }
-.glass-card.local:hover { border-color: rgba(99,168,115,0.5); box-shadow: 0 8px 32px rgba(0,0,0,0.25), 0 0 20px rgba(99,168,115,0.15); }
+.glass-card.local:hover { border-color: rgba(29,237,63,0.4); box-shadow: 0 8px 32px rgba(0,0,0,0.25), 0 0 20px rgba(29,237,63,0.12); }
 .glass-card.history:hover { border-color: rgba(135,148,194,0.5); box-shadow: 0 8px 32px rgba(0,0,0,0.25), 0 0 20px rgba(135,148,194,0.15); }
 
 .gc-icon { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; }

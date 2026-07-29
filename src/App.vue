@@ -481,7 +481,7 @@ const tplPrompt = computed({
 .div-number { font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: var(--color-brand); text-shadow: var(--divergence-glow); letter-spacing: 0.03em; }
 .side-user { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 6px 8px; border: none; border-radius: var(--radius-md); background: transparent; font-family: inherit; cursor: pointer; text-align: left; transition: background var(--dur-2); }
 .side-user:hover { background: var(--color-ink-soft); }
-.side-avatar { position: relative; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--color-border); background: var(--color-surface-muted); flex-shrink: 0; transform-style: preserve-3d; perspective: 200px; transition: transform 0.5s var(--spring-soft); }
+.side-avatar { position: relative; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--color-border); background: var(--color-surface-muted); flex-shrink: 0; transform-style: preserve-3d; perspective: 200px; transition: transform 0.5s var(--ease-out); }
 .side-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .side-online { position: absolute; right: 0; bottom: 0; width: 8px; height: 8px; border-radius: 50%; background: var(--color-success); border: 2px solid var(--color-surface); box-shadow: 0 0 4px rgba(0,204,102,0.4); }
 .side-user-meta { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; flex: 1; }
