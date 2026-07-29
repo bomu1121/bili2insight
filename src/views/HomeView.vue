@@ -153,6 +153,16 @@ const flowSteps = [
 
 .entry-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .entry-card { display: flex; align-items: flex-start; gap: 14px; padding: 20px; text-align: left; cursor: pointer; font-family: inherit; color: inherit; background: linear-gradient(135deg, var(--color-surface), var(--color-surface-muted)); border: 1.5px solid var(--color-border-strong); border-radius: var(--radius-lg); box-shadow: var(--shadow-xs); transition: border-color var(--dur-2), box-shadow var(--dur-2), background var(--dur-2); transform-style: preserve-3d; perspective: 800px; }
+.entry-card { display: flex; align-items: flex-start; gap: 14px; padding: 20px 20px 20px 17px; text-align: left; cursor: pointer; font-family: inherit; color: inherit; background: linear-gradient(135deg, var(--color-surface), var(--color-surface-muted)); border: 1.5px solid var(--color-border-strong); border-left: 3px solid transparent; border-radius: var(--radius-lg); box-shadow: var(--shadow-xs); transition: border-color var(--dur-2), box-shadow var(--dur-2), background var(--dur-2), border-left-color var(--dur-2), border-left-width var(--dur-2), padding-left var(--dur-2); transform-style: preserve-3d; perspective: 800px; }
+
+.entry-card.url { border-left-color: var(--color-brand); }
+.entry-card.fav { border-left-color: var(--color-accent-pink); }
+.entry-card.local { border-left-color: var(--color-success); }
+.entry-card.history { border-left-color: var(--color-accent-indigo); }
+
+.entry-card:hover { border-left-width: 5px; padding-left: 15px; }
+
+.entry-card:hover .entry-go { transform: translateX(2px); }
 /* Per-card hover colors */
 .entry-card.url:hover { border-color: rgba(111,181,132,0.45); box-shadow: 0 0 0 2px rgba(111,181,132,0.25), var(--shadow-entry-hover-depth), 0 0 20px rgba(111,181,132,0.1); }
 .entry-card.fav:hover { border-color: rgba(212,135,149,0.45); box-shadow: 0 0 0 2px rgba(212,135,149,0.25), var(--shadow-entry-hover-depth), 0 0 20px rgba(212,135,149,0.1); }
@@ -169,6 +179,7 @@ const flowSteps = [
 .entry-label { font-size: 15px; font-weight: 650; color: var(--color-text); margin-bottom: 5px; }
 .entry-desc { font-size: 12.5px; line-height: 1.55; color: var(--color-text-secondary); }
 .entry-go { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: var(--color-text-secondary); background: var(--entry-go-bg); flex-shrink: 0; margin-top: 5px; transition: background var(--dur-2), color var(--dur-2), box-shadow var(--dur-2); }
+.entry-go { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: var(--color-text-secondary); background: var(--entry-go-bg); flex-shrink: 0; margin-top: 5px; transition: background var(--dur-2), color var(--dur-2), box-shadow var(--dur-2), transform var(--dur-2); }
 .entry-card.url:hover .entry-go { background: rgba(111,181,132,0.15); color: var(--color-brand); box-shadow: 0 0 10px rgba(111,181,132,0.25); }
 .entry-card.fav:hover .entry-go { background: rgba(212,135,149,0.15); color: var(--color-accent-pink); box-shadow: 0 0 10px rgba(212,135,149,0.25); }
 .entry-card.local:hover .entry-go { background: rgba(99,168,115,0.15); color: var(--color-success); box-shadow: 0 0 10px rgba(99,168,115,0.25); }
@@ -178,8 +189,15 @@ const flowSteps = [
 .flow { margin-top: 56px; }
 .flow-caption { font-size: 12px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 16px; font-family: var(--font-mono); letter-spacing: 0.04em; }
 .flow-steps { display: flex; align-items: center; gap: 0; }
+.flow-steps { display: flex; align-items: center; gap: 0; counter-reset: flow-step; }
 .flow-step { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 6px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-full); flex-shrink: 0; transition: border-color 0.25s, box-shadow 0.25s; }
 .flow-step { display: inline-flex; align-items: center; gap: 10px; padding: 8px 16px 8px 6px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-full); flex-shrink: 0; transition: border-color var(--dur-2), box-shadow var(--dur-2), background var(--dur-2); }
+.flow-step { display: inline-flex; align-items: center; gap: 10px; padding: 8px 16px 8px 10px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-full); flex-shrink: 0; transition: border-color var(--dur-2), box-shadow var(--dur-2), background var(--dur-2); counter-increment: flow-step; }
+
+.flow-step::before { content: "0" counter(flow-step); font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--color-text-tertiary); min-width: 14px; text-align: center; }
+.flow-step:hover::before { color: var(--color-brand); }
+
+.flow-step.last::before { color: var(--color-text-inverse); }
 .flow-step:hover { border-color: var(--color-brand-border); background: var(--color-brand-soft); }
 .flow-ic { width: 28px; height: 28px; border-radius: 50%; background: var(--color-ink-soft); color: var(--color-text-tertiary); display: grid; place-items: center; transition: background var(--dur-2), color var(--dur-2); }
 .flow-step:hover .flow-ic { background: var(--color-ink); color: var(--color-text); }
@@ -188,6 +206,9 @@ const flowSteps = [
 .flow-step.last .flow-label { color: var(--color-brand); font-weight: 600; }
 .flow-label { font-size: 12.5px; color: var(--color-text-secondary); font-weight: 500; white-space: nowrap; }
 .flow-line { flex: 1; min-width: 16px; height: 1.5px; background: var(--color-border-strong); margin: 0 6px; position: relative; }
+.flow-line { flex: 1; min-width: 16px; height: 1.5px; background: linear-gradient(90deg, var(--color-border-strong), var(--color-brand-border), var(--color-border-strong)); background-size: 200% 100%; animation: flowPulse 3s ease-in-out infinite; margin: 0 6px; position: relative; }
+
+@keyframes flowPulse { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
 .flow-line::after { content: ""; position: absolute; right: -1px; top: -3px; width: 0; height: 0; border-left: 5px solid var(--color-border-strong); border-top: 3.5px solid transparent; border-bottom: 3.5px solid transparent; }
 
 @media (max-width: 860px) { .home-inner { padding: 44px 24px 36px; } .entry-grid { grid-template-columns: 1fr; } .hero-title { font-size: 26px; } .flow-line { display: none; } .flow-steps { flex-wrap: wrap; gap: 8px; } }
