@@ -444,7 +444,7 @@ const tplPrompt = computed({
 
 <style>
 .app-root { height: 100vh; display: grid; grid-template-columns: var(--sidebar-width) minmax(0, 1fr); background: var(--color-bg); position: relative; }
-.app-root::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 99998; background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.3) 100%); }
+
 .side { display: flex; flex-direction: column; min-height: 0; background: var(--color-surface); border-right: 1px solid var(--color-border); z-index: 2; }
 .side-brand { display: flex; align-items: center; gap: 10px; padding: 18px 16px 16px; cursor: pointer; user-select: none; border-bottom: 1px solid var(--color-border); position: relative; overflow: hidden; }
 .side-brand::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at center, rgba(139,62,62,0.04) 0%, transparent 70%); opacity: 0; transition: opacity 0.4s; pointer-events: none; }
