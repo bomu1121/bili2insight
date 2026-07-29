@@ -25,6 +25,9 @@
 
 # UI 样式规范 / Style Guide
 
+> **Steins;Gate 主题权威参考**: [.codex/STEINSGATE_DESIGN_LANGUAGE.md](.codex/STEINSGATE_DESIGN_LANGUAGE.md)
+> 所有 Steins;Gate 相关的色彩、材质、视觉母题决策以此文档为准。以下 Style Guide 的色板部分（品牌蓝等）为早期草稿，实际实现已偏离，改版时参考设计语言文档。
+
 气质：「纸面工作台」—— 浅色、编辑感、精密的桌面生产力工具。纸面灰画布 + 纯白表面 + 发丝边界；墨色（近黑微蓝）承载导航与强标题，B 站蓝只出现在真正的交互信号上（主按钮、链接、进度、选中态）。不做营销落地页、不做深色优先、不做炫光主题。
 
 ## 外壳与导航

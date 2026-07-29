@@ -180,8 +180,8 @@ const flowSteps = [
 .hero-content { position: relative; z-index: 1; text-align: center; margin-bottom: 48px; }
 .hero-kicker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--divergence-color); background: rgba(26,21,18,0.7); border: 1px solid rgba(255,140,66,0.2); padding: 5px 12px; border-radius: var(--radius-full); margin-bottom: 24px; font-family: var(--font-mono); letter-spacing: 0.05em; text-shadow: var(--divergence-glow); animation: heroSubFade 0.6s var(--ease-out) both; }
 .kicker-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--divergence-color); box-shadow: var(--divergence-glow); animation: pulse-dot 2s var(--ease-out) infinite; }
-.hero-title { font-size: 40px; font-weight: 750; letter-spacing: -0.03em; line-height: 1.2; color: var(--color-text); margin: 0 0 16px; animation: heroTitleReveal 0.7s var(--spring-snappy) 0.15s both; }
-.hero-sub { font-size: 15px; line-height: 1.7; color: var(--color-text-secondary); margin: 0 auto; max-width: 540px; animation: heroSubFade 0.8s var(--spring-snappy) 0.3s both; }
+.hero-title { font-size: 40px; font-weight: 750; letter-spacing: -0.03em; line-height: 1.2; color: var(--color-text); margin: 0 0 16px; animation: heroTitleReveal 0.7s var(--ease-out) 0.15s both; }
+.hero-sub { font-size: 15px; line-height: 1.7; color: var(--color-text-secondary); margin: 0 auto; max-width: 540px; animation: heroSubFade 0.8s var(--ease-out) 0.3s both; }
 @keyframes heroSubFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes heroTitleReveal { from { opacity: 0; transform: translateY(12px); filter: blur(4px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
 
@@ -217,7 +217,7 @@ const flowSteps = [
   gap: 14px;
   max-width: 720px;
   width: 100%;
-  animation: cardsRise 0.8s var(--spring-snappy) 0.5s both;
+  animation: cardsRise 0.8s var(--ease-out) 0.5s both;
 }
 @keyframes cardsRise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -260,7 +260,7 @@ const flowSteps = [
   position: absolute; bottom: 28px; z-index: 1;
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   font-family: var(--font-mono); font-size: 10px; color: var(--color-text-tertiary);
-  opacity: 0.5; animation: heroSubFade 0.8s var(--spring-snappy) 1s both;
+  opacity: 0.5; animation: heroSubFade 0.8s var(--ease-out) 1s both;
 }
 .scroll-arrow { font-size: 16px; animation: bounce 2s infinite; }
 @keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(6px); } }
@@ -270,7 +270,7 @@ const flowSteps = [
   max-width: var(--content-max-wide); margin: 0 auto;
   padding: 32px 32px 48px;
   opacity: 0; transform: translateY(12px);
-  transition: opacity 0.6s var(--spring-snappy), transform 0.6s var(--spring-snappy);
+  transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out);
 }
 .flow-bar.revealed { opacity: 1; transform: translateY(0); }
 .flow-bar-steps { display: flex; align-items: center; justify-content: center; gap: 0; }

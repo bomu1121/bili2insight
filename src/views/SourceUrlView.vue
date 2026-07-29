@@ -190,7 +190,7 @@ async function refreshPreview() {
 .source-root::before {
   content: "";
   position: fixed; inset: 0;
-  background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.35) 100%);
+  background: radial-gradient(ellipse at center, rgba(26,21,18,0.1) 30%, rgba(26,21,18,0.4) 80%, rgba(10,8,6,0.6) 100%);
   pointer-events: none;
   z-index: 0;
 }
@@ -206,12 +206,12 @@ async function refreshPreview() {
   box-shadow: var(--shadow-hover), 0 0 0 1px rgba(139, 62, 62,0.04);
   padding: 32px 28px 28px;
   display: flex; flex-direction: column; gap: 16px;
-  animation: panelEnter 0.4s var(--spring-snappy) both;
+  animation: panelEnter 0.4s var(--ease-out) both;
 }
 @keyframes panelEnter { from { opacity: 0; transform: scale(0.97) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 
 /* Close button: top-right corner */
-.panel-close { position: absolute; top: 12px; right: 12px; color: var(--color-text-tertiary); }
+.panel-close { position: absolute; top: 12px; right: 12px; color: var(--color-text-tertiary); transition: color var(--dur-2); } .panel-close:hover { color: var(--color-brand); }
 
 /* Content */
 .intro-card { padding: 0 2px 6px; }
@@ -225,7 +225,7 @@ async function refreshPreview() {
 .preview-card:hover { background-size: 100% 100%; border-color: rgba(139, 62, 62,0.35); box-shadow: 0 0 0 1px rgba(139, 62, 62,0.15), 0 4px 20px rgba(0,0,0,0.3), 0 0 14px rgba(139, 62, 62,0.06); }
 .cover-wrap { position: relative; flex-shrink: 0; }
 .preview-img { width: 152px; aspect-ratio: 16/9; object-fit: cover; border-radius: var(--radius-md); background: var(--color-surface-muted); display: block; }
-.cover-badge { position: absolute; right: 6px; bottom: 6px; background: rgba(10,10,16,0.8); color: var(--color-brand); font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: var(--radius-full); font-family: var(--font-mono); }
+.cover-badge { position: absolute; right: 6px; bottom: 6px; background: rgba(10,10,16,0.85); color: var(--divergence-color); text-shadow: var(--divergence-glow); font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: var(--radius-full); font-family: var(--font-mono); border: 1px solid rgba(255,140,66,0.2); }
 .preview-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 .preview-title { font-size: 15px; font-weight: 650; color: var(--color-text); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .preview-meta { display: flex; flex-wrap: wrap; gap: 12px; }
