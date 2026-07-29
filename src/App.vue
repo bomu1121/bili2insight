@@ -23,26 +23,26 @@ const { createRipple } = useRipple();
 
 const isDarkMode = ref(true);
 const darkOverrides: GlobalThemeOverrides = {
-  common: { primaryColor: "#6fb584", primaryColorHover: "#81c193", primaryColorPressed: "#5ea272", primaryColorSuppl: "#6fb584", infoColor: "#6088c0", successColor: "#63a873", warningColor: "#c99a46", errorColor: "#c46264", borderRadius: "6px", borderColor: "#23252d", textColorBase: "#e3e0d9", textColor2: "#96938c", textColor3: "#5d5a54", bodyColor: "#111316", cardColor: "#181b20", fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif', inputColor: "#14161b", modalColor: "#181b20", popoverColor: "#181b20", tableColor: "#181b20", actionColor: "#181b20", dividerColor: "#23252d" },
-  Button: { borderRadiusMedium: "6px", borderRadiusSmall: "6px", borderRadiusTiny: "6px", fontWeight: "500", textColorGhost: "#96938c", borderGhost: "#2f3139" },
-  Input: { borderRadius: "6px", color: "#14161b", border: "#23252d", borderHover: "#2f3139", borderFocus: "#6fb584", boxShadowFocus: "0 0 0 2px rgba(111,181,132,0.15)", textColor: "#e3e0d9", placeholderColor: "#5d5a54" },
-  Card: { borderRadius: "10px", color: "#181b20", borderColor: "#23252d" }, Checkbox: { borderRadius: "4px", colorChecked: "#6fb584", borderChecked: "#6fb584" },
-  Drawer: { color: "#181b20", textColor: "#e3e0d9", titleTextColor: "#e3e0d9" }, Tabs: { tabTextColorActiveLine: "#6fb584", tabTextColorHoverLine: "#6fb584", barColor: "#6fb584" },
-  Select: { peers: { InternalSelection: { color: "#14161b", border: "#23252d", borderHover: "#2f3139", borderFocus: "#6fb584", textColor: "#e3e0d9" } } },
-  Pagination: { itemColor: "#181b20", itemColorActive: "#111316", itemTextColor: "#96938c", itemTextColorActive: "#6fb584", itemBorder: "#23252d", itemBorderActive: "#6fb584" },
-  Popconfirm: { color: "#181b20" }, Dialog: { color: "#181b20", textColor: "#e3e0d9" }, Spin: { color: "#6fb584" },
-  Menu: { itemColorActive: "rgba(111,181,132,0.07)", itemTextColorActive: "#6fb584" },
+  common: { primaryColor: "#8B3E3E", primaryColorHover: "#A04A4A", primaryColorPressed: "#783030", primaryColorSuppl: "#8B3E3E", infoColor: "#439AB1", successColor: "#1DED3F", warningColor: "#FF8E42", errorColor: "#B53A3A", borderRadius: "6px", borderColor: "#332E28", textColorBase: "#E8E0D5", textColor2: "#A89E92", textColor3: "#6B6359", bodyColor: "#1A1512", cardColor: "#24211D", fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif', inputColor: "#1E1B17", modalColor: "#24211D", popoverColor: "#24211D", tableColor: "#24211D", actionColor: "#24211D", dividerColor: "#332E28" },
+  Button: { borderRadiusMedium: "6px", borderRadiusSmall: "6px", borderRadiusTiny: "6px", fontWeight: "500", textColorGhost: "#A89E92", borderGhost: "#454038" },
+  Input: { borderRadius: "6px", color: "#1E1B17", border: "#332E28", borderHover: "#454038", borderFocus: "#8B3E3E", boxShadowFocus: "0 0 0 2px rgba(139,62,62,0.18)", textColor: "#E8E0D5", placeholderColor: "#6B6359" },
+  Card: { borderRadius: "10px", color: "#24211D", borderColor: "#332E28" }, Checkbox: { borderRadius: "4px", colorChecked: "#8B3E3E", borderChecked: "#8B3E3E" },
+  Drawer: { color: "#24211D", textColor: "#E8E0D5", titleTextColor: "#E8E0D5" }, Tabs: { tabTextColorActiveLine: "#8B3E3E", tabTextColorHoverLine: "#8B3E3E", barColor: "#8B3E3E" },
+  Select: { peers: { InternalSelection: { color: "#1E1B17", border: "#332E28", borderHover: "#454038", borderFocus: "#8B3E3E", textColor: "#E8E0D5" } } },
+  Pagination: { itemColor: "#24211D", itemColorActive: "#1A1512", itemTextColor: "#A89E92", itemTextColorActive: "#8B3E3E", itemBorder: "#332E28", itemBorderActive: "#8B3E3E" },
+  Popconfirm: { color: "#24211D" }, Dialog: { color: "#24211D", textColor: "#E8E0D5" }, Spin: { color: "#8B3E3E" },
+  Menu: { itemColorActive: "rgba(139,62,62,0.07)", itemTextColorActive: "#8B3E3E" },
 };
 const lightOverrides: GlobalThemeOverrides = {
-  common: { primaryColor: "#4a8c5e", primaryColorHover: "#5ea272", primaryColorPressed: "#3d7a4f", primaryColorSuppl: "#4a8c5e", infoColor: "#3a7bd5", successColor: "#4a8c5e", warningColor: "#b8860b", errorColor: "#c0392b", borderRadius: "6px", borderColor: "#dddfe4", textColorBase: "#1f2328", textColor2: "#6e737c", textColor3: "#999da3", bodyColor: "#f7f7f8", cardColor: "#ffffff", fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif', inputColor: "#eeeff1", modalColor: "#ffffff", popoverColor: "#ffffff", tableColor: "#ffffff", actionColor: "#ffffff", dividerColor: "#dddfe4" },
-  Button: { borderRadiusMedium: "6px", borderRadiusSmall: "6px", borderRadiusTiny: "6px", fontWeight: "500", textColorGhost: "#6e737c", borderGhost: "#c6cad2" },
-  Input: { borderRadius: "6px", color: "#eeeff1", border: "#dddfe4", borderHover: "#c6cad2", borderFocus: "#4a8c5e", boxShadowFocus: "0 0 0 2px rgba(74,140,94,0.15)", textColor: "#1f2328", placeholderColor: "#999da3" },
-  Card: { borderRadius: "10px", color: "#ffffff", borderColor: "#dddfe4" }, Checkbox: { borderRadius: "4px", colorChecked: "#4a8c5e", borderChecked: "#4a8c5e" },
-  Drawer: { color: "#ffffff", textColor: "#1f2328", titleTextColor: "#1f2328" }, Tabs: { tabTextColorActiveLine: "#4a8c5e", tabTextColorHoverLine: "#4a8c5e", barColor: "#4a8c5e" },
-  Select: { peers: { InternalSelection: { color: "#eeeff1", border: "#dddfe4", borderHover: "#c6cad2", borderFocus: "#4a8c5e", textColor: "#1f2328" } } },
-  Pagination: { itemColor: "#ffffff", itemColorActive: "#f7f7f8", itemTextColor: "#6e737c", itemTextColorActive: "#4a8c5e", itemBorder: "#dddfe4", itemBorderActive: "#4a8c5e" },
-  Popconfirm: { color: "#ffffff" }, Dialog: { color: "#ffffff", textColor: "#1f2328" }, Spin: { color: "#4a8c5e" },
-  Menu: { itemColorActive: "rgba(74,140,94,0.07)", itemTextColorActive: "#4a8c5e" },
+  common: { primaryColor: "#7B2D2D", primaryColorHover: "#8E3A3A", primaryColorPressed: "#642020", primaryColorSuppl: "#7B2D2D", infoColor: "#2A7A8C", successColor: "#1B7A2D", warningColor: "#D4702A", errorColor: "#A03030", borderRadius: "6px", borderColor: "#D8D0C5", textColorBase: "#1A1512", textColor2: "#5C5448", textColor3: "#8C8276", bodyColor: "#F5F0E8", cardColor: "#FAF7F2", fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif', inputColor: "#F0EBE3", modalColor: "#FAF7F2", popoverColor: "#FAF7F2", tableColor: "#FAF7F2", actionColor: "#FAF7F2", dividerColor: "#D8D0C5" },
+  Button: { borderRadiusMedium: "6px", borderRadiusSmall: "6px", borderRadiusTiny: "6px", fontWeight: "500", textColorGhost: "#5C5448", borderGhost: "#BFB5A8" },
+  Input: { borderRadius: "6px", color: "#F0EBE3", border: "#D8D0C5", borderHover: "#BFB5A8", borderFocus: "#7B2D2D", boxShadowFocus: "0 0 0 2px rgba(123,45,45,0.15)", textColor: "#1A1512", placeholderColor: "#8C8276" },
+  Card: { borderRadius: "10px", color: "#FAF7F2", borderColor: "#D8D0C5" }, Checkbox: { borderRadius: "4px", colorChecked: "#7B2D2D", borderChecked: "#7B2D2D" },
+  Drawer: { color: "#FAF7F2", textColor: "#1A1512", titleTextColor: "#1A1512" }, Tabs: { tabTextColorActiveLine: "#7B2D2D", tabTextColorHoverLine: "#7B2D2D", barColor: "#7B2D2D" },
+  Select: { peers: { InternalSelection: { color: "#F0EBE3", border: "#D8D0C5", borderHover: "#BFB5A8", borderFocus: "#7B2D2D", textColor: "#1A1512" } } },
+  Pagination: { itemColor: "#FAF7F2", itemColorActive: "#F5F0E8", itemTextColor: "#5C5448", itemTextColorActive: "#7B2D2D", itemBorder: "#D8D0C5", itemBorderActive: "#7B2D2D" },
+  Popconfirm: { color: "#FAF7F2" }, Dialog: { color: "#FAF7F2", textColor: "#1A1512" }, Spin: { color: "#7B2D2D" },
+  Menu: { itemColorActive: "rgba(123,45,45,0.07)", itemTextColorActive: "#7B2D2D" },
 };
 const themeOverrides = computed(() => isDarkMode.value ? darkOverrides : lightOverrides);
 function toggleTheme() {

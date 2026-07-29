@@ -4,115 +4,118 @@
  * 设计原则：生产力工具，非游戏终端。眼睛优先。
  */
 :root {
-  --color-brand: #6fb584;
-  --color-brand-hover: #81c193;
-  --color-brand-pressed: #5ea272;
-  --color-brand-soft: rgba(111, 181, 132, 0.07);
-  --color-brand-border: rgba(111, 181, 132, 0.16);
-  --color-brand-shadow: rgba(111, 181, 132, 0.18);
-  --color-ink: #1f2229;
-  --color-ink-hover: #272a32;
+  /* === Steins;Gate Design Language — Dark Lab (深夜の未来道具研究所) === */
+  /* ref: .codex/STEINSGATE_DESIGN_LANGUAGE.md */
+
+  /* --- Kurisu Brand (主交互信号 — 牧濑紅莉栖 栗紅) --- */
+  --color-brand: #8B3E3E;
+  --color-brand-hover: #A04A4A;
+  --color-brand-pressed: #783030;
+  --color-brand-soft: rgba(139, 62, 62, 0.08);
+  --color-brand-border: rgba(139, 62, 62, 0.18);
+  --color-brand-shadow: rgba(139, 62, 62, 0.14);
+
+  /* --- Nav Active (暖暗墨色) --- */
+  --color-ink: #2A2520;
+  --color-ink-hover: #332E28;
   --color-ink-soft: rgba(255, 255, 255, 0.03);
-  --color-bg: #111316;
-  --color-surface: #181b20;
-  --color-surface-muted: #14161b;
-  --color-border: #23252d;
-  --color-border-strong: #2f3139;
-  --color-text: #e3e0d9;
-  --color-text-secondary: #96938c;
-  --color-text-tertiary: #5d5a54;
-  --color-text-inverse: #111316;
-  --color-success: #63a873;
-  --color-success-soft: rgba(99, 168, 115, 0.07);
-  --color-success-border: rgba(99, 168, 115, 0.18);
-  --color-warning: #c99a46;
-  --color-warning-soft: rgba(201, 154, 70, 0.07);
-  --color-warning-border: rgba(201, 154, 70, 0.18);
-  --color-error: #c46264;
-  --color-error-soft: rgba(196, 98, 100, 0.07);
-  --color-error-border: rgba(196, 98, 100, 0.18);
-  --color-info: #6088c0;
-  --color-info-soft: rgba(96, 136, 192, 0.07);
-  --color-info-border: rgba(96, 136, 192, 0.18);
-  --color-accent-pink: #d48795;
-  --color-accent-pink-soft: rgba(212, 135, 149, 0.07);
-  --color-accent-pink-border: rgba(212, 135, 149, 0.16);
-  --color-accent-indigo: #8794c2;
-  --color-accent-indigo-soft: rgba(135, 148, 194, 0.07);
-  --color-accent-indigo-border: rgba(135, 148, 194, 0.16);
-  --color-accent-purple: #8794c2;
-  --color-accent-purple-soft: rgba(135, 148, 194, 0.07);
+
+  /* --- Structural (Lab 暗角 — 暖深棕) --- */
+  --color-bg: #1A1512;
+  --color-surface: #24211D;
+  --color-surface-muted: #1E1B17;
+  --color-border: #332E28;
+  --color-border-strong: #454038;
+  --color-text: #E8E0D5;
+  --color-text-secondary: #A89E92;
+  --color-text-tertiary: #6B6359;
+  --color-text-inverse: #1A1512;
+
+  /* --- Semantic (来源: CRT荧光绿 / 辉光管橙 / VN UI青) --- */
+  --color-success: #1DED3F;
+  --color-success-soft: rgba(29, 237, 63, 0.08);
+  --color-success-border: rgba(29, 237, 63, 0.18);
+  --color-warning: #FF8E42;
+  --color-warning-soft: rgba(255, 142, 66, 0.07);
+  --color-warning-border: rgba(255, 142, 66, 0.18);
+  --color-error: #B53A3A;
+  --color-error-soft: rgba(181, 58, 58, 0.07);
+  --color-error-border: rgba(181, 58, 58, 0.18);
+  --color-info: #439AB1;
+  --color-info-soft: rgba(67, 154, 177, 0.07);
+  --color-info-border: rgba(67, 154, 177, 0.18);
+
+  /* --- B站 Identity Accents (不变) --- */
+  --color-accent-pink: #D47A88;
+  --color-accent-pink-soft: rgba(212, 122, 136, 0.07);
+  --color-accent-pink-border: rgba(212, 122, 136, 0.16);
+  --color-accent-indigo: #828FC0;
+  --color-accent-indigo-soft: rgba(130, 143, 192, 0.07);
+  --color-accent-indigo-border: rgba(130, 143, 192, 0.16);
+  --color-accent-purple: #9488C0;
+  --color-accent-purple-soft: rgba(148, 136, 192, 0.07);
+
+  /* --- Tokens (非色值) --- */
   --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 10px;
   --radius-xl: 14px;
   --radius-full: 9999px;
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-10: 40px;
-  --space-12: 48px;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px; --space-12: 48px;
   --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
   --font-mono: "Cascadia Code", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --font-size-xs: 11px;
-  --font-size-sm: 12px;
-  --font-size-md: 13px;
-  --font-size-lg: 14px;
-  --font-size-xl: 16px;
-  --font-size-page: 20px;
-  --font-size-hero: 30px;
-  --font-weight-normal: 400;
-  --font-weight-medium: 500;
-  --font-weight-semibold: 600;
-  --font-weight-bold: 700;
-  --line-height-tight: 1.35;
-  --line-height-body: 1.6;
-  --line-height-loose: 1.85;
-  --sidebar-width: 216px;
-  --header-height: 52px;
-  --content-max-narrow: 440px;
-  --content-max-home: 720px;
-  --content-max-source: 680px;
-  --content-max-wide: 920px;
-  --content-max-result: 780px;
- --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.25);
- --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
- --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(111, 181, 132, 0.03);
- --shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(111, 181, 132, 0.06), 0 0 10px rgba(111, 181, 132, 0.04);
+  --font-size-xs: 11px; --font-size-sm: 12px; --font-size-md: 13px; --font-size-lg: 14px;
+  --font-size-xl: 16px; --font-size-page: 20px; --font-size-hero: 30px;
+  --font-weight-normal: 400; --font-weight-medium: 500; --font-weight-semibold: 600; --font-weight-bold: 700;
+  --line-height-tight: 1.35; --line-height-body: 1.6; --line-height-loose: 1.85;
+  --sidebar-width: 216px; --header-height: 52px;
+  --content-max-narrow: 440px; --content-max-home: 720px; --content-max-source: 680px;
+  --content-max-wide: 920px; --content-max-result: 780px;
+
+  /* --- Shadows (暖底适配) --- */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45);
+  --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(139, 62, 62, 0.04);
+  --shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(139, 62, 62, 0.08), 0 0 10px rgba(139, 62, 62, 0.06);
   --shadow-entry-hover-depth: 0 8px 32px rgba(0, 0, 0, 0.3);
- --shadow-brand-hover: 0 0 16px rgba(111, 181, 132, 0.18), 0 0 0 1px rgba(111, 181, 132, 0.12);
-  --drawer-shadow: -4px 0 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(111, 181, 132, 0.03);
-  --brand-glow: 0 0 4px rgba(111, 181, 132, 0.35), 0 0 10px rgba(111, 181, 132, 0.12);
- --brand-glow-soft: 0 0 2px rgba(111, 181, 132, 0.2);
-  --text-glow-brand: 0 0 20px rgba(111, 181, 132, 0.25), 0 0 40px rgba(111, 181, 132, 0.1);
-  --color-focus-ring: rgba(111, 181, 132, 0.35);
+  --shadow-brand-hover: 0 0 16px rgba(139, 62, 62, 0.22), 0 0 0 1px rgba(139, 62, 62, 0.15);
+  --drawer-shadow: -4px 0 24px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(139, 62, 62, 0.04);
+
+  /* --- Glow (Kurisu 红辉光 + 辉光管橙) --- */
+  --brand-glow: 0 0 4px rgba(139, 62, 62, 0.45), 0 0 10px rgba(139, 62, 62, 0.18);
+  --brand-glow-soft: 0 0 2px rgba(139, 62, 62, 0.25);
+  --text-glow-brand: 0 0 20px rgba(139, 62, 62, 0.28), 0 0 40px rgba(139, 62, 62, 0.12);
+  --color-focus-ring: rgba(139, 62, 62, 0.4);
   --entry-go-bg: rgba(255, 255, 255, 0.05);
- --amber-glow: 0 0 6px rgba(201, 154, 70, 0.25);
+  --amber-glow: 0 0 6px rgba(255, 142, 66, 0.35);
+
+  /* --- Animation --- */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --dur-1: 0.12s;
-  --dur-2: 0.18s;
-  --dur-3: 0.28s;
-  --dur-4: 0.4s;
-  --dur-5: 0.6s;
+  --dur-1: 0.12s; --dur-2: 0.18s; --dur-3: 0.28s; --dur-4: 0.4s; --dur-5: 0.6s;
+
+  /* --- Scrollbar (暗调) --- */
   --scrollbar-size: 6px;
-  --scrollbar-thumb: #2c2e36;
-  --scrollbar-thumb-hover: #3d3f48;
-  --color-log-bg: #0d0f13;
-  --color-log-text: #7ebc92;
-  --color-log-border: #1e2a22;
-  --color-log-track: #0d0f13;
-  --color-log-thumb: #1c2e22;
-  --color-log-thumb-hover: #2a3d30;
+  --scrollbar-thumb: #3D3730;
+  --scrollbar-thumb-hover: #504A42;
+
+  /* --- Log (CRT 终端风格) --- */
+  --color-log-bg: #0D0A08;
+  --color-log-text: #4AE54A;
+  --color-log-border: #252015;
+  --color-log-track: #0D0A08;
+  --color-log-thumb: #252015;
+  --color-log-thumb-hover: #3D3528;
+
+  /* --- CRT 扫描线 --- */
   --crt-scanline-opacity: 0.012;
   --crt-vignette-strength: 0.3;
   --crt-flicker-speed: 12s;
-  --divergence-color: #6fb584;
-  --divergence-glow: 0 0 3px rgba(111, 181, 132, 0.5), 0 0 8px rgba(111, 181, 132, 0.15);
+
+  /* --- Nixie Tube 世界线仪 --- */
+  --divergence-color: #FF8C42;
+  --divergence-glow: 0 0 3px rgba(255, 140, 66, 0.55), 0 0 8px rgba(255, 140, 66, 0.2);
 }
 
 
@@ -121,71 +124,70 @@
    ☀️ Light Theme — 明るい実験室 (Morning Lab)
    ======================================== */
 [data-theme="light"] {
-  /* === Direction A: Cool Slate Continuum === */
-  /* ref: Radix Colors, Linear.app — same h216-220 hue family, inverted luminance */
+  /* === Steins;Gate Design Language — Afternoon Lab (午後の未来道具研究所) === */
 
-  --color-brand: #4a8c5e;
-  --color-brand-hover: #5ea272;
-  --color-brand-pressed: #3d7a4f;
-  --color-brand-soft: rgba(74, 140, 94, 0.08);
-  --color-brand-border: rgba(74, 140, 94, 0.18);
-  --color-brand-shadow: rgba(74, 140, 94, 0.12);
+  --color-brand: #7B2D2D;
+  --color-brand-hover: #8E3A3A;
+  --color-brand-pressed: #642020;
+  --color-brand-soft: rgba(123, 45, 45, 0.08);
+  --color-brand-border: rgba(123, 45, 45, 0.18);
+  --color-brand-shadow: rgba(123, 45, 45, 0.12);
 
-  --color-ink: #e9eaed;
-  --color-ink-hover: #dbdde1;
+  --color-ink: #E5DFD5;
+  --color-ink-hover: #D8D0C5;
   --color-ink-soft: rgba(0, 0, 0, 0.04);
 
-  --color-bg: #f7f7f8;
-  --color-surface: #ffffff;
-  --color-surface-muted: #eeeff1;
-  --color-border: #dddfe4;
-  --color-border-strong: #c6cad2;
-  --color-text: #1f2328;
-  --color-text-secondary: #6e737c;
-  --color-text-tertiary: #999da3;
-  --color-text-inverse: #ffffff;
+  --color-bg: #F5F0E8;
+  --color-surface: #FAF7F2;
+  --color-surface-muted: #F0EBE3;
+  --color-border: #D8D0C5;
+  --color-border-strong: #BFB5A8;
+  --color-text: #1A1512;
+  --color-text-secondary: #5C5448;
+  --color-text-tertiary: #8C8276;
+  --color-text-inverse: #F5F0E8;
 
-  --color-success: #4a8c5e;
-  --color-success-soft: rgba(74, 140, 94, 0.08);
-  --color-success-border: rgba(74, 140, 94, 0.18);
-  --color-warning: #b8860b;
-  --color-warning-soft: rgba(184, 134, 11, 0.08);
-  --color-warning-border: rgba(184, 134, 11, 0.18);
-  --color-error: #c0392b;
-  --color-error-soft: rgba(192, 57, 43, 0.07);
-  --color-error-border: rgba(192, 57, 43, 0.16);
-  --color-info: #3a7bd5;
-  --color-info-soft: rgba(58, 123, 213, 0.07);
-  --color-info-border: rgba(58, 123, 213, 0.16);
+  --color-success: #1B7A2D;
+  --color-success-soft: rgba(27, 122, 45, 0.08);
+  --color-success-border: rgba(27, 122, 45, 0.18);
+  --color-warning: #D4702A;
+  --color-warning-soft: rgba(212, 112, 42, 0.08);
+  --color-warning-border: rgba(212, 112, 42, 0.18);
+  --color-error: #A03030;
+  --color-error-soft: rgba(160, 48, 48, 0.07);
+  --color-error-border: rgba(160, 48, 48, 0.16);
+  --color-info: #2A7A8C;
+  --color-info-soft: rgba(42, 122, 140, 0.07);
+  --color-info-border: rgba(42, 122, 140, 0.16);
 
-  --color-accent-pink: #c47080;
+  --color-accent-pink: #C47080;
   --color-accent-pink-soft: rgba(196, 112, 128, 0.08);
   --color-accent-pink-border: rgba(196, 112, 128, 0.18);
-  --color-accent-indigo: #6b7db5;
-  --color-accent-indigo-soft: rgba(107, 125, 181, 0.08);
-  --color-accent-indigo-border: rgba(107, 125, 181, 0.18);
-  --color-accent-purple: #6b7db5;
-  --color-accent-purple-soft: rgba(107, 125, 181, 0.08);
+  --color-accent-indigo: #6A7AAA;
+  --color-accent-indigo-soft: rgba(106, 122, 170, 0.08);
+  --color-accent-indigo-border: rgba(106, 122, 170, 0.18);
+  --color-accent-purple: #7A70A8;
+  --color-accent-purple-soft: rgba(122, 112, 168, 0.08);
 
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.06);
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(74, 140, 94, 0.03);
-  --shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(74, 140, 94, 0.05);
+  --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(123, 45, 45, 0.03);
+  --shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(123, 45, 45, 0.05);
   --shadow-entry-hover-depth: 0 8px 32px rgba(0, 0, 0, 0.1);
-  --shadow-brand-hover: 0 0 12px rgba(74, 140, 94, 0.12);
+  --shadow-brand-hover: 0 0 12px rgba(123, 45, 45, 0.15);
   --drawer-shadow: -4px 0 20px rgba(0, 0, 0, 0.08);
 
-  --brand-glow: 0 0 4px rgba(74, 140, 94, 0.25);
-  --brand-glow-soft: 0 0 2px rgba(74, 140, 94, 0.15);
-  --text-glow-brand: 0 0 20px rgba(74, 140, 94, 0.25), 0 0 40px rgba(74, 140, 94, 0.1);
-  --color-focus-ring: rgba(74, 140, 94, 0.35);
+  --brand-glow: 0 0 4px rgba(123, 45, 45, 0.28);
+  --brand-glow-soft: 0 0 2px rgba(123, 45, 45, 0.18);
+  --text-glow-brand: 0 0 20px rgba(123, 45, 45, 0.25), 0 0 40px rgba(123, 45, 45, 0.1);
+  --color-focus-ring: rgba(123, 45, 45, 0.35);
   --entry-go-bg: rgba(0, 0, 0, 0.05);
-  --amber-glow: 0 0 4px rgba(184, 134, 11, 0.2);
+  --amber-glow: 0 0 4px rgba(212, 112, 42, 0.25);
 
-  --scrollbar-thumb: #c6cad2;
-  --scrollbar-thumb-hover: #aeb4be;
+  --scrollbar-thumb: #D0C8BD;
+  --scrollbar-thumb-hover: #B5ADA2;
 
-  --color-log-bg: #1a1d22;
+  --color-log-bg: #1A1D22;
   --color-log-text: #7ebc92;
   --color-log-border: #2d3238;
   --color-log-track: #1a1d22;
@@ -195,8 +197,8 @@
   --crt-scanline-opacity: 0;
   --crt-vignette-strength: 0;
 
-  --divergence-color: #4a8c5e;
-  --divergence-glow: 0 0 2px rgba(74, 140, 94, 0.4), 0 0 6px rgba(74, 140, 94, 0.1);
+  --divergence-color: #D4702A;
+  --divergence-glow: 0 0 2px rgba(212, 112, 42, 0.45), 0 0 6px rgba(212, 112, 42, 0.12);
 }
 
 body::after {
