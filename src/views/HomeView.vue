@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { NIcon } from "naive-ui";
-import { ref as homeRef, onMounted as homeMounted } from "vue";
-import { useTilt } from "../composables/useMagnetic";
+import { ref as homeRef, onMounted as homeMounted, computed } from "vue";
 import { useScrollReveal } from "../composables/useScrollReveal";
 import {
   LinkIcon,
@@ -13,13 +12,16 @@ import {
   Mic,
   Sparkles,
   FileText,
+  List,
 } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
+import { useAppStore } from "../stores/app";
 import { createDiscreteApi } from "naive-ui";
 
 const router = useRouter();
 const authStore = useAuthStore();
+const appStore = useAppStore();
 const { message } = createDiscreteApi(["message"]);
 
 const entries = [
@@ -60,11 +62,8 @@ const entries = [
   },
 ];
 
-const heroRef = homeRef<HTMLElement | null>(null);
-const entryGridRef = homeRef<HTMLElement | null>(null);
-const flowRef = homeRef<HTMLElement | null>(null);
-const { revealed: flowRevealed } = useScrollReveal(flowRef, { staggerDelay: 100 });
-const { revealed: entryRevealed } = useScrollReveal(entryGridRef, { staggerDelay: 80 });
+const gridRef = homeRef<HTMLElement | null>(null);
+const { revealed: gridRevealed } = useScrollReveal(gridRef, { staggerDelay: 80, threshold: 0.05 });
 
 const flowSteps = [
   { label: "链接 / 文件", icon: LinkIcon },
@@ -73,143 +72,182 @@ const flowSteps = [
   { label: "AI 提炼", icon: Sparkles },
   { label: "导出笔记", icon: FileText },
 ];
+
+const queuePending = computed(() => appStore.queue.filter(q => q.status === "pending").length);
+const queueRunning = computed(() => appStore.queue.filter(q => q.status === "running").length);
+const queueDone = computed(() => appStore.queue.filter(q => q.status === "done").length);
 </script>
 
 <template>
   <div class="home-root">
-    <div class="home-inner">
-      <section class="hero">
-        <div class="hero-kicker">
-          <span class="kicker-dot signal-dot" />
-          <span>世界线观测站</span>
-        </div>
-        <h1 class="hero-title glitch-hover" data-text="观测世界线，提取分歧点">观测世界线，提取分歧点</h1>
-        <p class="hero-sub">输入 B 站视频链接或导入本地文件，自动观测下载、转录与 AI 提炼，导出可读笔记。</p>
-      </section>
-
-      <section ref="entryGridRef" class="entry-grid stagger-reveal" :class="{ revealed: entryRevealed }">
-        <button
-          v-for="item in entries"
-          :key="item.key"
-          type="button"
-          data-reactive-glow class="entry-card spotlight"
-          :class="item.tone"
-          @click="item.action()"
-        >
-          <div class="entry-icon">
-            <n-icon :size="22">
-              <component :is="item.icon" />
-            </n-icon>
-          </div>
-          <div class="entry-copy">
-            <div class="entry-label">{{ item.title }}</div>
-            <div class="entry-desc">{{ item.desc }}</div>
-          </div>
-          <div class="entry-go">
-            <n-icon :size="15"><ArrowRight /></n-icon>
-          </div>
-        </button>
-      </section>
-
-      <section ref="flowRef" class="flow" :class="{ revealed: flowRevealed }">
-        <div class="flow-caption">// 观测流水线</div>
-        <div class="flow-steps stagger-reveal" :class="{ revealed: flowRevealed }">
-          <template v-for="(s, i) in flowSteps" :key="s.label">
-            <div class="flow-step" :class="{ last: i === flowSteps.length - 1 }">
-              <span class="flow-ic">
-                <n-icon :size="13"><component :is="s.icon" /></n-icon>
-              </span>
-              <span class="flow-label">{{ s.label }}</span>
+    <div class="dashboard-body">
+      <section ref="gridRef" class="card-grid" :class="{ revealed: gridRevealed }">
+        <!-- URL card: largest, primary -->
+        <div class="db-card url span-2" @click="entries[0].action()">
+          <div class="db-card-accent"></div>
+          <div class="db-card-inner">
+            <div class="db-card-header">
+              <div class="db-card-icon url"><n-icon :size="24"><LinkIcon /></n-icon></div>
+              <div class="db-card-title">{{ entries[0].title }}</div>
+              <n-icon :size="16" class="db-card-arrow"><ArrowRight /></n-icon>
             </div>
-            <span v-if="i < flowSteps.length - 1" class="flow-line" />
-          </template>
+            <div class="db-card-desc">{{ entries[0].desc }}</div>
+            <div class="db-card-stats">
+              <span v-if="appStore.queue.length > 0" class="db-stat">
+                <span class="db-stat-num tnum">{{ queuePending }}</span> 待处理
+                <template v-if="queueRunning > 0">
+                  &middot; <span class="db-stat-num running">{{ queueRunning }}</span> 处理中
+                </template>
+                <template v-if="queueDone > 0">
+                  &middot; <span class="db-stat-num done">{{ queueDone }}</span> 已完成
+                </template>
+              </span>
+              <span v-else class="db-stat empty">队列为空，粘贴链接开始</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Favorites card -->
+        <div class="db-card fav" @click="entries[1].action()">
+          <div class="db-card-accent"></div>
+          <div class="db-card-inner">
+            <div class="db-card-header">
+              <div class="db-card-icon fav"><n-icon :size="20"><FolderOpen /></n-icon></div>
+              <div class="db-card-title">{{ entries[1].title }}</div>
+              <n-icon :size="16" class="db-card-arrow"><ArrowRight /></n-icon>
+            </div>
+            <div class="db-card-desc">{{ entries[1].desc }}</div>
+            <div class="db-card-stats">
+              <span class="db-badge" :class="authStore.isLoggedIn ? 'logged-in' : 'logged-out'">
+                {{ authStore.isLoggedIn ? '已登录' : '需登录' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Local card -->
+        <div class="db-card local" @click="entries[2].action()">
+          <div class="db-card-accent"></div>
+          <div class="db-card-inner">
+            <div class="db-card-header">
+              <div class="db-card-icon local"><n-icon :size="20"><CloudUpload /></n-icon></div>
+              <div class="db-card-title">{{ entries[2].title }}</div>
+              <n-icon :size="16" class="db-card-arrow"><ArrowRight /></n-icon>
+            </div>
+            <div class="db-card-desc">{{ entries[2].desc }}</div>
+          </div>
+        </div>
+
+        <!-- History card -->
+        <div class="db-card history" @click="entries[3].action()">
+          <div class="db-card-accent"></div>
+          <div class="db-card-inner">
+            <div class="db-card-header">
+              <div class="db-card-icon history"><n-icon :size="20"><Clock /></n-icon></div>
+              <div class="db-card-title">{{ entries[3].title }}</div>
+              <n-icon :size="16" class="db-card-arrow"><ArrowRight /></n-icon>
+            </div>
+            <div class="db-card-desc">{{ entries[3].desc }}</div>
+          </div>
         </div>
       </section>
+
+      <!-- Flow pipeline: vertical sticky sidebar -->
+      <aside class="flow-sidebar">
+        <div class="flow-sidebar-label">观测流水线</div>
+        <div class="flow-sidebar-steps">
+          <div v-for="(s, i) in flowSteps" :key="s.label" class="flow-side-step">
+            <span class="fs-num">0{{ i + 1 }}</span>
+            <span class="fs-ic">
+              <n-icon :size="12"><component :is="s.icon" /></n-icon>
+            </span>
+            <span class="fs-label">{{ s.label }}</span>
+          </div>
+        </div>
+        <div class="flow-sidebar-line"></div>
+      </aside>
     </div>
   </div>
 </template>
 
 <style scoped>
+.home-root { overflow-y: auto; scrollbar-gutter: stable; min-height: 100%; }
 
-/*
-  Home: entry card grid + hero + flow pipeline pattern
-  - colors via CSS custom properties (var(--color-*) / var(--shadow-*))
-  - hover uses box-shadow lift (var(--shadow-entry-hover-depth)), not translateY
-  - per-card tone colors via rgba overrides + theme-aware depth shadow
-  - transitions unified at 0.18s (border-color, box-shadow, background)
-*/
+/* ===== Dashboard layout ===== */
+.dashboard-body { display: flex; gap: 28px; max-width: var(--content-max-wide); margin: 0 auto; padding: 48px 32px 40px; align-items: flex-start; }
 
-.home-root { overflow-y: auto; scrollbar-gutter: stable; }
-.home-inner { max-width: var(--content-max-home); margin: 0 auto; padding: 64px 32px 48px; display: flex; flex-direction: column; }
+/* ===== Card grid ===== */
+.card-grid { flex: 1; min-width: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
-.hero { margin-bottom: 52px; }
-.hero-kicker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--color-brand); background: var(--color-brand-soft); border: 1px solid var(--color-brand-border); padding: 5px 12px; border-radius: var(--radius-full); margin-bottom: 20px; font-family: var(--font-mono); letter-spacing: 0.03em; animation: heroSubFade 0.6s var(--spring-snappy) both; }
-.kicker-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-brand); box-shadow: var(--brand-glow); animation: pulse-dot 2s var(--ease-out) infinite; }
-.hero-title { font-size: 32px; font-weight: 750; letter-spacing: -0.02em; line-height: 1.25; color: var(--color-text); margin: 0 0 14px; animation: heroTitleReveal 0.7s var(--spring-snappy) 0.15s both; transition: text-shadow 0.3s ease; }
-.hero-title:hover { text-shadow: var(--text-glow-brand); }
-.hero-sub { font-size: 14px; line-height: 1.7; color: var(--color-text-secondary); margin: 0; max-width: 520px; animation: heroSubFade 0.8s var(--spring-snappy) 0.3s both; }
-@keyframes heroSubFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes heroTitleReveal { from { opacity: 0; transform: translateY(12px); filter: blur(4px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
+.card-grid.revealed .db-card { animation: cardReveal 0.5s var(--spring-snappy) both; }
+.card-grid.revealed .db-card:nth-child(1) { animation-delay: 0s; }
+.card-grid.revealed .db-card:nth-child(2) { animation-delay: 0.1s; }
+.card-grid.revealed .db-card:nth-child(3) { animation-delay: 0.2s; }
+.card-grid.revealed .db-card:nth-child(4) { animation-delay: 0.3s; }
+@keyframes cardReveal { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
-.entry-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-.entry-card { display: flex; align-items: flex-start; gap: 14px; padding: 20px; text-align: left; cursor: pointer; font-family: inherit; color: inherit; background: linear-gradient(135deg, var(--color-surface), var(--color-surface-muted)); border: 1.5px solid var(--color-border-strong); border-radius: var(--radius-lg); box-shadow: var(--shadow-xs); transition: border-color var(--dur-2), box-shadow var(--dur-2), background var(--dur-2); transform-style: preserve-3d; perspective: 800px; }
-.entry-card { display: flex; align-items: flex-start; gap: 14px; padding: 20px 20px 20px 17px; text-align: left; cursor: pointer; font-family: inherit; color: inherit; background: linear-gradient(135deg, var(--color-surface), var(--color-surface-muted)); border: 1.5px solid var(--color-border-strong); border-left: 3px solid transparent; border-radius: var(--radius-lg); box-shadow: var(--shadow-xs); transition: border-color var(--dur-2), box-shadow var(--dur-2), background var(--dur-2), border-left-color var(--dur-2), border-left-width var(--dur-2), padding-left var(--dur-2); transform-style: preserve-3d; perspective: 800px; }
+/* ===== Dashboard cards ===== */
+.db-card { position: relative; background: linear-gradient(135deg, var(--color-surface), var(--color-surface-muted)); border: 1px solid var(--color-border-strong); border-radius: var(--radius-lg); cursor: pointer; overflow: hidden; transition: border-color var(--dur-2), box-shadow var(--dur-2), transform var(--dur-2); }
+.db-card:hover { box-shadow: var(--shadow-hover); }
 
-.entry-card.url { border-left-color: var(--color-brand); }
-.entry-card.fav { border-left-color: var(--color-accent-pink); }
-.entry-card.local { border-left-color: var(--color-success); }
-.entry-card.history { border-left-color: var(--color-accent-indigo); }
+.db-card-accent { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; transition: width var(--dur-2), box-shadow var(--dur-2); }
+.db-card.url .db-card-accent { background: var(--color-brand); }
+.db-card.fav .db-card-accent { background: var(--color-accent-pink); }
+.db-card.local .db-card-accent { background: var(--color-success); }
+.db-card.history .db-card-accent { background: var(--color-accent-indigo); }
+.db-card:hover .db-card-accent { width: 4px; box-shadow: var(--brand-glow-soft); }
+.db-card.fav:hover .db-card-accent { box-shadow: 0 0 6px rgba(212,135,149,0.3); }
+.db-card.local:hover .db-card-accent { box-shadow: 0 0 6px rgba(99,168,115,0.3); }
+.db-card.history:hover .db-card-accent { box-shadow: 0 0 6px rgba(135,148,194,0.3); }
 
-.entry-card:hover { border-left-width: 5px; padding-left: 15px; }
+.db-card-inner { padding: 20px 20px 20px 17px; }
 
-.entry-card:hover .entry-go { transform: translateX(2px); }
-/* Per-card hover colors */
-.entry-card.url:hover { border-color: rgba(111,181,132,0.45); box-shadow: 0 0 0 2px rgba(111,181,132,0.25), var(--shadow-entry-hover-depth), 0 0 20px rgba(111,181,132,0.1); }
-.entry-card.fav:hover { border-color: rgba(212,135,149,0.45); box-shadow: 0 0 0 2px rgba(212,135,149,0.25), var(--shadow-entry-hover-depth), 0 0 20px rgba(212,135,149,0.1); }
-.entry-card.local:hover { border-color: rgba(99,168,115,0.45); box-shadow: 0 0 0 2px rgba(99,168,115,0.25), var(--shadow-entry-hover-depth), 0 0 20px rgba(99,168,115,0.1); }
-.entry-card.history:hover { border-color: rgba(135,148,194,0.45); box-shadow: 0 0 0 2px rgba(135,148,194,0.25), var(--shadow-entry-hover-depth), 0 0 20px rgba(135,148,194,0.1); }
-.entry-card:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--color-focus-ring); }
-.entry-icon { width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; }
-.entry-card:hover .entry-icon { animation: icon-bounce 0.5s var(--spring-snappy) both; }
-.entry-card.url .entry-icon { background: var(--color-brand-soft); color: var(--color-brand); }
-.entry-card.fav .entry-icon { background: var(--color-accent-pink-soft); color: var(--color-accent-pink); }
-.entry-card.local .entry-icon { background: var(--color-success-soft); color: var(--color-success); }
-.entry-card.history .entry-icon { background: var(--color-accent-indigo-soft); color: var(--color-accent-indigo); }
-.entry-copy { flex: 1; min-width: 0; padding-top: 1px; }
-.entry-label { font-size: 15px; font-weight: 650; color: var(--color-text); margin-bottom: 5px; }
-.entry-desc { font-size: 12.5px; line-height: 1.55; color: var(--color-text-secondary); }
-.entry-go { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: var(--color-text-secondary); background: var(--entry-go-bg); flex-shrink: 0; margin-top: 5px; transition: background var(--dur-2), color var(--dur-2), box-shadow var(--dur-2); }
-.entry-go { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: var(--color-text-secondary); background: var(--entry-go-bg); flex-shrink: 0; margin-top: 5px; transition: background var(--dur-2), color var(--dur-2), box-shadow var(--dur-2), transform var(--dur-2); }
-.entry-card.url:hover .entry-go { background: rgba(111,181,132,0.15); color: var(--color-brand); box-shadow: 0 0 10px rgba(111,181,132,0.25); }
-.entry-card.fav:hover .entry-go { background: rgba(212,135,149,0.15); color: var(--color-accent-pink); box-shadow: 0 0 10px rgba(212,135,149,0.25); }
-.entry-card.local:hover .entry-go { background: rgba(99,168,115,0.15); color: var(--color-success); box-shadow: 0 0 10px rgba(99,168,115,0.25); }
-.entry-card.history:hover .entry-go { background: rgba(135,148,194,0.15); color: var(--color-accent-indigo); box-shadow: 0 0 10px rgba(135,148,194,0.25); }
+.db-card.span-2 { grid-column: 1 / -1; }
 
-.flow { margin-top: 48px; }
-.flow { margin-top: 56px; }
-.flow-caption { font-size: 12px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 16px; font-family: var(--font-mono); letter-spacing: 0.04em; }
-.flow-steps { display: flex; align-items: center; gap: 0; }
-.flow-steps { display: flex; align-items: center; gap: 0; counter-reset: flow-step; }
-.flow-step { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 6px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-full); flex-shrink: 0; transition: border-color 0.25s, box-shadow 0.25s; }
-.flow-step { display: inline-flex; align-items: center; gap: 10px; padding: 8px 16px 8px 6px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-full); flex-shrink: 0; transition: border-color var(--dur-2), box-shadow var(--dur-2), background var(--dur-2); }
-.flow-step { display: inline-flex; align-items: center; gap: 10px; padding: 8px 16px 8px 10px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-full); flex-shrink: 0; transition: border-color var(--dur-2), box-shadow var(--dur-2), background var(--dur-2); counter-increment: flow-step; }
+.db-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.db-card-icon { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; }
+.db-card-icon.url { background: var(--color-brand-soft); color: var(--color-brand); }
+.db-card-icon.fav { background: var(--color-accent-pink-soft); color: var(--color-accent-pink); }
+.db-card-icon.local { background: var(--color-success-soft); color: var(--color-success); }
+.db-card-icon.history { background: var(--color-accent-indigo-soft); color: var(--color-accent-indigo); }
+.db-card-title { font-size: 15px; font-weight: 650; color: var(--color-text); flex: 1; }
+.db-card-arrow { color: var(--color-text-tertiary); flex-shrink: 0; transition: transform var(--dur-2), color var(--dur-2); }
+.db-card:hover .db-card-arrow { transform: translateX(3px); color: var(--color-text-secondary); }
 
-.flow-step::before { content: "0" counter(flow-step); font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--color-text-tertiary); min-width: 14px; text-align: center; }
-.flow-step:hover::before { color: var(--color-brand); }
+.db-card-desc { font-size: 13px; line-height: 1.5; color: var(--color-text-secondary); margin-bottom: 10px; }
 
-.flow-step.last::before { color: var(--color-text-inverse); }
-.flow-step:hover { border-color: var(--color-brand-border); background: var(--color-brand-soft); }
-.flow-ic { width: 28px; height: 28px; border-radius: 50%; background: var(--color-ink-soft); color: var(--color-text-tertiary); display: grid; place-items: center; transition: background var(--dur-2), color var(--dur-2); }
-.flow-step:hover .flow-ic { background: var(--color-ink); color: var(--color-text); }
-.flow-step.last { border-color: var(--color-brand-border); background: var(--color-brand-soft); }
-.flow-step.last .flow-ic { background: var(--color-brand); color: var(--color-text-inverse); box-shadow: var(--brand-glow-soft); }
-.flow-step.last .flow-label { color: var(--color-brand); font-weight: 600; }
-.flow-label { font-size: 12.5px; color: var(--color-text-secondary); font-weight: 500; white-space: nowrap; }
-.flow-line { flex: 1; min-width: 16px; height: 1.5px; background: var(--color-border-strong); margin: 0 6px; position: relative; }
-.flow-line { flex: 1; min-width: 16px; height: 1.5px; background: linear-gradient(90deg, var(--color-border-strong), var(--color-brand-border), var(--color-border-strong)); background-size: 200% 100%; animation: flowPulse 3s ease-in-out infinite; margin: 0 6px; position: relative; }
+.db-card-stats { font-size: 12px; color: var(--color-text-tertiary); font-family: var(--font-mono); }
+.db-stat { display: flex; align-items: center; gap: 6px; }
+.db-stat-num { font-weight: 700; color: var(--color-brand); font-size: 16px; font-family: var(--font-mono); }
+.db-stat-num.running { color: var(--color-warning); }
+.db-stat-num.done { color: var(--color-success); }
+.db-stat.empty { opacity: 0.5; }
+.db-badge { display: inline-block; padding: 2px 10px; border-radius: var(--radius-full); font-size: 11px; font-weight: 600; font-family: var(--font-mono); }
+.db-badge.logged-in { background: var(--color-success-soft); color: var(--color-success); }
+.db-badge.logged-out { background: var(--color-warning-soft); color: var(--color-warning); }
 
-@keyframes flowPulse { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
-.flow-line::after { content: ""; position: absolute; right: -1px; top: -3px; width: 0; height: 0; border-left: 5px solid var(--color-border-strong); border-top: 3.5px solid transparent; border-bottom: 3.5px solid transparent; }
+/* ===== Flow sidebar ===== */
+.flow-sidebar { width: 170px; flex-shrink: 0; position: sticky; top: 48px; }
+.flow-sidebar-label { font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px; padding-left: 12px; }
+.flow-sidebar-steps { display: flex; flex-direction: column; gap: 0; }
+.flow-side-step { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--radius-md); transition: background var(--dur-2); cursor: default; }
+.flow-side-step:hover { background: var(--color-ink-soft); }
+.flow-side-step:last-child { background: var(--color-brand-soft); border: 1px solid var(--color-brand-border); }
+.fs-num { font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--color-text-tertiary); width: 16px; text-align: right; flex-shrink: 0; }
+.flow-side-step:last-child .fs-num { color: var(--color-brand); }
+.fs-ic { width: 22px; height: 22px; border-radius: 50%; background: var(--color-ink-soft); color: var(--color-text-tertiary); display: grid; place-items: center; flex-shrink: 0; }
+.flow-side-step:last-child .fs-ic { background: var(--color-brand); color: var(--color-text-inverse); box-shadow: var(--brand-glow-soft); }
+.fs-label { font-size: 12px; color: var(--color-text-secondary); font-weight: 500; white-space: nowrap; }
+.flow-side-step:last-child .fs-label { color: var(--color-brand); font-weight: 600; }
+.flow-sidebar-line { height: 1px; background: linear-gradient(90deg, transparent, var(--color-brand-border), transparent); margin: 16px 12px 0; }
 
-@media (max-width: 860px) { .home-inner { padding: 44px 24px 36px; } .entry-grid { grid-template-columns: 1fr; } .hero-title { font-size: 26px; } .flow-line { display: none; } .flow-steps { flex-wrap: wrap; gap: 8px; } }
+@media (max-width: 860px) {
+  .dashboard-body { flex-direction: column; padding: 32px 20px 28px; }
+  .card-grid { grid-template-columns: 1fr; }
+  .db-card.span-2 { grid-column: auto; }
+  .flow-sidebar { width: 100%; position: static; }
+  .flow-sidebar-steps { flex-direction: row; flex-wrap: wrap; gap: 6px; }
+  .flow-side-step { padding: 6px 10px; }
+  .flow-sidebar-line { display: none; }
+}
 </style>
