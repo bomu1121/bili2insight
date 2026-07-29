@@ -118,10 +118,9 @@ export interface QueueItem {
   error: string;
   createdAt: number;
   elapsedMs?: number;
-  templateIndex?: number; // undefined = use settings default
+  templateIndex?: number;
 }
 
-/** Lightweight history entry for listing — mirrors Rust HistoryEntry. */
 export interface HistoryEntry {
   id: string;
   created_at: number;
@@ -140,7 +139,17 @@ export interface HistoryEntry {
   starred: boolean;
 }
 
-/** Response from history_list Tauri command. */
+/** Metadata for a single AI analysis run on a history entry. */
+export interface AnalysisMeta {
+  id: string;
+  template_name: string;
+  created_at: number;
+  summary: string;
+  elapsed_ms: number;
+  status: string;
+  error_msg: string;
+}
+
 export interface HistoryListResult {
   entries: HistoryEntry[];
   total: number;

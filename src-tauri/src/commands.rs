@@ -1,4 +1,4 @@
-﻿use crate::PipelineProgress;
+use crate::PipelineProgress;
 use crate::pipeline;
 use crate::export;
 use crate::VideoInfo;
@@ -27,6 +27,7 @@ fn save_history_for_failure(
     source: &str,
     start: std::time::Instant,
     error_msg: &str,
+    template_name: Option<String>,
 ) -> Result<(), String> {
     let hs = app.state::<HistoryState>();
     let mut store = hs.0.lock().map_err(|e| format!("History lock error: {}", e))?;
@@ -53,7 +54,7 @@ fn save_history_for_failure(
         cover: video_info.cover.clone(),
         summary: String::new(),
         elapsed_ms: start.elapsed().as_millis() as i64,
-        template_name: String::new(),
+        template_name: template_name.clone().unwrap_or_default(),
         status: "error".to_string(),
         error_msg: error_msg.to_string(),
         starred: false,
@@ -87,6 +88,7 @@ pub async fn download_batch(app: AppHandle, url: String, proxy: Option<String>, 
 pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai_api_url: Option<String>, ai_api_key: Option<String>, ai_model: Option<String>, ai_prompt: Option<String>, page_cid: Option<i64>,
     asr_model: Option<String>, asr_api_url: Option<String>, asr_api_key: Option<String>,
     queue_item_id: Option<String>,
+    template_name: Option<String>,
 ) -> Result<crate::PipelineResult, String> {
     let output_dir = app.path().app_data_dir().map_err(|e| e.to_string())?.join("tasks");
     std::fs::create_dir_all(&output_dir).map_err(|e| e.to_string())?;
@@ -106,7 +108,7 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
         Err(e) => {
             let err_msg = format!("Download failed: {}", e);
             let empty_vi = crate::VideoInfo { cid: page_cid.unwrap_or(0), bvid: String::new(), title: String::new(), description: String::new(), duration: 0, cover: String::new(), uploader: String::new(), uploader_uid: 0, pubdate: 0, pages: vec![] };
-            let _ = save_history_for_failure(&app, &empty_vi, &url, "url", start, &err_msg);
+            let _ = save_history_for_failure(&app, &empty_vi, &url, "url", start, &err_msg, template_name.clone());
             return Err(err_msg);
         }
     };
@@ -215,7 +217,7 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
             cover: vi_for_history.cover.clone(),
             summary,
             elapsed_ms: start.elapsed().as_millis() as i64,
-            template_name: String::new(),
+            template_name: template_name.clone().unwrap_or_default(),
             status,
             error_msg,
             starred: false,
@@ -230,6 +232,7 @@ pub async fn run_pipeline_local(app: AppHandle, file_path: String, file_name: St
     ai_api_url: Option<String>, ai_api_key: Option<String>, ai_model: Option<String>, ai_prompt: Option<String>,
     asr_model: Option<String>, asr_api_url: Option<String>, asr_api_key: Option<String>,
     queue_item_id: Option<String>,
+    template_name: Option<String>,
 ) -> Result<crate::PipelineResult, String> {
     let output_dir = app.path().app_data_dir().map_err(|e| e.to_string())?.join("tasks");
     std::fs::create_dir_all(&output_dir).map_err(|e| e.to_string())?;
@@ -242,7 +245,7 @@ pub async fn run_pipeline_local(app: AppHandle, file_path: String, file_name: St
         description: String::new(),
         duration: 0,
         cover: String::new(),
-        uploader: "鏈湴鏂囦欢".to_string(),
+        uploader: "本地文件".to_string(),
         uploader_uid: 0,
         pubdate: 0,
         pages: vec![],
@@ -332,7 +335,7 @@ pub async fn run_pipeline_local(app: AppHandle, file_path: String, file_name: St
             cover: String::new(),
             summary,
             elapsed_ms: start.elapsed().as_millis() as i64,
-            template_name: String::new(),
+            template_name: template_name.clone().unwrap_or_default(),
             status,
             error_msg,
             starred: false,
@@ -482,4 +485,94 @@ pub fn history_clear(state: tauri::State<'_, HistoryState>) -> Result<usize, Str
 pub fn history_add(state: tauri::State<'_, HistoryState>, entry: HistoryEntry, full_result_json: String) -> Result<(), String> {
     let mut store = state.0.lock().map_err(|e| format!("Lock error: {}", e))?;
     store.add(entry, &full_result_json).map_err(|e| format!("Add error: {}", e))
+}
+
+#[tauri::command]
+pub fn history_get_analyses(state: tauri::State<HistoryState>, history_id: String) -> Result<Vec<crate::history::AnalysisMeta>, String> {
+    let store = state.0.lock().map_err(|e| format!("Lock error: {}", e))?;
+    store.get_analyses(&history_id).ok_or_else(|| "History entry not found".to_string())
+}
+
+#[tauri::command]
+pub fn history_get_analysis_result(state: tauri::State<HistoryState>, history_id: String, analysis_id: String) -> Result<String, String> {
+    let store = state.0.lock().map_err(|e| format!("Lock error: {}", e))?;
+    store.get_analysis_result(&history_id, &analysis_id).ok_or_else(|| "Analysis result not found".to_string())
+}
+
+#[tauri::command]
+pub async fn history_rerun_ai(
+    app: AppHandle,
+    state: tauri::State<'_, HistoryState>,
+    history_id: String,
+    prompt: String,
+    template_name: String,
+    ai_api_url: String,
+    ai_api_key: String,
+    ai_model: String,
+) -> Result<String, String> {
+    let start = std::time::Instant::now();
+
+    // Lock store briefly to get the original result
+    let (original_result_json, entry_exists) = {
+        let store = state.0.lock().map_err(|e| format!("Lock error: {}", e))?;
+        let exists = store.get_entry(&history_id).is_some();
+        let json = if exists { store.get_result(&history_id).unwrap_or_default() } else { String::new() };
+        (json, exists)
+    };
+
+    if !entry_exists {
+        return Err("History entry not found".to_string());
+    }
+
+    // Parse original result to get transcript
+    let original: crate::PipelineResult = serde_json::from_str(&original_result_json)
+        .map_err(|e| format!("Failed to parse original result: {}", e))?;
+
+    let transcript = &original.transcript;
+    if transcript.is_empty() {
+        return Err("No transcript available for re-analysis".to_string());
+    }
+
+    let video_title = original.video_info.title.clone();
+    emit_progress(&app, "ai", 0.50, "Re-analyzing with new prompt...", None);
+
+    // Run AI insights with new prompt
+    let client = app.state::<crate::AppState>().http_client.clone();
+    let (insights, ai_raw) = crate::pipeline::extract_insights(
+        &client, &ai_api_url, &ai_api_key, &ai_model, &prompt, transcript, &video_title
+    ).await.map_err(|e| format!("AI re-analysis failed: {}", e))?;
+
+    let ai_req = format!("SYSTEM: {}\n\nUSER: Video title: {}\n\nTranscript:\n{}", prompt, video_title, transcript);
+    let markdown = crate::export::generate_markdown(&original.video_info, transcript, &insights);
+
+    let new_result = crate::PipelineResult {
+        raw_transcript: original.raw_transcript,
+        video_info: original.video_info,
+        transcript: original.transcript,
+        insights,
+        markdown,
+        ai_request: ai_req,
+        ai_raw_response: ai_raw,
+    };
+
+    let result_json = serde_json::to_string(&new_result).map_err(|e| format!("Serialize error: {}", e))?;
+    let elapsed_ms = start.elapsed().as_millis() as i64;
+    let summary = new_result.insights.summary.chars().take(300).collect::<String>();
+
+    // Save the new analysis
+    let mut store = state.0.lock().map_err(|e| format!("Lock error: {}", e))?;
+    let analysis_meta = crate::history::AnalysisMeta {
+        id: String::new(),
+        template_name,
+        created_at: chrono::Utc::now().timestamp_millis(),
+        summary,
+        elapsed_ms,
+        status: "done".to_string(),
+        error_msg: String::new(),
+    };
+
+    let analysis_id = store.add_analysis(&history_id, analysis_meta, &result_json)
+        .map_err(|e| format!("Failed to save analysis: {}", e))?;
+
+    Ok(analysis_id)
 }
