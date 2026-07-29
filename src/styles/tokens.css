@@ -88,8 +88,11 @@
  --shadow-brand-hover: 0 0 16px rgba(111, 181, 132, 0.18), 0 0 0 1px rgba(111, 181, 132, 0.12);
   --drawer-shadow: -4px 0 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(111, 181, 132, 0.03);
   --brand-glow: 0 0 4px rgba(111, 181, 132, 0.35), 0 0 10px rgba(111, 181, 132, 0.12);
-  --brand-glow-soft: 0 0 2px rgba(111, 181, 132, 0.2);
-  --amber-glow: 0 0 6px rgba(201, 154, 70, 0.25);
+ --brand-glow-soft: 0 0 2px rgba(111, 181, 132, 0.2);
+  --text-glow-brand: 0 0 20px rgba(111, 181, 132, 0.25), 0 0 40px rgba(111, 181, 132, 0.1);
+  --color-focus-ring: rgba(111, 181, 132, 0.35);
+  --entry-go-bg: rgba(255, 255, 255, 0.05);
+ --amber-glow: 0 0 6px rgba(201, 154, 70, 0.25);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --dur-1: 0.12s;
   --dur-2: 0.18s;
@@ -170,8 +173,11 @@
   --drawer-shadow: -4px 0 20px rgba(0, 0, 0, 0.08);
 
   --brand-glow: 0 0 4px rgba(74, 140, 94, 0.25);
-  --brand-glow-soft: 0 0 2px rgba(74, 140, 94, 0.15);
-  --amber-glow: 0 0 4px rgba(184, 134, 11, 0.2);
+ --brand-glow-soft: 0 0 2px rgba(74, 140, 94, 0.15);
+  --text-glow-brand: 0 0 20px rgba(74, 140, 94, 0.25), 0 0 40px rgba(74, 140, 94, 0.1);
+  --color-focus-ring: rgba(74, 140, 94, 0.35);
+  --entry-go-bg: rgba(0, 0, 0, 0.05);
+ --amber-glow: 0 0 4px rgba(184, 134, 11, 0.2);
 
   --scrollbar-thumb: #cfccc6;
   --scrollbar-thumb-hover: #b5b2ac;
