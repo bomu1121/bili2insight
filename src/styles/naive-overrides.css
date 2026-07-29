@@ -25,7 +25,7 @@
 /* hover: 微抬 + 绿辉光 */
 .n-button:not(.n-button--disabled):hover {
   transform: translateY(-1px);
-  box-shadow: 0 0 12px rgba(111, 181, 132, 0.15), 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  box-shadow: 0 0 12px rgba(139, 62, 62, 0.15), 0 2px 8px rgba(0, 0, 0, 0.3) !important;
 }
 
 /* active: 按压深度 + CRT 静态闪烁 */
@@ -42,8 +42,8 @@
     0deg,
     transparent,
     transparent 1px,
-    rgba(111, 181, 132, 0.08) 1px,
-    rgba(111, 181, 132, 0.08) 2px
+    rgba(139, 62, 62, 0.08) 1px,
+    rgba(139, 62, 62, 0.08) 2px
   );
   animation: crtFlicker 0.3s ease-out;
   pointer-events: none;
@@ -54,7 +54,7 @@
 /* focus-visible: 绿光环 */
 .n-button:focus-visible {
   outline: none !important;
-  box-shadow: 0 0 0 2px rgba(111, 181, 132, 0.35), 0 0 10px rgba(111, 181, 132, 0.15) !important;
+  box-shadow: 0 0 0 2px rgba(139, 62, 62, 0.35), 0 0 10px rgba(139, 62, 62, 0.15) !important;
 }
 
 /* primary 按钮特殊样式 */
@@ -67,7 +67,7 @@
   inset: -2px;
   border-radius: inherit;
   padding: 2px;
-  background: linear-gradient(135deg, rgba(111, 181, 132, 0.3), transparent 50%, rgba(111, 181, 132, 0.1));
+  background: linear-gradient(135deg, rgba(139, 62, 62, 0.3), transparent 50%, rgba(139, 62, 62, 0.1));
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
@@ -84,7 +84,7 @@
 /* ghost/text 按钮 */
 .n-button--default-type.n-button--text-type:hover,
 .n-button--default-type.n-button--ghost-type:hover {
-  background: rgba(111, 181, 132, 0.05) !important;
+  background: rgba(139, 62, 62, 0.05) !important;
   box-shadow: none !important;
 }
 
@@ -114,7 +114,7 @@
 
 /* focus: 扫描线扫过 + 绿辉光 */
 .n-input--focus {
-  box-shadow: 0 0 0 2px rgba(111, 181, 132, 0.12), 0 0 12px rgba(111, 181, 132, 0.08) !important;
+  box-shadow: 0 0 0 2px rgba(139, 62, 62, 0.12), 0 0 12px rgba(139, 62, 62, 0.08) !important;
   position: relative;
   overflow: hidden;
 }
@@ -134,7 +134,7 @@
 .n-input .n-input__input-el,
 .n-input .n-input__textarea-el {
   caret-color: var(--color-brand) !important;
-  text-shadow: 0 0 1px rgba(111, 181, 132, 0.15);
+  text-shadow: 0 0 1px rgba(139, 62, 62, 0.15);
 }
 
 /* Large input (URL 输入) 特殊 */
@@ -150,7 +150,7 @@
 }
 .n-input .n-input__eye:hover {
   color: var(--color-brand) !important;
-  text-shadow: 0 0 4px rgba(111, 181, 132, 0.4);
+  text-shadow: 0 0 4px rgba(139, 62, 62, 0.4);
 }
 
 /* ============================================
@@ -160,7 +160,7 @@
   --n-border: 1px solid var(--color-border) !important;
   --n-border-hover: 1px solid var(--color-brand-border) !important;
   --n-border-focus: 1px solid var(--color-brand) !important;
-  --n-box-shadow-focus: 0 0 0 2px rgba(111, 181, 132, 0.12) !important;
+  --n-box-shadow-focus: 0 0 0 2px rgba(139, 62, 62, 0.12) !important;
   --n-color: var(--color-surface-muted) !important;
   transition: box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
@@ -169,7 +169,7 @@
 .n-base-select-menu {
   background: var(--color-surface) !important;
   border: 1px solid var(--color-border-strong) !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(111, 181, 132, 0.06) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(139, 62, 62, 0.06) !important;
   border-radius: 8px !important;
   overflow: hidden;
   animation: materialize 0.25s cubic-bezier(0.22, 0.61, 0.36, 1) both;
@@ -181,11 +181,11 @@
   font-size: 13px !important;
 }
 .n-base-select-option:hover {
-  background: rgba(111, 181, 132, 0.05) !important;
+  background: rgba(139, 62, 62, 0.05) !important;
 }
 .n-base-select-option--selected {
   color: var(--color-brand) !important;
-  background: rgba(111, 181, 132, 0.06) !important;
+  background: rgba(139, 62, 62, 0.06) !important;
 }
 
 /* 下拉选项 hover 扫描线 */
@@ -196,7 +196,7 @@
   right: 0;
   top: 0;
   height: 100%;
-  background: linear-gradient(180deg, transparent 40%, rgba(111, 181, 132, 0.03) 50%, transparent 60%);
+  background: linear-gradient(180deg, transparent 40%, rgba(139, 62, 62, 0.03) 50%, transparent 60%);
   pointer-events: none;
 }
 
@@ -215,7 +215,7 @@
   background: linear-gradient(90deg, var(--color-brand-pressed), var(--color-brand), var(--color-brand-hover)) !important;
   height: 2px !important;
   border-radius: 1px !important;
-  box-shadow: 0 0 6px rgba(111, 181, 132, 0.4), 0 0 12px rgba(111, 181, 132, 0.15) !important;
+  box-shadow: 0 0 6px rgba(139, 62, 62, 0.4), 0 0 12px rgba(139, 62, 62, 0.15) !important;
   transition: left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
               width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
 }
@@ -252,8 +252,8 @@
   transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
 }
 .n-drawer.n-drawer--right-placement .n-drawer__content {
-  border-left: 1px solid rgba(111, 181, 132, 0.1) !important;
-  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.4), -1px 0 0 rgba(111, 181, 132, 0.05) !important;
+  border-left: 1px solid rgba(139, 62, 62, 0.1) !important;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.4), -1px 0 0 rgba(139, 62, 62, 0.05) !important;
 }
 
 /* Drawer mask — CRT 静态 */
@@ -269,7 +269,7 @@
 }
 .n-drawer .n-base-close:hover {
   color: var(--color-brand) !important;
-  text-shadow: 0 0 6px rgba(111, 181, 132, 0.4);
+  text-shadow: 0 0 6px rgba(139, 62, 62, 0.4);
 }
 
 /* ============================================
@@ -278,7 +278,7 @@
 .n-checkbox {
   --n-color-checked: var(--color-brand) !important;
   --n-border-checked: 1px solid var(--color-brand) !important;
-  --n-box-shadow-focus: 0 0 0 2px rgba(111, 181, 132, 0.2) !important;
+  --n-box-shadow-focus: 0 0 0 2px rgba(139, 62, 62, 0.2) !important;
   --n-color: transparent !important;
   --n-border: 1px solid var(--color-border-strong) !important;
   --n-border-hover: 1px solid var(--color-brand) !important;
@@ -299,7 +299,7 @@
   inset: 0;
   background: repeating-linear-gradient(
     0deg, transparent, transparent 1px,
-    rgba(0,255,65,0.15) 1px, rgba(0,255,65,0.15) 2px
+    rgba(29, 237, 63,0.15) 1px, rgba(29, 237, 63,0.15) 2px
   );
   animation: checkbox-crt-flip 0.3s ease-out forwards;
   pointer-events: none;
@@ -311,7 +311,7 @@
 }
 
 .n-checkbox--checked .n-checkbox-box {
-  box-shadow: 0 0 6px rgba(111, 181, 132, 0.3) !important;
+  box-shadow: 0 0 6px rgba(139, 62, 62, 0.3) !important;
 }
 
 .n-checkbox .n-checkbox-box-wrapper .check-icon {
@@ -336,12 +336,12 @@
 }
 
 .n-pagination .n-pagination-item--active {
-  box-shadow: 0 0 8px rgba(111, 181, 132, 0.2) !important;
+  box-shadow: 0 0 8px rgba(139, 62, 62, 0.2) !important;
   font-weight: 700 !important;
 }
 
 .n-pagination .n-pagination-item:not(.n-pagination-item--disabled):hover {
-  box-shadow: 0 0 6px rgba(111, 181, 132, 0.08) !important;
+  box-shadow: 0 0 6px rgba(139, 62, 62, 0.08) !important;
 }
 
 /* ============================================
@@ -362,7 +362,7 @@
   width: 56px; height: 56px;
   margin: -28px 0 0 -28px;
   border-radius: 50%;
-  border: 1.5px solid rgba(111,181,132,0.3);
+  border: 1.5px solid rgba(139, 62, 62,0.3);
   animation: ring-expand 2s ease-out infinite;
   pointer-events: none;
 }
@@ -374,7 +374,7 @@
   width: 40px; height: 40px;
   margin: -20px 0 0 -20px;
   border-radius: 50%;
-  border: 1.5px solid rgba(111,181,132,0.5);
+  border: 1.5px solid rgba(139, 62, 62,0.5);
   animation: ring-expand 2s ease-out 0.5s infinite;
   pointer-events: none;
 }
@@ -388,7 +388,7 @@
   border-radius: 50%;
   border: 2px solid var(--color-brand);
   animation: ring-expand 2s ease-out 1s infinite;
-  box-shadow: 0 0 6px rgba(111,181,132,0.2);
+  box-shadow: 0 0 6px rgba(139, 62, 62,0.2);
 }
 /* 中心脉冲点 */
 .n-spin .n-spin-container::after {
@@ -399,7 +399,7 @@
   margin: -2px 0 0 -2px;
   border-radius: 50%;
   background: var(--color-brand);
-  box-shadow: 0 0 8px rgba(111,181,132,0.6), 0 0 16px rgba(111,181,132,0.3);
+  box-shadow: 0 0 8px rgba(139, 62, 62,0.6), 0 0 16px rgba(139, 62, 62,0.3);
   animation: divergence-pulse 1.4s ease-in-out infinite;
 }
 @keyframes ring-expand {
@@ -425,7 +425,7 @@
 .n-popconfirm {
   background: var(--color-surface) !important;
   border: 1px solid var(--color-border-strong) !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(111, 181, 132, 0.04) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(139, 62, 62, 0.04) !important;
   border-radius: 8px !important;
   animation: materialize 0.2s cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
@@ -474,7 +474,7 @@
   inset: 0;
   background: repeating-linear-gradient(
     0deg, transparent, transparent 1px,
-    rgba(0,255,65,0.06) 1px, rgba(0,255,65,0.06) 2px
+    rgba(29, 237, 63,0.06) 1px, rgba(29, 237, 63,0.06) 2px
   );
   animation: toast-scanline 0.5s ease-out forwards;
   pointer-events: none;
@@ -522,7 +522,7 @@
 }
 .n-slider .n-slider__handle {
   border-color: var(--color-brand) !important;
-  box-shadow: 0 0 6px rgba(111, 181, 132, 0.3) !important;
+  box-shadow: 0 0 6px rgba(139, 62, 62, 0.3) !important;
 }
 
 
@@ -545,7 +545,7 @@
 }
 .n-input .n-input__clear:hover {
   color: var(--color-brand) !important;
-  text-shadow: 0 0 4px rgba(111,181,132,0.4);
+  text-shadow: 0 0 4px rgba(139, 62, 62,0.4);
 }
 
 /* ============================================
@@ -567,8 +567,8 @@
   transition: all 0.2s cubic-bezier(0.22, 0.61, 0.36, 1) !important;
 }
 .n-pagination .n-pagination-item:not(.n-pagination-item--disabled):hover {
-  background: rgba(111,181,132,0.06) !important;
-  border-color: rgba(111,181,132,0.2) !important;
+  background: rgba(139, 62, 62,0.06) !important;
+  border-color: rgba(139, 62, 62,0.2) !important;
 }
 
 /* ============================================
