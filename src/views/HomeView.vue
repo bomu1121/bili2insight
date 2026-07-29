@@ -64,6 +64,7 @@ const heroRef = homeRef<HTMLElement | null>(null);
 const entryGridRef = homeRef<HTMLElement | null>(null);
 const flowRef = homeRef<HTMLElement | null>(null);
 const { revealed: flowRevealed } = useScrollReveal(flowRef, { staggerDelay: 100 });
+const { revealed: entryRevealed } = useScrollReveal(entryGridRef, { staggerDelay: 80 });
 
 const flowSteps = [
   { label: "链接 / 文件", icon: LinkIcon },
@@ -86,7 +87,7 @@ const flowSteps = [
         <p class="hero-sub">输入 B 站视频链接或导入本地文件，自动观测下载、转录与 AI 提炼，导出可读笔记。</p>
       </section>
 
-      <section ref="entryGridRef" class="entry-grid stagger-reveal">
+      <section ref="entryGridRef" class="entry-grid stagger-reveal" :class="{ revealed: entryRevealed }">
         <button
           v-for="item in entries"
           :key="item.key"
