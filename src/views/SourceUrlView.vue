@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed, onUnmounted } from "vue";
 import { NInput, NButton, NText, NIcon, NCheckbox, NSpin, createDiscreteApi } from "naive-ui";
-import { CirclePlus, ArrowLeft, RotateCw, LinkIcon, User, Clock } from "lucide-vue-next";
+import { CirclePlus, X, RotateCw, LinkIcon, User, Clock } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/app";
 import type { PageInfo } from "../utils/types";
@@ -69,7 +69,7 @@ function addToQueue() {
     if (pages.length === 1 && store.preview) page.part = store.preview.title;
     store.addQueueItem({ url: url.value, pageInfo: page });
   });
-  message.success(`已加入 ${sel.length} 个视频到队列`);
+  message.success("已加入 " + sel.length + " 个视频到队列");
   url.value = "";
   store.preview = null;
 }
@@ -79,8 +79,8 @@ const fmtDur = (sec: number) => {
     m = Math.floor((sec % 3600) / 60),
     s = sec % 60;
   return h > 0
-    ? `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
-    : `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    ? String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0")
+    : String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
 };
 
 async function refreshPreview() {
@@ -98,17 +98,14 @@ async function refreshPreview() {
 
 <template>
   <div class="source-root">
-    <div class="page-bar">
-      <n-button text class="bar-back" @click="router.push('/')">
-        <template #icon><n-icon><ArrowLeft /></n-icon></template>返回
-      </n-button>
-      <div class="bar-title">
-        <span class="bar-ic url"><n-icon :size="15"><Link /></n-icon></span>
-        <n-text strong>B站链接</n-text>
-      </div>
-    </div>
 
-    <div class="source-body">
+    <!-- Floating dialog panel (ref: Linear Cmd+K, Raycast command palette) -->
+    <div class="source-panel">
+      <!-- Minimal close button (ref: macOS panel close, Linear dialog dismiss) -->
+      <n-button quaternary circle size="tiny" class="panel-close" @click="router.push('/')">
+        <template #icon><n-icon size="18"><X /></n-icon></template>
+      </n-button>
+
       <div class="intro-card">
         <div class="intro-title">粘贴视频链接</div>
         <div class="intro-desc">支持 av / BV / 分P 链接，粘贴后自动解析封面与分集</div>
@@ -116,14 +113,15 @@ async function refreshPreview() {
 
       <n-input
         v-model:value="url"
-        placeholder="例如 https://www.bilibili.com/video/BVxxxx"
+        placeholder="https://www.bilibili.com/video/BVxxxx"
         :disabled="store.isProcessing"
         clearable
         size="large"
         round
+        autofocus
       >
         <template #prefix>
-          <n-icon color="var(--color-text-tertiary)"><Link /></n-icon>
+          <n-icon color="var(--color-text-tertiary)"><LinkIcon /></n-icon>
         </template>
       </n-input>
 
@@ -145,7 +143,7 @@ async function refreshPreview() {
               <span class="meta-item tnum"><n-icon :size="14"><Clock /></n-icon>{{ fmtDur(store.preview.duration) }}</span>
             </div>
           </div>
-          <n-button quaternary circle size="small" @click="refreshPreview" title="刷新预览（绕过缓存）">
+          <n-button quaternary circle size="small" @click="refreshPreview" title="刷新预览">
             <template #icon><n-icon :size="16"><RotateCw /></n-icon></template>
           </n-button>
         </div>
@@ -182,19 +180,48 @@ async function refreshPreview() {
 </template>
 
 <style scoped>
-.source-root { display: flex; flex-direction: column; height: 100%; overflow-y: auto; scrollbar-gutter: stable; }
-.page-bar { display: flex; align-items: center; gap: 12px; height: var(--header-height); padding: 0 20px; background: var(--color-surface); border-bottom: 1px solid var(--color-border); flex-shrink: 0; position: sticky; top: 0; z-index: 5; }
-.bar-back { color: var(--color-text-secondary); }
-.bar-title { display: inline-flex; align-items: center; gap: 9px; font-size: 15px; }
-.bar-ic { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; }
-.bar-ic.url { background: var(--color-brand-soft); color: var(--color-brand); }
-.source-body { flex: 1; padding: 32px 28px 40px; max-width: var(--content-max-source); margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 16px; }
+/* Full-screen backdrop: centered dialog effect (ref: Linear Cmd+K, Raycast) */
+.source-root {
+  display: flex; align-items: center; justify-content: center;
+  height: 100%;
+  padding: 32px;
+  position: relative;
+}
+.source-root::before {
+  content: "";
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.35) 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Floating panel */
+.source-panel {
+  position: relative; z-index: 1;
+  max-width: var(--content-max-source); width: 100%;
+  max-height: calc(100vh - 64px); overflow-y: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-hover), 0 0 0 1px rgba(111,181,132,0.04);
+  padding: 32px 28px 28px;
+  display: flex; flex-direction: column; gap: 16px;
+  animation: panelEnter 0.4s var(--spring-snappy) both;
+}
+@keyframes panelEnter { from { opacity: 0; transform: scale(0.97) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+/* Close button: top-right corner */
+.panel-close { position: absolute; top: 12px; right: 12px; color: var(--color-text-tertiary); }
+
+/* Content */
 .intro-card { padding: 0 2px 6px; }
 .intro-title { font-size: var(--font-size-page); font-weight: 700; letter-spacing: -0.01em; color: var(--color-text); margin-bottom: 7px; }
 .intro-desc { font-size: 13px; color: var(--color-text-secondary); line-height: 1.6; }
 .preview-loading { display: inline-flex; align-items: center; gap: 10px; font-size: 13px; color: var(--color-text-secondary); padding: 8px 0; font-family: var(--font-mono); }
 .preview-section { display: flex; flex-direction: column; gap: 14px; animation: fadeUp var(--dur-3) var(--ease-out); }
-.preview-card { display: flex; gap: 14px; align-items: center; background: linear-gradient(90deg, rgba(111,181,132,0.08), rgba(111,181,132,0.02)); background-size: 0% 100%; background-repeat: no-repeat; border-radius: var(--radius-lg); padding: 14px; border: 1px solid var(--color-border); box-shadow: var(--shadow-xs); transition: background-size 0.4s cubic-bezier(0.22,0.61,0.36,1), border-color 0.3s, box-shadow 0.3s; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+.preview-card { display: flex; gap: 14px; align-items: center; background: linear-gradient(90deg, rgba(111,181,132,0.08), rgba(111,181,132,0.02)); background-size: 0% 100%; background-repeat: no-repeat; border-radius: var(--radius-lg); padding: 14px; border: 1px solid var(--color-border); box-shadow: var(--shadow-xs); transition: background-size 0.4s cubic-bezier(0.22,0.61,0.36,1), border-color var(--dur-2), box-shadow var(--dur-2); }
 .preview-card:hover { background-size: 100% 100%; border-color: rgba(111,181,132,0.35); box-shadow: 0 0 0 1px rgba(111,181,132,0.15), 0 4px 20px rgba(0,0,0,0.3), 0 0 14px rgba(111,181,132,0.06); }
 .cover-wrap { position: relative; flex-shrink: 0; }
 .preview-img { width: 152px; aspect-ratio: 16/9; object-fit: cover; border-radius: var(--radius-md); background: var(--color-surface-muted); display: block; }
@@ -203,10 +230,11 @@ async function refreshPreview() {
 .preview-title { font-size: 15px; font-weight: 650; color: var(--color-text); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .preview-meta { display: flex; flex-wrap: wrap; gap: 12px; }
 .meta-item { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--color-text-secondary); }
+
 .page-section { background: var(--color-surface); border-radius: var(--radius-lg); padding: 12px 14px; border: 1px solid var(--color-border); box-shadow: var(--shadow-xs); }
 .page-header { margin-bottom: 8px; padding: 0 4px; }
-.page-list { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; }
-.page-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--radius-md); cursor: pointer; font-size: 13px; border: 1px solid transparent; transition: background var(--dur-1), border-color var(--dur-1), transform 0.2s; }
+.page-list { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; }
+.page-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--radius-md); cursor: pointer; font-size: 13px; border: 1px solid transparent; transition: background var(--dur-1), border-color var(--dur-1); }
 .page-row:hover { background: var(--color-surface-muted); }
 .page-row.sel { background: var(--color-brand-soft); border-color: var(--color-brand-border); animation: materialize 0.3s var(--spring-snappy) both; }
 .page-idx { color: var(--color-brand); font-weight: 700; min-width: 30px; font-size: 12px; font-family: var(--font-mono); }
