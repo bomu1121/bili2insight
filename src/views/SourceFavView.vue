@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from "vue";
 import { NButton, NText, NIcon, NCheckbox, NSpin, NPagination, NInput, createDiscreteApi } from "naive-ui";
-import { ArrowLeft, CirclePlus, FolderOpen, RotateCw, Bookmark, LogIn } from "lucide-vue-next";
+import { ArrowLeft, CirclePlus, FolderOpen, RotateCw, Bookmark, LogIn, Inbox, SearchX, Film, ListVideo, History } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 import { useAppStore } from "../stores/app";
@@ -94,8 +94,8 @@ function fmtDur(sec: number) {
 
     <!-- Not logged in -- full-width -->
     <div v-if="!authStore.isLoggedIn" class="source-body single-pane">
-      <div class="fav-empty">
-        <div class="empty-icon"><n-icon :size="30"><LogIn /></n-icon></div>
+      <div class="empty-state">
+        <div class="empty-icon"><n-icon :size="36"><LogIn /></n-icon></div>
         <div class="empty-title">需要登录 B 站账号</div>
         <div class="empty-desc">登录后可导入收藏夹、合集、稍后再看等内容</div>
         <n-button type="primary" round @click="authStore.startLogin()">去登录</n-button>
@@ -134,7 +134,11 @@ function fmtDur(sec: number) {
                     </div>
                   </div>
                 </div>
-                <div v-else class="pane-empty"><n-text depth="3">{{ folderSearch.trim() ? "无匹配结果" : "暂无内容" }}</n-text></div>
+                <div v-else class="pane-empty">
+                  <div class="empty-icon"><n-icon :size="28" color="var(--color-text-tertiary)"><SearchX v-if="folderSearch.trim()" /><Inbox v-else /></n-icon></div>
+                  <div class="empty-title">{{ folderSearch.trim() ? "无匹配结果" : "暂无内容" }}</div>
+                  <div class="empty-desc">{{ folderSearch.trim() ? "尝试其他关键词" : "还没有收藏任何视频" }}</div>
+                </div>
               </n-spin>
             </template>
 
@@ -219,30 +223,40 @@ function fmtDur(sec: number) {
                   <n-pagination :page="store.favPage" :page-count="store.favTotalPages" @update:page="loadPage" size="small" />
                 </div>
               </div>
-              <div v-else class="pane-empty"><n-text depth="3">此收藏夹为空</n-text></div>
+              <div v-else class="empty-state">
+                <div class="empty-icon"><n-icon :size="36" color="var(--color-text-tertiary)"><Inbox /></n-icon></div>
+                <div class="empty-title">此收藏夹为空</div>
+                <div class="empty-desc">该收藏夹中还没有视频</div>
+              </div>
             </n-spin>
           </template>
 
           <!-- Placeholder -->
-          <div v-else-if="(activeTab==='folders' || activeTab==='collected') && !selectedFolderId" class="pane-placeholder">
-            <div class="placeholder-icon"><n-icon size="36" color="var(--color-text-tertiary)"><FolderOpen /></n-icon></div>
-            <n-text depth="3">选择左侧文件夹查看视频</n-text>
+          <div v-else-if="(activeTab==='folders' || activeTab==='collected') && !selectedFolderId" class="empty-state">
+            <div class="empty-icon"><n-icon :size="36" color="var(--color-text-tertiary)"><FolderOpen /></n-icon></div>
+            <div class="empty-title">选择左侧文件夹</div>
+            <div class="empty-desc">从左侧列表选择一个收藏夹查看视频</div>
           </div>
 
           <!-- Follow -->
           <template v-if="activeTab==='follow'">
             <n-spin :show="store.followLoading">
-              <div v-if="store.followItems.length>0" class="follow-list">
-                <div v-for="item in store.followItems" :key="item.season_id" class="follow-card" @click="store.addQueueItem({url:item.url,pageInfo:{page:1,part:item.title,cid:0,duration:0},source:'fav'});message.success('已添加: '+item.title)">
-                  <img v-if="item.cover" :src="item.cover" class="follow-cover" referrerpolicy="no-referrer" />
-                  <div class="follow-info">
-                    <n-text style="font-size:13px;font-weight:600;">{{ item.title }}</n-text>
-                    <n-text depth="3" style="font-size:11px;">{{ item.type }}{{ item.area?' · '+item.area:'' }} · {{ item.new_ep||item.progress }}</n-text>
-                    <n-text depth="3" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ item.desc }}</n-text>
+              <div v-if="store.followItems.length>0" class="video-list">
+                <div v-for="(item, i) in store.followItems" :key="item.season_id" class="video-row" @click="store.addQueueItem({url:item.url,pageInfo:{page:1,part:item.title,cid:0,duration:0},source:'fav'});message.success('已添加: '+item.title)">
+                  <span class="row-no tnum">{{ String(i+1).padStart(3,'0') }}</span>
+                  <img v-if="item.cover" :src="item.cover" class="row-thumb" referrerpolicy="no-referrer" />
+                  <div class="row-info">
+                    <span class="row-title">{{ item.title }}</span>
+                    <span class="row-meta tnum">{{ item.type }}{{ item.area?' · '+item.area:'' }} · {{ item.new_ep||item.progress }}</span>
+                    <span class="row-meta tnum" style="opacity:0.65">{{ item.desc }}</span>
                   </div>
                 </div>
               </div>
-              <div v-else class="pane-empty"><n-text depth="3">点击左侧“追番”或“追剧”加载</n-text></div>
+              <div v-else class="empty-state">
+                <div class="empty-icon"><n-icon :size="36" color="var(--color-text-tertiary)"><Film /></n-icon></div>
+                <div class="empty-title">暂无数据</div>
+                <div class="empty-desc">点击左侧「追番」或「追剧」加载内容</div>
+              </div>
             </n-spin>
           </template>
 
@@ -259,11 +273,15 @@ function fmtDur(sec: number) {
                   </div>
                 </div>
               </div>
-              <div v-else class="pane-empty"><n-text depth="3">点击上方标签自动加载</n-text></div>
+              <div v-else class="empty-state">
+                <div class="empty-icon"><n-icon :size="36" color="var(--color-text-tertiary)"><ListVideo /></n-icon></div>
+                <div class="empty-title">暂无数据</div>
+                <div class="empty-desc">点击上方「稍后再看」标签自动加载</div>
+              </div>
+              <div class="pane-pagination" v-if="store.watchLaterTotalPages > 1">
+                <n-pagination :page="store.watchLaterPage" :page-count="store.watchLaterTotalPages" @update:page="(p:number)=>store.loadWatchLater(p)" size="small" />
+              </div>
             </n-spin>
-            <div class="pane-pagination" v-if="store.watchLaterTotalPages > 1">
-              <n-pagination :page="store.watchLaterPage" :page-count="store.watchLaterTotalPages" @update:page="(p:number)=>store.loadWatchLater(p)" size="small" />
-            </div>
           </template>
 
           <!-- History -->
@@ -279,11 +297,15 @@ function fmtDur(sec: number) {
                   </div>
                 </div>
               </div>
-              <div v-else class="pane-empty"><n-text depth="3">点击上方标签自动加载</n-text></div>
+              <div v-else class="empty-state">
+                <div class="empty-icon"><n-icon :size="36" color="var(--color-text-tertiary)"><History /></n-icon></div>
+                <div class="empty-title">暂无数据</div>
+                <div class="empty-desc">点击上方「历史记录」标签自动加载</div>
+              </div>
+              <div class="pane-pagination" v-if="store.historyTotalPages > 1">
+                <n-pagination :page="store.historyPage" :page-count="store.historyTotalPages" @update:page="(p:number)=>store.loadHistory(p)" size="small" />
+              </div>
             </n-spin>
-            <div class="pane-pagination" v-if="store.historyTotalPages > 1">
-              <n-pagination :page="store.historyPage" :page-count="store.historyTotalPages" @update:page="(p:number)=>store.loadHistory(p)" size="small" />
-            </div>
           </template>
         </main>
       </div>
@@ -440,6 +462,11 @@ function fmtDur(sec: number) {
   overflow: hidden;
 }
 
+/* Full-width mode for non-dual-pane tabs (ref: Linear) */
+.pane-left--full {
+  max-width: 240px;
+}
+
 .pane-content {
   flex: 1;
   overflow-y: auto;
@@ -563,6 +590,11 @@ function fmtDur(sec: number) {
 .pane-empty {
   padding: 24px 0;
   text-align: center;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ===== RIGHT PANE ===== */
@@ -571,16 +603,6 @@ function fmtDur(sec: number) {
   padding: 10px 18px 24px;
 }
 
-.pane-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding-top: 80px;
-  text-align: center;
-}
-.placeholder-icon { opacity: 0.25; }
 
 /* Right top bar (ref: Linear -- single unified sticky bar: title + count + checkbox + actions) */
 .right-top-bar {
@@ -712,70 +734,120 @@ function fmtDur(sec: number) {
   margin-top: 14px;
 }
 
-/* Follow list */
-.follow-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.follow-card {
-  display: flex;
-  gap: 12px;
-  padding: 10px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  cursor: pointer;
-  background: var(--color-surface);
-  transition: border-color 0.18s, box-shadow 0.18s;
-}
-.follow-card:hover {
-  border-color: var(--color-accent-pink-border);
-  box-shadow: 0 2px 12px rgba(0,0,0,0.18);
-}
-.follow-cover {
-  width: 66px;
-  height: 88px;
-  object-fit: cover;
-  border-radius: var(--radius-sm);
-  flex-shrink: 0;
-  background: var(--color-surface-muted);
-}
-.follow-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding-top: 2px;
-}
 
-/* Not logged in empty state */
-.fav-empty {
+/* ===== Unified Empty State (ref: Notion + Refactoring UI) ===== */
+.empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: 72px 16px;
+  padding: 64px 16px;
   text-align: center;
 }
 .empty-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
   display: grid;
   place-items: center;
-  background: var(--color-accent-pink-soft);
-  color: var(--color-accent-pink);
+  background: var(--color-ink-soft);
+  color: var(--color-text-tertiary);
+  margin-bottom: 4px;
+  border: 1px solid var(--color-border);
+}
+.empty-title {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--color-text);
+}
+.empty-desc {
+  font-size: 13px;
+  color: var(--color-text-secondary);
   margin-bottom: 4px;
 }
-.empty-title { font-size: 15px; font-weight: 650; color: var(--color-text); }
-.empty-desc { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 8px; }
 
-/* Staggered entrance */
+/* ===== Skeleton Loading (ref: Linear -- pulse placeholders) ===== */
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.skeleton-list--folder { gap: 4px; }
+
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+}
+
+.skeleton-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--color-ink-soft);
+  animation: skel-pulse 1.6s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.skeleton-no {
+  width: 32px;
+  height: 13px;
+  border-radius: 4px;
+  background: var(--color-ink-soft);
+  animation: skel-pulse 1.6s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.skeleton-thumb {
+  width: 84px;
+  aspect-ratio: 16/9;
+  border-radius: var(--radius-sm);
+  background: var(--color-ink-soft);
+  animation: skel-pulse 1.6s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.skeleton-badge {
+  width: 28px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background: var(--color-ink-soft);
+  animation: skel-pulse 1.6s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.skeleton-lines {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skeleton-line {
+  border-radius: 4px;
+  background: var(--color-ink-soft);
+  animation: skel-pulse 1.6s ease-in-out infinite;
+}
+.skeleton-line--title {
+  height: 13px;
+  width: 70%;
+}
+.skeleton-line--meta {
+  height: 10px;
+  width: 45%;
+}
+.skeleton-line--wide {
+  height: 13px;
+  width: 85%;
+}
+
+@keyframes skel-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.7; }
+}
+
+/* All list rows -- uniform entrance, no stagger cap (ref: Linear) */
 .video-row { animation: materialize 0.28s var(--ease-out) both; }
-.video-row:nth-child(1) { animation-delay: 0s; }
-.video-row:nth-child(2) { animation-delay: 0.04s; }
-.video-row:nth-child(3) { animation-delay: 0.08s; }
-.video-row:nth-child(4) { animation-delay: 0.12s; }
-.video-row:nth-child(5) { animation-delay: 0.16s; }
 </style>
