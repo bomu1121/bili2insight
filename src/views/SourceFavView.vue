@@ -381,10 +381,7 @@ function fmtDur(sec: number) {
   padding: 10px 0;
   margin-bottom: 4px;
   border-bottom: 1px solid var(--color-border);
-  position: sticky;
-  top: 0;
-  z-index: 4;
-  background: var(--color-bg);
+  /* ref: Linear -- breadcrumbs scroll with content, header is the only fixed element */
 }
 
 .breadcrumb-left {
