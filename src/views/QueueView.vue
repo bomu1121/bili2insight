@@ -165,7 +165,11 @@ function updateItemTemplate(itemId: string, val: number) {
 
 <style scoped>
 .queue-root { height: 100%; overflow-y: auto; scrollbar-gutter: stable; padding: 28px 28px 40px; max-width: var(--content-max-wide); margin: 0 auto; width: 100%; }
-.queue-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+.queue-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--color-border); }
+/* ref: GitHub Actions sidebar -- compact toolbar buttons */
+.queue-header .n-button { font-size: 11px !important; padding: 0 8px !important; min-width: unset !important; }
+.queue-header .n-space { gap: 5px !important; flex-wrap: nowrap !important; }
+
 .header-left { display: flex; align-items: center; gap: 10px; }
 .bar-ic { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; }
 .bar-ic.queue { background: var(--color-brand-soft); color: var(--color-brand); }
@@ -197,7 +201,7 @@ function updateItemTemplate(itemId: string, val: number) {
 .q-tag.error { color: var(--color-error); background: var(--color-error-soft); }
 .q-elapsed { font-size: 11px; color: var(--color-text-tertiary); font-family: var(--font-mono); }
 .q-action { flex-shrink: 0; }
-.q-progress { width: 100%; height: 4px; background: rgba(139, 62, 62,0.08); border-radius: var(--radius-full); overflow: hidden; }
-.q-bar-fill { height: 100%; background: linear-gradient(90deg, #D4702A, #FF8C42, #FFA364); border-radius: var(--radius-full); transition: width 0.3s ease; animation: scanBar 2s ease-in-out infinite; box-shadow: var(--brand-glow-soft); position: relative; }
-.q-bar-fill::after { content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 20px; background: linear-gradient(90deg, transparent, rgba(139, 62, 62,0.3)); animation: phosphorScan 2s ease-in-out infinite; }
+.q-progress { width: 100%; height: 4px; background: var(--color-brand-soft); border-radius: var(--radius-full); overflow: hidden; }
+.q-bar-fill { height: 100%; background: linear-gradient(90deg, var(--color-brand-pressed), var(--color-brand), var(--color-brand-hover)); border-radius: var(--radius-full); transition: width 0.3s ease; box-shadow: var(--brand-glow-soft); position: relative; }
+.q-bar-fill::after { content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 20px; background: linear-gradient(90deg, transparent, var(--color-brand-soft)); }
 </style>
