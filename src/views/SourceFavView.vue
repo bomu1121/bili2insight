@@ -163,7 +163,7 @@ function fmtDur(sec: number) {
             <div v-if="store.watchLaterItems.length>0">
               <div class="fav-video-list">
                 <div v-for="(v,i) in store.watchLaterItems" :key="i" class="fav-video-row" @click="store.addQueueItem({url:'https://www.bilibili.com/video/'+v.bvid,pageInfo:{page:1,part:v.title,cid:v.cid,duration:v.duration},source:'fav'});message.success('已添加')">
-                  <img v-if="v.cover" :src="v.cover" class="fav-thumb" referrerpolicy="no-referrer" />
+                  <span class="fav-post-no tnum">No.{{ String(i+1).padStart(3,'0') }}</span><img v-if="v.cover" :src="v.cover" class="fav-thumb" referrerpolicy="no-referrer" />
                   <div class="fav-video-info">
                     <n-text style="font-size:13px;">{{ v.title }}</n-text>
                     <n-text depth="3" style="font-size:11px;" class="tnum">{{ v.uploader }} · {{ fmtDur(v.duration) }}</n-text>
@@ -184,7 +184,7 @@ function fmtDur(sec: number) {
             <div v-if="store.historyItems.length>0">
               <div class="fav-video-list">
                 <div v-for="(v,i) in store.historyItems" :key="i" class="fav-video-row" @click="store.addQueueItem({url:'https://www.bilibili.com/video/'+v.bvid,pageInfo:{page:1,part:v.title,cid:v.cid,duration:v.duration},source:'fav'});message.success('已添加')">
-                  <img v-if="v.cover" :src="v.cover" class="fav-thumb" referrerpolicy="no-referrer" />
+                  <span class="fav-post-no tnum">No.{{ String(i+1).padStart(3,'0') }}</span><img v-if="v.cover" :src="v.cover" class="fav-thumb" referrerpolicy="no-referrer" />
                   <div class="fav-video-info">
                     <n-text style="font-size:13px;">{{ v.title }}</n-text>
                     <n-text depth="3" style="font-size:11px;" class="tnum">{{ v.uploader }} · {{ fmtDur(v.duration) }}</n-text>
@@ -202,9 +202,9 @@ function fmtDur(sec: number) {
         <!-- Folder content (videos) -->
         <div v-if="!showFolders">
           <div class="fav-bar folder-head">
-            <n-button text @click="backToFolders"><template #icon><n-icon><ArrowLeft /></n-icon></template>返回目录</n-button>
+            <n-button text @click="backToFolders"><template #icon><n-icon><ArrowLeft /></n-icon></template>← 返回邮件夹</n-button>
             <n-text class="folder-head-title">{{ store.favCurrentFolderTitle }}</n-text>
-            <n-text depth="3" style="font-size:12px;" class="tnum">共{{ store.favTotal }} 个视频</n-text>
+            <n-text depth="3" style="font-size:12px;" class="tnum fav-total-nixie">共 <span class="nixie-num">{{ store.favTotal }}</span> 封 D-Mail</n-text>
           </div>
           <n-spin :show="store.favLoadingVideos">
             <div v-if="store.favVideos.length > 0">
@@ -213,7 +213,7 @@ function fmtDur(sec: number) {
               </div>
               <div class="fav-video-list">
                 <div v-for="(v, i) in store.favVideos" :key="i" class="fav-video-row" :class="{ sel: store.favSelectedVideos.has(i) }" @click="store.toggleFavVideo(i)">
-                  <n-checkbox :checked="store.favSelectedVideos.has(i)" size="small" />
+                  <span class="fav-post-no tnum">No.{{ String(i+1).padStart(3,'0') }}</span><n-checkbox :checked="store.favSelectedVideos.has(i)" size="small" />
                   <img v-if="v.cover" :src="v.cover" class="fav-thumb" referrerpolicy="no-referrer" />
                   <div class="fav-video-info">
                     <n-text style="font-size:13px;">{{ v.title }}</n-text>
@@ -226,7 +226,7 @@ function fmtDur(sec: number) {
                 <n-pagination :page="store.favPage" :page-count="store.favTotalPages" @update:page="loadPage" size="small" />
               </div>
               <n-button type="primary" block @click="addSelectedToQueue" :disabled="store.favSelectedVideos.size === 0" style="margin-top:14px;">
-                <template #icon><n-icon><CirclePlus /></n-icon></template>添加到处理队列
+                <template #icon><n-icon><CirclePlus /></n-icon></template>转发 D-Mail 至 PhoneWave
               </n-button>
             </div>
             <div v-else class="fav-empty"><n-text depth="3">此收藏夹为空</n-text></div>
@@ -236,6 +236,7 @@ function fmtDur(sec: number) {
     </div>
   </div>
 </template>
+
 
 <style scoped>
 .source-root { display: flex; flex-direction: column; height: 100%; overflow-y: auto; scrollbar-gutter: stable; }
@@ -252,28 +253,46 @@ function fmtDur(sec: number) {
 .fav-bar { display: flex; align-items: center; gap: 8px; margin: 4px 0 8px; }
 .folder-head { gap: 10px; }
 .folder-head-title { font-size: 14px; font-weight: 600; flex: 1; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0 12px; }
+
+/* Folder cards — mail folder style (ref: phone-trigger mail interface) */
 .folder-grid { display: flex; flex-direction: column; gap: 8px; }
-.folder-card { display: flex; align-items: center; gap: 16px; padding: 16px 18px; background: linear-gradient(90deg, rgba(212,135,149,0.1), rgba(212,135,149,0.02)); background-size: 0% 100%; background-repeat: no-repeat; border: 1px solid var(--color-border); border-left: 3px solid transparent; border-radius: var(--radius-lg); cursor: pointer; box-shadow: var(--shadow-xs); transition: background-size 0.4s cubic-bezier(0.22,0.61,0.36,1), border-color 0.3s, box-shadow 0.3s, border-left-color 0.3s, padding-left 0.3s; }
-.folder-card:hover { background-size: 100% 100%; border-color: rgba(212,135,149,0.5); border-left-color: var(--color-accent-pink); padding-left: 15px; box-shadow: 0 0 0 1px rgba(212,135,149,0.3), 0 6px 28px rgba(0,0,0,0.4), 0 0 20px rgba(212,135,149,0.12); }
-.folder-icon { width: 48px; height: 48px; display: grid; place-items: center; background: var(--color-accent-pink-soft); border-radius: 12px; flex-shrink: 0; transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s, background 0.3s; }
-.folder-card:hover .folder-icon { transform: rotate(-6deg) scale(1.08); box-shadow: 0 0 20px rgba(212,135,149,0.25); background: rgba(212,135,149,0.15); }
+.folder-card { display: flex; align-items: center; gap: 16px; padding: 16px 18px; background: linear-gradient(90deg, rgba(212,135,149,0.1), rgba(212,135,149,0.02)); background-size: 0% 100%; background-repeat: no-repeat; border: 1px solid var(--color-border); border-left: 3px solid transparent; border-radius: var(--radius-lg); cursor: pointer; box-shadow: var(--shadow-xs); transition: background-size 0.35s var(--ease-out), border-color 0.25s, box-shadow 0.25s, border-left-color 0.25s; }
+.folder-card:hover { background-size: 100% 100%; border-color: rgba(212,135,149,0.5); border-left-color: var(--color-accent-pink); box-shadow: 0 0 0 1px rgba(212,135,149,0.3), 0 6px 28px rgba(0,0,0,0.4), 0 0 20px rgba(212,135,149,0.12); }
+.folder-icon { width: 48px; height: 48px; display: grid; place-items: center; background: var(--color-accent-pink-soft); border-radius: 12px; flex-shrink: 0; transition: box-shadow 0.3s, background 0.3s; }
+.folder-card:hover .folder-icon { box-shadow: 0 0 20px rgba(212,135,149,0.25); background: rgba(212,135,149,0.15); }
 .folder-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
 .folder-card .tnum { display: inline-block; padding: 2px 10px; background: rgba(212,135,149,0.08); border-radius: var(--radius-full); font-size: 11px; font-weight: 600; color: var(--color-accent-pink); align-self: flex-start; }
-.folder-arrow { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: var(--color-text-tertiary); background: rgba(255,255,255,0.03); flex-shrink: 0; transition: background 0.3s, color 0.3s, box-shadow 0.3s, transform 0.35s cubic-bezier(0.34,1.56,0.64,1); }
-.folder-card:hover .folder-arrow { background: rgba(212,135,149,0.2); color: var(--color-accent-pink); box-shadow: 0 0 16px rgba(212,135,149,0.45); transform: scale(1.15); }
+.folder-arrow { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: var(--color-text-tertiary); background: rgba(255,255,255,0.03); flex-shrink: 0; transition: background 0.3s, color 0.3s, box-shadow 0.3s; }
+.folder-card:hover .folder-arrow { background: rgba(212,135,149,0.2); color: var(--color-accent-pink); box-shadow: 0 0 16px rgba(212,135,149,0.45); }
+
+/* Video rows — D-Mail entry style (ref: @channel post + phone mail) */
 .page-header-row { margin-bottom: 8px; padding: 0 4px; }
 .fav-video-list { display: flex; flex-direction: column; gap: 6px; max-height: 460px; overflow-y: auto; }
-.fav-video-row { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: var(--radius-lg); cursor: pointer; border: 1px solid transparent; background: linear-gradient(90deg, rgba(139, 62, 62,0.07), transparent); background-size: 0% 100%; background-repeat: no-repeat; transition: background-size 0.35s cubic-bezier(0.22,0.61,0.36,1), border-color 0.2s, box-shadow 0.2s; }
+.fav-video-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--radius-lg); cursor: pointer; border: 1px solid transparent; background: linear-gradient(90deg, rgba(139, 62, 62,0.07), transparent); background-size: 0% 100%; background-repeat: no-repeat; transition: background-size 0.35s var(--ease-out), border-color 0.2s, box-shadow 0.2s; }
 .fav-video-row:hover { background-size: 100% 100%; border-color: rgba(139, 62, 62,0.25); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
 .fav-video-row.sel { background: var(--color-brand-soft); border-color: var(--color-brand-border); }
+
+/* D-Mail post number (ref: @channel post numbering) */
+.fav-post-no { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--color-text-tertiary); min-width: 42px; flex-shrink: 0; transition: color var(--dur-2), text-shadow var(--dur-2); }
+.fav-video-row:hover .fav-post-no { color: var(--color-brand); text-shadow: var(--brand-glow-soft); }
+.fav-video-row.sel .fav-post-no { color: var(--divergence-color); text-shadow: var(--divergence-glow); }
+
+/* Nixie tube total counter */
+.fav-total-nixie { font-family: var(--font-mono); }
+.nixie-num { color: var(--divergence-color); text-shadow: var(--divergence-glow); font-weight: 700; }
+
 .fav-thumb { width: 96px; aspect-ratio: 16/9; object-fit: cover; border-radius: var(--radius-md); flex-shrink: 0; background: var(--color-surface-muted); }
 .fav-video-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .fav-pagination { display: flex; justify-content: center; margin-top: 14px; }
+
+/* Follow cards — mail-like */
 .follow-list { display: flex; flex-direction: column; gap: 10px; }
-.follow-card { display: flex; gap: 14px; padding: 12px; border-radius: var(--radius-lg); border: 1px solid var(--color-border); cursor: pointer; background: linear-gradient(90deg, rgba(212,135,149,0.1), rgba(212,135,149,0.02)); background-size: 0% 100%; background-repeat: no-repeat; box-shadow: var(--shadow-xs); transition: background-size 0.4s cubic-bezier(0.22,0.61,0.36,1), border-color 0.3s, box-shadow 0.3s; }
+.follow-card { display: flex; gap: 14px; padding: 12px; border-radius: var(--radius-lg); border: 1px solid var(--color-border); cursor: pointer; background: linear-gradient(90deg, rgba(212,135,149,0.1), rgba(212,135,149,0.02)); background-size: 0% 100%; background-repeat: no-repeat; box-shadow: var(--shadow-xs); transition: background-size 0.4s var(--ease-out), border-color 0.3s, box-shadow 0.3s; }
 .follow-card:hover { background-size: 100% 100%; border-color: rgba(212,135,149,0.5); box-shadow: 0 0 0 2px rgba(212,135,149,0.3), 0 8px 32px rgba(0,0,0,0.4); }
 .follow-cover { width: 72px; height: 96px; object-fit: cover; border-radius: var(--radius-md); flex-shrink: 0; background: var(--color-surface-muted); }
 .follow-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding-top: 2px; }
+
+/* Staggered entrance animation */
 .fav-video-row { animation: materialize 0.35s var(--ease-out) both; }
 .fav-video-row:nth-child(1) { animation-delay: 0s; }
 .fav-video-row:nth-child(2) { animation-delay: 0.05s; }
@@ -281,3 +300,4 @@ function fmtDur(sec: number) {
 .fav-video-row:nth-child(4) { animation-delay: 0.15s; }
 .fav-video-row:nth-child(5) { animation-delay: 0.2s; }
 </style>
+
