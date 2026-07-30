@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from "vue";
 import { NButton, NText, NIcon, NCheckbox, NSpin, NPagination, NInput, createDiscreteApi } from "naive-ui";
-import { ArrowLeft, CirclePlus, FolderOpen, RotateCw, Bookmark, LogIn } from "lucide-vue-next";
+import { ArrowLeft, CirclePlus, FolderOpen, RotateCw, Bookmark, LogIn, Inbox, SearchX, Film, ListVideo, History } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 import { useAppStore } from "../stores/app";
@@ -94,8 +94,8 @@ function fmtDur(sec: number) {
 
     <!-- Not logged in -- full-width -->
     <div v-if="!authStore.isLoggedIn" class="source-body single-pane">
-      <div class="fav-empty">
-        <div class="empty-icon"><n-icon :size="30"><LogIn /></n-icon></div>
+      <div class="empty-state">
+        <div class="empty-icon"><n-icon :size="36"><LogIn /></n-icon></div>
         <div class="empty-title">需要登录 B 站账号</div>
         <div class="empty-desc">登录后可导入收藏夹、合集、稍后再看等内容</div>
         <n-button type="primary" round @click="authStore.startLogin()">去登录</n-button>
@@ -134,7 +134,11 @@ function fmtDur(sec: number) {
                     </div>
                   </div>
                 </div>
-                <div v-else class="pane-empty"><n-text depth="3">{{ folderSearch.trim() ? "无匹配结果" : "暂无内容" }}</n-text></div>
+                <div v-else class="pane-empty">
+                  <div class="empty-icon"><n-icon :size="28" color="var(--color-text-tertiary)"><SearchX v-if="folderSearch.trim()" /><Inbox v-else /></n-icon></div>
+                  <div class="empty-title">{{ folderSearch.trim() ? "无匹配结果" : "暂无内容" }}</div>
+                  <div class="empty-desc">{{ folderSearch.trim() ? "尝试其他关键词" : "还没有收藏任何视频" }}</div>
+                </div>
               </n-spin>
             </template>
 
@@ -219,14 +223,19 @@ function fmtDur(sec: number) {
                   <n-pagination :page="store.favPage" :page-count="store.favTotalPages" @update:page="loadPage" size="small" />
                 </div>
               </div>
-              <div v-else class="pane-empty"><n-text depth="3">此收藏夹为空</n-text></div>
+              <div v-else class="empty-state">
+                <div class="empty-icon"><n-icon :size="36" color="var(--color-text-tertiary)"><Inbox /></n-icon></div>
+                <div class="empty-title">此收藏夹为空</div>
+                <div class="empty-desc">该收藏夹中还没有视频</div>
+              </div>
             </n-spin>
           </template>
 
           <!-- Placeholder -->
-          <div v-else-if="(activeTab==='folders' || activeTab==='collected') && !selectedFolderId" class="pane-placeholder">
-            <div class="placeholder-icon"><n-icon size="36" color="var(--color-text-tertiary)"><FolderOpen /></n-icon></div>
-            <n-text depth="3">选择左侧文件夹查看视频</n-text>
+          <div v-else-if="(activeTab==='folders' || activeTab==='collected') && !selectedFolderId" class="empty-state">
+            <div class="empty-icon"><n-icon :size="36" color="var(--color-text-tertiary)"><FolderOpen /></n-icon></div>
+            <div class="empty-title">选择左侧文件夹</div>
+            <div class="empty-desc">从左侧列表选择一个收藏夹查看视频</div>
           </div>
 
           <!-- Follow -->
@@ -259,11 +268,15 @@ function fmtDur(sec: number) {
                   </div>
                 </div>
               </div>
-              <div v-else class="pane-empty"><n-text depth="3">点击上方标签自动加载</n-text></div>
+              <div v-else class="empty-state">
+                <div class="empty-icon"><n-icon :size="36" color="var(--color-text-tertiary)"><ListVideo /></n-icon></div>
+                <div class="empty-title">暂无数据</div>
+                <div class="empty-desc">点击上方「稍后再看」标签自动加载</div>
+              </div>
+              <div class="pane-pagination" v-if="store.watchLaterTotalPages > 1">
+                <n-pagination :page="store.watchLaterPage" :page-count="store.watchLaterTotalPages" @update:page="(p:number)=>store.loadWatchLater(p)" size="small" />
+              </div>
             </n-spin>
-            <div class="pane-pagination" v-if="store.watchLaterTotalPages > 1">
-              <n-pagination :page="store.watchLaterPage" :page-count="store.watchLaterTotalPages" @update:page="(p:number)=>store.loadWatchLater(p)" size="small" />
-            </div>
           </template>
 
           <!-- History -->
@@ -279,11 +292,15 @@ function fmtDur(sec: number) {
                   </div>
                 </div>
               </div>
-              <div v-else class="pane-empty"><n-text depth="3">点击上方标签自动加载</n-text></div>
+              <div v-else class="empty-state">
+                <div class="empty-icon"><n-icon :size="36" color="var(--color-text-tertiary)"><History /></n-icon></div>
+                <div class="empty-title">暂无数据</div>
+                <div class="empty-desc">点击上方「历史记录」标签自动加载</div>
+              </div>
+              <div class="pane-pagination" v-if="store.historyTotalPages > 1">
+                <n-pagination :page="store.historyPage" :page-count="store.historyTotalPages" @update:page="(p:number)=>store.loadHistory(p)" size="small" />
+              </div>
             </n-spin>
-            <div class="pane-pagination" v-if="store.historyTotalPages > 1">
-              <n-pagination :page="store.historyPage" :page-count="store.historyTotalPages" @update:page="(p:number)=>store.loadHistory(p)" size="small" />
-            </div>
           </template>
         </main>
       </div>
@@ -440,6 +457,11 @@ function fmtDur(sec: number) {
   overflow: hidden;
 }
 
+/* Full-width mode for non-dual-pane tabs (follow/watchlater/history) */
+.pane-left--full {
+  max-width: 240px;
+}
+
 .pane-content {
   flex: 1;
   overflow-y: auto;
@@ -563,6 +585,11 @@ function fmtDur(sec: number) {
 .pane-empty {
   padding: 24px 0;
   text-align: center;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ===== RIGHT PANE ===== */
@@ -571,16 +598,6 @@ function fmtDur(sec: number) {
   padding: 10px 18px 24px;
 }
 
-.pane-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding-top: 80px;
-  text-align: center;
-}
-.placeholder-icon { opacity: 0.25; }
 
 /* Right top bar (ref: Linear -- single unified sticky bar: title + count + checkbox + actions) */
 .right-top-bar {
@@ -749,33 +766,38 @@ function fmtDur(sec: number) {
   padding-top: 2px;
 }
 
-/* Not logged in empty state */
-.fav-empty {
+/* ===== Unified Empty State (ref: Notion + Refactoring UI) ===== */
+.empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: 72px 16px;
+  padding: 64px 16px;
   text-align: center;
 }
 .empty-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
   display: grid;
   place-items: center;
-  background: var(--color-accent-pink-soft);
-  color: var(--color-accent-pink);
+  background: var(--color-ink-soft);
+  color: var(--color-text-tertiary);
+  margin-bottom: 4px;
+  /* ref: Steins;Gate -- warm lab equipment surface */
+  border: 1px solid var(--color-border);
+}
+.empty-title {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--color-text);
+}
+.empty-desc {
+  font-size: 13px;
+  color: var(--color-text-secondary);
   margin-bottom: 4px;
 }
-.empty-title { font-size: 15px; font-weight: 650; color: var(--color-text); }
-.empty-desc { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 8px; }
 
-/* Staggered entrance */
+/* All list rows -- uniform entrance, no stagger cap (ref: Notion) */
 .video-row { animation: materialize 0.28s var(--ease-out) both; }
-.video-row:nth-child(1) { animation-delay: 0s; }
-.video-row:nth-child(2) { animation-delay: 0.04s; }
-.video-row:nth-child(3) { animation-delay: 0.08s; }
-.video-row:nth-child(4) { animation-delay: 0.12s; }
-.video-row:nth-child(5) { animation-delay: 0.16s; }
 </style>
