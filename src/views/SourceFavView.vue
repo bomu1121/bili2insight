@@ -316,7 +316,8 @@ function fmtDur(sec: number) {
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 /* ===== TAB BAR (ref: Linear segmented + Steins;Gate active prefix) ===== */
@@ -331,6 +332,9 @@ function fmtDur(sec: number) {
   flex-shrink: 0;
   overflow-x: auto;
   scrollbar-width: none;
+  position: sticky;
+  top: 0;
+  z-index: 5;
 }
 .tab-bar::-webkit-scrollbar { display: none; }
 
@@ -365,12 +369,10 @@ function fmtDur(sec: number) {
 /* ===== SOURCE BODY -- single column, full width (ref: Arc) ===== */
 .source-body {
   flex: 1;
-  overflow-y: auto;
   padding: 16px 24px 40px;
   max-width: 960px;
   width: 100%;
   margin: 0 auto;
-  scrollbar-gutter: stable;
 }
 
 /* ===== BREADCRUMB BAR (ref: Arc -- back navigation + path) ===== */
@@ -782,23 +784,23 @@ function fmtDur(sec: number) {
 
 
 /* ===== SCROLLBAR (ref: Linear -- thin, subtle, anti-ornament) ===== */
-.source-body::-webkit-scrollbar {
+.source-root::-webkit-scrollbar {
   width: 5px;
 }
-.source-body::-webkit-scrollbar-track {
+.source-root::-webkit-scrollbar-track {
   background: transparent;
 }
-.source-body::-webkit-scrollbar-thumb {
+.source-root::-webkit-scrollbar-thumb {
   background: var(--color-border);
   border-radius: 3px;
   transition: background 0.2s;
 }
-.source-body::-webkit-scrollbar-thumb:hover {
+.source-root::-webkit-scrollbar-thumb:hover {
   background: var(--color-border-strong);
 }
 
 /* Firefox thin scrollbar */
-.source-body {
+.source-root {
   scrollbar-width: thin;
   scrollbar-color: var(--color-border) transparent;
 }
