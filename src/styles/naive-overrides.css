@@ -4,16 +4,21 @@
  */
 
 /* ============================================
-   n-button — CRT 静态点击 + 绿磷光拖尾
+   n-button — MD3 State Layer + CRT Phosphor Glow
    ============================================ */
+/* ref: Material Design 3 — state layer overlay pattern (m3.material.io) */
+/* ref: Linear (linear.app) — type-specific hover colors, no spatial transform */
+/* ref: GitHub dark theme (github.com) — ghost buttons reveal bg on hover */
+/* ref: CRT terminal — green phosphor intensify on interaction */
+
 .n-button {
   --n-ripple-color: transparent !important;
   --n-ripple-duration: 0s !important;
   position: relative;
   overflow: hidden;
-  transition: transform 0.2s cubic-bezier(0.22, 0.61, 0.36, 1),
-              box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.2s ease !important;
+  transition: background-color 0.15s var(--ease-out),
+              box-shadow 0.15s var(--ease-out),
+              border-color 0.15s ease !important;
 }
 
 /* 隐藏 Naive UI 原生波纹元素 */
@@ -22,19 +27,38 @@
   display: none !important;
 }
 
-/* hover: CRT phosphor intensify -- stay in place, glow brightens */
-/* ref: CRT terminal phosphor afterglow on button hover */
-.n-button:not(.n-button--disabled):hover {
-  transform: none;
-  color: var(--color-text) !important;
-  box-shadow: 0 0 5px rgba(74,229,74,0.14), 0 0 12px rgba(74,229,74,0.05), inset 0 0 4px rgba(74,229,74,0.03) !important;
+/* --- State layer: green phosphor (default/ghost/text types) --- */
+/* ref: MD3 — overlay appears at 6% opacity on hover */
+.n-button--default-type:not(.n-button--disabled):hover,
+.n-button--ghost-type:not(.n-button--disabled):hover,
+.n-button--text-type:not(.n-button--disabled):hover {
+  background-color: rgba(74,229,74,0.06) !important;
+  box-shadow: 0 0 3px rgba(74,229,74,0.1), 0 0 8px rgba(74,229,74,0.04) !important;
 }
 
-/* active: CRT tactile press -- instant deepen */
+/* --- State layer: Kurisu red (primary type) --- */
+/* ref: Linear primary button — color intensifies, no spatial change */
+.n-button--primary-type:not(.n-button--disabled):hover {
+  filter: brightness(1.1);
+  box-shadow: 0 0 4px rgba(139,62,62,0.2), 0 0 12px rgba(139,62,62,0.06) !important;
+}
+
+/* --- State layer: divergence amber (warning type) --- */
+.n-button--warning-type:not(.n-button--disabled):hover {
+  filter: brightness(1.1);
+  box-shadow: 0 0 4px rgba(255,140,66,0.2), 0 0 12px rgba(255,140,66,0.06) !important;
+}
+
+/* --- State layer: error red (error type) --- */
+.n-button--error-type:not(.n-button--disabled):hover {
+  filter: brightness(1.1);
+}
+
+/* --- Active: tactile press + CRT static flicker --- */
+/* ref: CRT terminal — static noise flash on keypress */
 .n-button:not(.n-button--disabled):active {
   transform: translateY(1px) scale(0.97) !important;
   transition-duration: 0.06s !important;
-  box-shadow: 0 0 2px rgba(74,229,74,0.08), inset 0 0 3px rgba(74,229,74,0.04) !important;
 }
 
 .n-button:not(.n-button--disabled):active::before {
@@ -54,21 +78,16 @@
   border-radius: inherit;
 }
 
-/* focus-visible: CRT phosphor green ring */
+/* --- Focus: green phosphor ring --- */
+/* ref: CRT terminal — green phosphor scanline on focus */
 .n-button:focus-visible {
   outline: none !important;
   box-shadow: 0 0 0 2px rgba(74,229,74,0.25), 0 0 8px rgba(74,229,74,0.1) !important;
 }
 
-/* primary type: Kurisu red phosphor glow */
+/* --- Primary button: border gradient accent --- */
 .n-button--primary-type {
   position: relative;
-}
-.n-button--primary-type:hover {
-  box-shadow: 0 0 6px rgba(139,62,62,0.2), 0 0 14px rgba(139,62,62,0.06), inset 0 0 3px rgba(139,62,62,0.04) !important;
-}
-.n-button--primary-type:active {
-  box-shadow: 0 0 3px rgba(139,62,62,0.1), inset 0 0 2px rgba(139,62,62,0.06) !important;
 }
 .n-button--primary-type::after {
   content: '';
@@ -89,21 +108,6 @@
   opacity: 1;
   animation: border-scan 3s linear infinite;
 }
-
-/* warning type: divergence amber glow */
-.n-button--warning-type:hover {
-  box-shadow: 0 0 6px rgba(255,140,66,0.2), 0 0 14px rgba(255,140,66,0.06), inset 0 0 3px rgba(255,140,66,0.04) !important;
-}
-.n-button--warning-type:active {
-  box-shadow: 0 0 3px rgba(255,140,66,0.1), inset 0 0 2px rgba(255,140,66,0.06) !important;
-}
-/* ghost/text 按钮 */
-.n-button--default-type.n-button--text-type:hover,
-.n-button--default-type.n-button--ghost-type:hover {
-  background: rgba(139, 62, 62, 0.05) !important;
-  box-shadow: none !important;
-}
-
 /* ============================================
    n-input — 终端光标 + 扫描线聚焦
    ============================================ */
