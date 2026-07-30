@@ -200,8 +200,8 @@ const tplPrompt = computed({
             <span v-if="authStore.isLoggedIn" class="side-online" />
           </span>
           <span class="side-user-meta">
-            <span class="side-user-name">{{ authStore.isLoggedIn ? authStore.loginUname : "No.000" }}</span>
-            <span class="side-user-hint">{{ authStore.isLoggedIn ? "B站账号" : "点击登录" }}</span>
+            <span class="side-user-name">{{ authStore.isLoggedIn ? authStore.loginUname : "LAB MEM 000" }}</span>
+            <span class="side-user-hint">{{ authStore.isLoggedIn ? "B站观测者" : "> 启动观测" }}</span>
           </span>
         </button>
         <div class="worldline-toggle" @click="toggleTheme" :title="isDarkMode ? '世界线跳跃: α → β 吸引子场' : '世界线跳跃: β → α 吸引子场'"><span class="wl-field" :class="{ on: isDarkMode }">α</span><span class="wl-track"><span class="wl-thumb" :class="{ right: !isDarkMode }"></span></span><span class="wl-field" :class="{ on: !isDarkMode }">β</span></div><button type="button" class="side-set" @click="showSettings = true" title="设置">
@@ -284,24 +284,32 @@ const tplPrompt = computed({
       </n-drawer-content>
     </n-drawer>
 
-    <!-- Login Drawer -->
-    <n-drawer :show="authStore.showLogin" @update:show="(v) => { if (!v) authStore.cancelLogin(); }" width="400">
-      <n-drawer-content title="B站登录" closable>
-        <!-- Logged-in state -->
-        <div class="login-body" v-if="authStore.isLoggedIn">
-          <div class="login-success">
-            <img v-if="authStore.loginFace" :src="authStore.loginFace" class="login-avatar-lg" referrerpolicy="no-referrer" />
-            <n-icon v-else size="64" color="var(--color-brand)"><CircleUserRound /></n-icon>
-            <n-text strong class="login-uname">{{ authStore.loginUname }}</n-text>
-            <n-text depth="3" class="login-uid">UID: {{ authStore.loginUid }}</n-text>
-            <n-button type="error" size="small" @click="authStore.doLogout()" style="margin-top:18px;">
-              <template #icon><n-icon><LogOut /></n-icon></template>退出登录
+        <!-- Login Drawer — PhoneWave 实验终端 -->
+    <n-drawer :show="authStore.showLogin" @update:show="(v) => { if (!v) authStore.cancelLogin(); }" width="420">
+      <n-drawer-content title="> 观测者认证" closable>
+        <!-- 已登录: 实验者档案 -->
+        <div class="login-terminal" v-if="authStore.isLoggedIn">
+          <div class="experimenter-profile">
+            <div class="profile-header">
+              <span class="profile-label tnum">实验者档案</span>
+              <span class="profile-div tnum">1.048596</span>
+            </div>
+            <div class="profile-avatar-wrap">
+              <img v-if="authStore.loginFace" :src="authStore.loginFace" class="profile-avatar" referrerpolicy="no-referrer" />
+              <n-icon v-else size="56" color="var(--color-brand)"><CircleUserRound /></n-icon>
+            </div>
+            <div class="profile-info">
+              <span class="profile-name">{{ authStore.loginUname }}</span>
+              <span class="profile-uid tnum">实验编号: {{ String(authStore.loginUid).padStart(6, '0') }}</span>
+            </div>
+            <n-button type="error" size="small" @click="authStore.doLogout()" class="profile-logout">
+              <template #icon><n-icon><LogOut /></n-icon></template>终止实验
             </n-button>
           </div>
         </div>
 
-        <!-- Login tabs: QR + SMS -->
-        <div v-else>
+        <!-- 登录: QR + SMS -->
+        <div v-else class="login-terminal">
           <n-tabs v-model:value="qrTab" type="line" size="medium" animated>
             <n-tab-pane name="qr" tab="扫码登录">
               <template #tab>
@@ -309,21 +317,38 @@ const tplPrompt = computed({
                 <span style="margin-left:6px;">扫码登录</span>
               </template>
               <div class="tab-content">
-                <div class="qr-section">
-                  <div class="qr-code-wrap">
+                <div class="qr-chamber">
+                  <div class="chamber-scanline"></div>
+                  <div class="chamber-body">
                     <img v-if="authStore.qrUrl" :src="'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(authStore.qrUrl)" class="qr-code-img" referrerpolicy="no-referrer" />
-                    <div v-if="authStore.qrStatus === 'expired'" class="qr-overlay" @click="refreshLogin">
+                    <div v-if="authStore.qrStatus === 'expired'" class="chamber-overlay" @click="refreshLogin">
                       <n-icon size="28"><RotateCw /></n-icon>
-                      <n-text depth="3">二维码已过期，点击刷新</n-text>
+                      <n-text depth="3">量子态坍塔，点击重建</n-text>
                     </div>
-                    <div v-if="authStore.qrStatus === 'success'" class="qr-overlay success">
+                    <div v-if="authStore.qrStatus === 'success'" class="chamber-overlay success">
                       <n-icon size="32" color="var(--color-success)"><CircleCheckBig /></n-icon>
-                      <n-text class="login-ok-text">登录成功</n-text>
+                      <n-text class="login-ok-text">世界线收敛完成</n-text>
                     </div>
                   </div>
-                  <div class="qr-status" v-if="authStore.qrStatusMessage">
-                    <n-text depth="3" style="font-size:13px;">{{ authStore.qrStatusMessage }}</n-text>
+                </div>
+                <div class="pipeline" v-if="authStore.qrStatus && authStore.qrStatus !== 'error'">
+                  <div class="pipeline-stage" :class="{ active: authStore.qrStatus === 'waiting', done: authStore.qrStatus === 'scanned' || authStore.qrStatus === 'success' }">
+                    <span class="stage-dot"></span>
+                    <span class="stage-label">量子态生成</span>
                   </div>
+                  <div class="pipeline-connector" :class="{ active: authStore.qrStatus === 'scanned' || authStore.qrStatus === 'success' }"></div>
+                  <div class="pipeline-stage" :class="{ active: authStore.qrStatus === 'scanned', done: authStore.qrStatus === 'success' }">
+                    <span class="stage-dot"></span>
+                    <span class="stage-label">观测确认</span>
+                  </div>
+                  <div class="pipeline-connector" :class="{ active: authStore.qrStatus === 'success' }"></div>
+                  <div class="pipeline-stage" :class="{ active: authStore.qrStatus === 'success', done: authStore.qrStatus === 'success' }">
+                    <span class="stage-dot"></span>
+                    <span class="stage-label">世界线收敛</span>
+                  </div>
+                </div>
+                <div class="qr-status-msg" v-if="authStore.qrStatusMessage">
+                  <n-text depth="3" style="font-size:13px;">{{ authStore.qrStatusMessage }}</n-text>
                 </div>
                 <n-text v-if="authStore.loginError" depth="3" type="error" style="font-size:11px;text-align:center;display:block;margin-top:10px;">{{ authStore.loginError }}</n-text>
               </div>
@@ -332,10 +357,11 @@ const tplPrompt = computed({
             <n-tab-pane name="sms" tab="短信登录">
               <template #tab>
                 <n-icon size="18"><Smartphone /></n-icon>
-                <span style="margin-left:6px;">短信登录</span>
+                <span style="margin-left:6px;">备用协议</span>
               </template>
               <div class="tab-content">
                 <div class="sms-section">
+                  <div class="sms-header tnum">备用协议 B — 短信认证</div>
                   <n-input v-model:value="smsPhone" placeholder="手机号" size="large" style="width:100%;" />
                   <n-space style="width:100%;margin-top:12px;" :size="8">
                     <n-input v-model:value="smsCode" placeholder="短信验证码" size="large" style="flex:1;" />
@@ -344,7 +370,7 @@ const tplPrompt = computed({
                     </n-button>
                   </n-space>
                   <n-button type="primary" block @click="message.info('短信登录需要验证码，即将开发')" style="margin-top:16px;">
-                    <template #icon><n-icon><ArrowRight /></n-icon></template>登录
+                    <template #icon><n-icon><ArrowRight /></n-icon></template>认证
                   </n-button>
                 </div>
               </div>
@@ -491,6 +517,37 @@ const tplPrompt = computed({
 .side-user-meta { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; flex: 1; }
 .side-user-name { font-size: 12px; font-weight: 600; color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .side-user-hint { font-size: 10px; color: var(--color-text-tertiary); white-space: nowrap; font-family: var(--font-mono); letter-spacing: 0.02em; }
+
+/* --- Sidebar User Trigger — worldline flicker (ref: Steins;Gate divergence meter) --- */
+.side-user {
+  position: relative;
+}
+.side-user::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-md);
+  background: radial-gradient(circle at center, rgba(255,140,66,0.06), transparent 70%);
+  opacity: 0;
+  transition: opacity var(--dur-3);
+  pointer-events: none;
+}
+.side-user:hover::after {
+  opacity: 1;
+}
+.side-user:hover .side-user-name {
+  animation: worldline-flicker 0.3s var(--ease-crt) both;
+}
+.side-user:hover .side-avatar {
+  box-shadow: var(--divergence-glow), 0 0 8px rgba(255,140,66,0.12);
+}
+@keyframes worldline-flicker {
+  0%, 100% { opacity: 1; }
+  15% { opacity: 0.7; }
+  30% { opacity: 1; }
+  45% { opacity: 0.85; }
+  60% { opacity: 1; }
+}
 .side-set { width: 30px; height: 30px; border: none; border-radius: var(--radius-md); background: transparent; color: var(--color-text-secondary); display: grid; place-items: center; cursor: pointer; flex-shrink: 0; transition: background var(--dur-2), color var(--dur-2), box-shadow var(--dur-2); }
 .side-set:hover { background: var(--color-ink-soft); color: var(--color-brand); box-shadow: var(--brand-glow-soft); }
 /* Worldline Toggle — α/β attractor field switch */
@@ -590,14 +647,246 @@ const tplPrompt = computed({
 .q-bar { width: 100%; height: 4px; background: var(--color-brand-soft); border-radius: var(--radius-full); overflow: hidden; }
 .q-fill { height: 100%; background: linear-gradient(90deg, var(--color-brand-pressed), var(--color-brand), var(--color-brand-hover)); border-radius: var(--radius-full); transition: width 0.3s ease; box-shadow: var(--brand-glow-soft); }
 
-.login-body { display: flex; flex-direction: column; align-items: center; padding: 28px 0; gap: 16px; }
-.login-success { display: flex; flex-direction: column; align-items: center; }
-.login-uname { font-size: 17px; margin-top: 14px; }
-.login-uid { font-size: 13px; margin-top: 4px; }
-.login-avatar-lg { width: 72px; height: 72px; border-radius: 50%; border: 2px solid var(--color-brand-border); box-shadow: var(--brand-glow-soft); }
-.tab-content { padding: 20px 4px; display: flex; flex-direction: column; align-items: center; }
-.qr-code-wrap { width: 208px; height: 208px; border-radius: var(--radius-lg); overflow: hidden; position: relative; background: #fff; border: 1px solid var(--color-border-strong); box-shadow: var(--shadow-sm); }
-.qr-overlay { position: absolute; inset: 0; background: rgba(10,10,16,0.92); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+/* === Login Terminal — PhoneWave 实验终端 === */
+/* ref: Steins;Gate phone-trigger + VN UI + divergence-meter */
+
+.login-terminal {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 4px 24px;
+  min-height: 380px;
+}
+
+/* --- Experimenter Profile --- */
+.experimenter-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 0;
+  position: relative;
+}
+.profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 8px 16px;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 24px;
+}
+.profile-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+}
+.profile-div {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--divergence-color);
+  text-shadow: var(--divergence-glow);
+  font-family: var(--font-mono);
+}
+.profile-avatar-wrap {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin-bottom: 16px;
+}
+.profile-avatar-wrap::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 2px solid var(--divergence-color);
+  box-shadow: var(--divergence-glow), 0 0 12px rgba(255,140,66,0.15);
+  animation: avatar-ring-pulse 2s var(--ease-out) infinite;
+}
+.profile-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.profile-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+.profile-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+.profile-uid {
+  font-size: 12px;
+  color: var(--divergence-color);
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+}
+.profile-logout {
+  margin-top: 4px;
+}
+
+@keyframes avatar-ring-pulse {
+  0%, 100% { box-shadow: var(--divergence-glow), 0 0 12px rgba(255,140,66,0.15); }
+  50% { box-shadow: var(--divergence-glow), 0 0 20px rgba(255,140,66,0.3); }
+}
+
+/* --- QR Chamber (PhoneWave) --- */
+.qr-chamber {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border-strong);
+  box-shadow: var(--shadow-sm);
+}
+.qr-chamber::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid var(--color-brand-border);
+  pointer-events: none;
+  z-index: 2;
+}
+.chamber-scanline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(139,62,62,0.3), transparent);
+  animation: scanline-sweep 2.8s ease-in-out infinite;
+  z-index: 3;
+  pointer-events: none;
+}
+.chamber-body {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: var(--color-surface-muted);
+}
+.qr-code-img {
+  width: 200px;
+  height: 200px;
+  display: block;
+}
+.chamber-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  z-index: 4;
+  background: var(--color-surface);
+}
+.chamber-overlay.success {
+  background: var(--color-surface);
+}
+
+/* --- Pipeline Status (Divergence Meter style) --- */
+.pipeline {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-top: 20px;
+  padding: 0 12px;
+}
+.pipeline-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+.stage-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-border-strong);
+  transition: background var(--dur-3), box-shadow var(--dur-3);
+}
+.pipeline-stage.active .stage-dot {
+  background: var(--divergence-color);
+  box-shadow: var(--divergence-glow);
+  animation: pulse-dot 1.6s var(--ease-out) infinite;
+}
+.pipeline-stage.done .stage-dot {
+  background: var(--color-success);
+  box-shadow: 0 0 6px rgba(29,237,63,0.4);
+}
+.stage-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--color-text-tertiary);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  transition: color var(--dur-2);
+}
+.pipeline-stage.active .stage-label {
+  color: var(--divergence-color);
+}
+.pipeline-stage.done .stage-label {
+  color: var(--color-success);
+}
+.pipeline-connector {
+  width: 20px;
+  height: 1px;
+  background: var(--color-border);
+  flex-shrink: 0;
+  margin-bottom: 16px;
+  transition: background var(--dur-3), box-shadow var(--dur-3);
+}
+.pipeline-connector.active {
+  background: var(--divergence-color);
+  box-shadow: var(--divergence-glow);
+}
+
+/* --- QR Status Message --- */
+.qr-status-msg {
+  margin-top: 14px;
+  text-align: center;
+}
+
+/* --- SMS Section (Backup Protocol) --- */
+.sms-section {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+.sms-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--color-border);
+  letter-spacing: 0.03em;
+}
+
+/* --- Tab content spacing --- */
+.tab-content {
+  padding: 20px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 
 .settings-body { display: flex; flex-direction: column; gap: 14px; padding-bottom: 12px; }
 .settings-section { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: var(--shadow-xs); transition: border-color var(--dur-2); }
@@ -637,6 +926,12 @@ html[data-theme] *::after {
               color 0.3s ease,
               border-color 0.3s ease,
               box-shadow 0.3s ease;
+}
+
+
+/* --- Light theme chamber overlay --- */
+[data-theme="light"] .chamber-overlay {
+  /* inherits surface color from theme */
 }
 
 </style>
