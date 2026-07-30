@@ -27,8 +27,6 @@ watch(activeTab, (tab) => {
     store.loadWatchLater(1);
   } else if (tab === "history" && store.historyItems.length === 0) {
     store.loadHistory(1);
-  } else if (tab === "follow" && store.followItems.length === 0) {
-    store.loadFollowList(1, 1);
   }
 });
 const selectedFolderId = ref<number | null>(null);
@@ -117,7 +115,6 @@ function fmtDur(sec: number) {
           <div class="toolbar-row">
             <n-input v-model:value="folderSearch" placeholder="搜索收藏夹..." size="small" clearable class="toolbar-search" />
             <span class="toolbar-meta tnum" v-if="!folderSearch.trim()">{{ createdFolders.length }} 个收藏夹</span>
-            <n-text v-if="authStore.loginError" depth="3" type="error" style="font-size:11px;margin-left:6px">{{ authStore.loginError }}</n-text>
           </div>
 
           <n-spin :show="store.favLoading">
@@ -225,7 +222,6 @@ function fmtDur(sec: number) {
             <button class="chip" :class="{ on: store.followType===2 }" @click="store.loadFollowList(2,1)">追剧</button>
           </div>
           <span class="toolbar-meta tnum">已加载 {{ store.followItems.length }} 项</span>
-          <n-text v-if="authStore.loginError" depth="3" type="error" style="font-size:11px;margin-left:6px">{{ authStore.loginError }}</n-text>
         </div>
 
         <n-spin :show="store.followLoading">
@@ -243,7 +239,7 @@ function fmtDur(sec: number) {
           <div v-else-if="!store.followLoading" class="empty-state">
             <div class="empty-icon"><n-icon :size="36" color="var(--color-text-tertiary)"><Film /></n-icon></div>
             <div class="empty-title">暂无数据</div>
-            <div class="empty-desc">暂无追番数据，试试追剧</div>
+            <div class="empty-desc">点击「追番」或「追剧」加载内容</div>
           </div>
         </n-spin>
       </template>
@@ -253,7 +249,6 @@ function fmtDur(sec: number) {
         <div class="toolbar-row">
           <span class="toolbar-label">稍后再看</span>
           <span class="toolbar-meta tnum">{{ store.watchLaterItems.length }} 个视频</span>
-          <n-text v-if="authStore.loginError" depth="3" type="error" style="font-size:11px;margin-left:6px">{{ authStore.loginError }}</n-text>
         </div>
 
         <n-spin :show="store.watchLaterLoading">
@@ -270,7 +265,7 @@ function fmtDur(sec: number) {
           <div v-else-if="!store.watchLaterLoading" class="empty-state">
             <div class="empty-icon"><n-icon :size="36" color="var(--color-text-tertiary)"><ListVideo /></n-icon></div>
             <div class="empty-title">暂无数据</div>
-            <div class="empty-desc">暂无数据</div>
+            <div class="empty-desc">点击「稍后再看」标签自动加载</div>
           </div>
           <div class="pane-pagination" v-if="store.watchLaterTotalPages > 1">
             <n-pagination :page="store.watchLaterPage" :page-count="store.watchLaterTotalPages" @update:page="(p:number)=>store.loadWatchLater(p)" size="small" />
@@ -283,7 +278,6 @@ function fmtDur(sec: number) {
         <div class="toolbar-row">
           <span class="toolbar-label">历史记录</span>
           <span class="toolbar-meta tnum">{{ store.historyItems.length }} 条</span>
-          <n-text v-if="authStore.loginError" depth="3" type="error" style="font-size:11px;margin-left:6px">{{ authStore.loginError }}</n-text>
         </div>
 
         <n-spin :show="store.historyLoading">
@@ -300,7 +294,7 @@ function fmtDur(sec: number) {
           <div v-else-if="!store.historyLoading" class="empty-state">
             <div class="empty-icon"><n-icon :size="36" color="var(--color-text-tertiary)"><History /></n-icon></div>
             <div class="empty-title">暂无数据</div>
-            <div class="empty-desc">暂无数据</div>
+            <div class="empty-desc">点击「历史记录」标签自动加载</div>
           </div>
           <div class="pane-pagination" v-if="store.historyTotalPages > 1">
             <n-pagination :page="store.historyPage" :page-count="store.historyTotalPages" @update:page="(p:number)=>store.loadHistory(p)" size="small" />
