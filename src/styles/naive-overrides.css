@@ -22,19 +22,16 @@
   display: none !important;
 }
 
-/* hover: CRT phosphor intensify -- stay in place, glow brightens */
-/* ref: CRT terminal phosphor afterglow on button hover */
+/* hover: 微抬 + 绿辉光 */
 .n-button:not(.n-button--disabled):hover {
-  transform: none;
-  color: var(--color-text) !important;
-  box-shadow: 0 0 5px rgba(74,229,74,0.14), 0 0 12px rgba(74,229,74,0.05), inset 0 0 4px rgba(74,229,74,0.03) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 0 12px rgba(139, 62, 62, 0.15), 0 2px 8px rgba(0, 0, 0, 0.3) !important;
 }
 
-/* active: CRT tactile press -- instant deepen */
+/* active: 按压深度 + CRT 静态闪烁 */
 .n-button:not(.n-button--disabled):active {
   transform: translateY(1px) scale(0.97) !important;
-  transition-duration: 0.06s !important;
-  box-shadow: 0 0 2px rgba(74,229,74,0.08), inset 0 0 3px rgba(74,229,74,0.04) !important;
+  transition-duration: 0.08s !important;
 }
 
 .n-button:not(.n-button--disabled):active::before {
@@ -54,21 +51,15 @@
   border-radius: inherit;
 }
 
-/* focus-visible: CRT phosphor green ring */
+/* focus-visible: 绿光环 */
 .n-button:focus-visible {
   outline: none !important;
-  box-shadow: 0 0 0 2px rgba(74,229,74,0.25), 0 0 8px rgba(74,229,74,0.1) !important;
+  box-shadow: 0 0 0 2px rgba(139, 62, 62, 0.35), 0 0 10px rgba(139, 62, 62, 0.15) !important;
 }
 
-/* primary type: Kurisu red phosphor glow */
+/* primary 按钮特殊样式 */
 .n-button--primary-type {
   position: relative;
-}
-.n-button--primary-type:hover {
-  box-shadow: 0 0 6px rgba(139,62,62,0.2), 0 0 14px rgba(139,62,62,0.06), inset 0 0 3px rgba(139,62,62,0.04) !important;
-}
-.n-button--primary-type:active {
-  box-shadow: 0 0 3px rgba(139,62,62,0.1), inset 0 0 2px rgba(139,62,62,0.06) !important;
 }
 .n-button--primary-type::after {
   content: '';
@@ -90,13 +81,6 @@
   animation: border-scan 3s linear infinite;
 }
 
-/* warning type: divergence amber glow */
-.n-button--warning-type:hover {
-  box-shadow: 0 0 6px rgba(255,140,66,0.2), 0 0 14px rgba(255,140,66,0.06), inset 0 0 3px rgba(255,140,66,0.04) !important;
-}
-.n-button--warning-type:active {
-  box-shadow: 0 0 3px rgba(255,140,66,0.1), inset 0 0 2px rgba(255,140,66,0.06) !important;
-}
 /* ghost/text 按钮 */
 .n-button--default-type.n-button--text-type:hover,
 .n-button--default-type.n-button--ghost-type:hover {
