@@ -81,29 +81,7 @@ function fmtDur(sec: number) {
 
 <template>
   <div class="source-root">
-    <!-- ===== Page Header (ref: Linear sticky + Steins;Gate identity) ===== -->
-    <div class="page-bar">
-      <n-button text class="bar-back" @click="router.push('/')">
-        <template #icon><n-icon size="15"><ArrowLeft /></n-icon></template>
-      </n-button>
-      <div class="bar-title">
-        <span class="bar-prefix">&gt; &nbsp;信号源</span>
-        <span class="bar-sep">/</span>
-        <span class="bar-name">收藏夹</span>
-      </div>
-      <div class="bar-right">
-        <n-button
-          size="tiny" quaternary
-          @click="store.loadFavFolders()"
-          :loading="store.favLoading"
-          title="刷新"
-        >
-          <template #icon><n-icon size="13"><RotateCw /></n-icon></template>
-        </n-button>
-      </div>
-    </div>
-
-    <!-- ===== Tab Bar (ref: Linear segmented control + custom typography) ===== -->
+    <!-- ===== Tab Bar (ref: Linear segmented + custom typography) ===== -->
     <nav class="tab-bar">
       <button
         v-for="t in tabs"
@@ -394,11 +372,15 @@ function fmtDur(sec: number) {
   display: flex;
   align-items: center;
   gap: 2px;
-  padding: 4px 14px;
+  padding: 6px 14px;
   background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
   overflow-x: auto;
   scrollbar-width: none;
+  position: sticky;
+  top: 0;
+  z-index: 6;
 }
 .tab-bar::-webkit-scrollbar { display: none; }
 
