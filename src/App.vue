@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch, computed } from "vue";
-import { NInput, NButton, NSpace, NText, NIcon, NTabs, NTabPane, createDiscreteApi, NDrawer, NDrawerContent, NSelect, NConfigProvider, type GlobalThemeOverrides } from "naive-ui";
+import { NInput, NButton, NSpace, NText, NIcon, NTabs, NTabPane, NPopover, createDiscreteApi, NDrawer, NDrawerContent, NSelect, NConfigProvider, type GlobalThemeOverrides } from "naive-ui";
 import { Settings, List, Play, Trash2, Eye, CircleCheckBig, CircleX, RefreshCw, CircleUserRound, LogOut, RotateCw, Smartphone, QrCode, ArrowRight, Copy, LinkIcon, FolderOpen, CloudUpload, Clock, Moon, Sun, BookOpen } from "lucide-vue-next";
 import { useRoute, useRouter } from "vue-router";
 import { useAppStore } from "./stores/app";
@@ -188,20 +188,56 @@ const tplPrompt = computed({
       </nav>
 
       <div class="side-foot"><div class="divergence-display tnum"><span class="div-label">Divergence</span><span class="div-number">1.048596</span></div>
+        <!-- 已登录: popover 菜单 -->
+        <n-popover v-if="authStore.isLoggedIn" trigger="click" placement="top-end" :width="220" :show-arrow="false" :to="false">
+          <template #trigger>
+            <button type="button" class="side-user" :title="authStore.loginUname">
+              <span ref="avatarRef" class="side-avatar tilt-card">
+                <img v-if="authStore.loginFace" :src="authStore.loginFace" referrerpolicy="no-referrer" />
+                <n-icon v-else :size="18" color="var(--color-text-secondary)"><CircleUserRound /></n-icon>
+                <span class="side-online" />
+              </span>
+              <span class="side-user-meta">
+                <span class="side-user-name">{{ authStore.loginUname }}</span>
+                <span class="side-user-hint">B站观测者</span>
+              </span>
+            </button>
+          </template>
+          <div class="user-popover">
+            <div class="up-head">
+              <img v-if="authStore.loginFace" :src="authStore.loginFace" class="up-avatar" referrerpolicy="no-referrer" />
+              <n-icon v-else size="32" color="var(--color-brand)"><CircleUserRound /></n-icon>
+              <div class="up-meta">
+                <span class="up-name">{{ authStore.loginUname }}</span>
+                <span class="up-uid tnum">LAB MEM {{ String(authStore.loginUid).padStart(6, '0') }}</span>
+              </div>
+            </div>
+            <div class="up-actions">
+              <button type="button" class="up-item" @click="router.push('/source/fav')">
+                <n-icon size="16"><FolderOpen /></n-icon>
+                <span>B站收藏</span>
+              </button>
+              <button type="button" class="up-item danger" @click="authStore.doLogout()">
+                <n-icon size="16"><LogOut /></n-icon>
+                <span>退出登录</span>
+              </button>
+            </div>
+          </div>
+        </n-popover>
+        <!-- 未登录: 打开登录 drawer -->
         <button
+          v-else
           type="button"
           class="side-user"
           @click="openLogin"
-          :title="authStore.isLoggedIn ? authStore.loginUname : '登录 B 站账号'"
+          title="登录 B 站账号"
         >
           <span ref="avatarRef" class="side-avatar tilt-card">
-            <img v-if="authStore.isLoggedIn && authStore.loginFace" :src="authStore.loginFace" referrerpolicy="no-referrer" />
-            <n-icon v-else :size="18" color="var(--color-text-secondary)"><CircleUserRound /></n-icon>
-            <span v-if="authStore.isLoggedIn" class="side-online" />
+            <n-icon :size="18" color="var(--color-text-secondary)"><CircleUserRound /></n-icon>
           </span>
           <span class="side-user-meta">
-            <span class="side-user-name">{{ authStore.isLoggedIn ? authStore.loginUname : "LAB MEM 000" }}</span>
-            <span class="side-user-hint">{{ authStore.isLoggedIn ? "B站观测者" : "> 启动观测" }}</span>
+            <span class="side-user-name">LAB MEM 000</span>
+            <span class="side-user-hint">> 启动观测</span>
           </span>
         </button>
         <div class="worldline-toggle" @click="toggleTheme" :title="isDarkMode ? '世界线跳跃: α → β 吸引子场' : '世界线跳跃: β → α 吸引子场'"><span class="wl-field" :class="{ on: isDarkMode }">α</span><span class="wl-track"><span class="wl-thumb" :class="{ right: !isDarkMode }"></span></span><span class="wl-field" :class="{ on: !isDarkMode }">β</span></div><button type="button" class="side-set" @click="showSettings = true" title="设置">
@@ -287,29 +323,8 @@ const tplPrompt = computed({
         <!-- Login Drawer — PhoneWave 实验终端 -->
     <n-drawer :show="authStore.showLogin" @update:show="(v) => { if (!v) authStore.cancelLogin(); }" width="420">
       <n-drawer-content title="> 观测者认证" closable>
-        <!-- 已登录: 实验者档案 -->
-        <div class="login-terminal" v-if="authStore.isLoggedIn">
-          <div class="experimenter-profile">
-            <div class="profile-header">
-              <span class="profile-label tnum">实验者档案</span>
-              <span class="profile-div tnum">1.048596</span>
-            </div>
-            <div class="profile-avatar-wrap">
-              <img v-if="authStore.loginFace" :src="authStore.loginFace" class="profile-avatar" referrerpolicy="no-referrer" />
-              <n-icon v-else size="56" color="var(--color-brand)"><CircleUserRound /></n-icon>
-            </div>
-            <div class="profile-info">
-              <span class="profile-name">{{ authStore.loginUname }}</span>
-              <span class="profile-uid tnum">实验编号: {{ String(authStore.loginUid).padStart(6, '0') }}</span>
-            </div>
-            <n-button type="error" size="small" @click="authStore.doLogout()" class="profile-logout">
-              <template #icon><n-icon><LogOut /></n-icon></template>终止实验
-            </n-button>
-          </div>
-        </div>
-
         <!-- 登录: QR + SMS -->
-        <div v-else class="login-terminal">
+        <div class="login-terminal">
           <n-tabs v-model:value="qrTab" type="line" size="medium" animated>
             <n-tab-pane name="qr" tab="扫码登录">
               <template #tab>
@@ -517,27 +532,6 @@ const tplPrompt = computed({
 .side-user-meta { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; flex: 1; }
 .side-user-name { font-size: 12px; font-weight: 600; color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .side-user-hint { font-size: 10px; color: var(--color-text-tertiary); white-space: nowrap; font-family: var(--font-mono); letter-spacing: 0.02em; }
-
-/* --- Sidebar User Trigger — worldline flicker (ref: Steins;Gate divergence meter) --- */
-.side-user {
-  position: relative;
-}
-.side-user::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: var(--radius-md);
-  background: radial-gradient(circle at center, rgba(255,140,66,0.06), transparent 70%);
-  opacity: 0;
-  transition: opacity var(--dur-3);
-  pointer-events: none;
-}
-.side-user:hover::after {
-  opacity: 1;
-}
-.side-user:hover .side-user-name {
-  animation: worldline-flicker 0.3s var(--ease-crt) both;
-}
 .side-user:hover .side-avatar {
   box-shadow: var(--divergence-glow), 0 0 8px rgba(255,140,66,0.12);
 }
@@ -657,86 +651,78 @@ const tplPrompt = computed({
   min-height: 380px;
 }
 
-/* --- Experimenter Profile --- */
-.experimenter-profile {
+/* --- User Popover (logged-in menu) --- */
+.user-popover {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 12px 0;
-  position: relative;
+  gap: 4px;
+  padding: 6px 0;
 }
-.profile-header {
+.up-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 0 8px 16px;
+  gap: 10px;
+  padding: 8px 14px 12px;
   border-bottom: 1px solid var(--color-border);
-  margin-bottom: 24px;
+  margin-bottom: 4px;
 }
-.profile-label {
-  font-size: 11px;
+.up-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.up-meta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+  min-width: 0;
+}
+.up-name {
+  font-size: 13px;
   font-weight: 600;
-  color: var(--color-text-secondary);
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.up-uid {
+  font-size: 11px;
+  color: var(--divergence-color);
   font-family: var(--font-mono);
   letter-spacing: 0.04em;
 }
-.profile-div {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--divergence-color);
-  text-shadow: var(--divergence-glow);
-  font-family: var(--font-mono);
-}
-.profile-avatar-wrap {
-  position: relative;
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  margin-bottom: 16px;
-}
-.profile-avatar-wrap::before {
-  content: '';
-  position: absolute;
-  inset: -3px;
-  border-radius: 50%;
-  border: 2px solid var(--divergence-color);
-  box-shadow: var(--divergence-glow), 0 0 12px rgba(255,140,66,0.15);
-  animation: avatar-ring-pulse 2s var(--ease-out) infinite;
-}
-.profile-avatar {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-}
-.profile-info {
+.up-actions {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  margin-bottom: 20px;
 }
-.profile-name {
-  font-size: 18px;
-  font-weight: 700;
+.up-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--dur-2), color var(--dur-2);
+}
+.up-item:hover {
+  background: var(--color-ink-soft);
   color: var(--color-text);
 }
-.profile-uid {
-  font-size: 12px;
-  color: var(--divergence-color);
-  font-family: var(--font-mono);
-  letter-spacing: 0.05em;
+.up-item.danger:hover {
+  background: var(--color-error-soft);
+  color: var(--color-error);
 }
-.profile-logout {
-  margin-top: 4px;
-}
-
-@keyframes avatar-ring-pulse {
-  0%, 100% { box-shadow: var(--divergence-glow), 0 0 12px rgba(255,140,66,0.15); }
-  50% { box-shadow: var(--divergence-glow), 0 0 20px rgba(255,140,66,0.3); }
+.up-item .n-icon {
+  flex-shrink: 0;
+  color: inherit;
 }
 
 /* --- QR Chamber (PhoneWave) --- */
@@ -886,6 +872,11 @@ const tplPrompt = computed({
   flex-direction: column;
   align-items: center;
 }
+/* --- Fix: disable tab-pane animation in login drawer to prevent residue --- */
+.login-terminal .n-tab-pane {
+  animation: none !important;
+}
+
 
 
 .settings-body { display: flex; flex-direction: column; gap: 14px; padding-bottom: 12px; }
