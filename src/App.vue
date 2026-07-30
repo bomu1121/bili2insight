@@ -554,7 +554,9 @@ const tplPrompt = computed({
 
 /* Queue drawer */
 .queue-drawer { display: flex; flex-direction: column; gap: 12px; }
-.queue-actions { display: flex; gap: 8px; flex-wrap: nowrap; padding: 2px 0 14px; border-bottom: 1px solid var(--color-border); margin-bottom: 6px; }
+.queue-actions { display: flex; gap: 5px; flex-wrap: nowrap; padding: 2px 0 14px; border-bottom: 1px solid var(--color-border); margin-bottom: 6px; }
+/* ref: GitHub Actions sidebar -- compact button group in narrow panels */
+.queue-actions .n-button { font-size: 11px !important; padding: 0 8px !important; min-width: unset !important; }
 .queue-list { display: flex; flex-direction: column; gap: 8px; }
 .queue-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 72px 16px; text-align: center; color: var(--color-text-secondary); animation: empty-enter 0.5s var(--ease-out) both; }
 .queue-empty .n-icon { animation: materialize 0.5s var(--spring-snappy) both; }
