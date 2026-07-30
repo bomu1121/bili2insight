@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { NButton, NText, NIcon, createDiscreteApi } from "naive-ui";
-import { CirclePlus, ArrowLeft, CloudUpload, File, X } from "lucide-vue-next";
+import { NButton, NIcon, createDiscreteApi } from "naive-ui";
+import { ArrowLeft, File, X, Send } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/app";
+import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 
 const store = useAppStore();
@@ -36,8 +37,8 @@ async function pickFile() {
       filePath.value = path;
       fileName.value = path.split(/[\\/]/).pop() || path;
       try {
-        const stat = await import("@tauri-apps/plugin-fs").then((m) => m.stat(path));
-        fileSize.value = fmtsize(stat.size);
+        const info = await invoke("plugin:fs|stat", { path });
+        fileSize.value = fmtsize(info.size);
       } catch (_) {
         fileSize.value = "未知大小";
       }
@@ -65,78 +66,128 @@ function addToQueue() {
     pageInfo: { page: 1, part: fileName.value, cid: 0, duration: 0 },
     source: "local",
   });
-  message.success(`已将 ${fileName.value} 添加到处理队列`);
+  message.success("已将 " + fileName.value + " 添加到处理队列");
   clearFile();
 }
 </script>
 
 <template>
   <div class="source-root">
-    <div class="page-bar">
-      <n-button text class="bar-back" @click="router.push('/')">
-        <template #icon><n-icon><ArrowLeft /></n-icon></template>返回
-      </n-button>
-      <div class="bar-title">
-        <span class="bar-ic local"><n-icon :size="15"><CloudUpload /></n-icon></span>
-        <n-text strong>本地文件</n-text>
-      </div>
-    </div>
-
     <div class="source-body">
-      <div class="intro-card">
-        <div class="intro-title">导入本地音视频</div>
-        <div class="intro-desc">适合已下载的课程、录屏或音频稿，无需登录 B 站</div>
-      </div>
-
-      <div class="upload-area" role="button" tabindex="0" @click="pickFile" @keydown.enter="pickFile">
-        <div class="upload-icon">
-          <n-icon :size="30"><CloudUpload /></n-icon>
-        </div>
-        <div class="upload-title">点击选择文件</div>
-        <div class="upload-hint">支持 mp3 / wav / m4a / flac / mp4 / mkv 等</div>
-        <n-button size="small" secondary type="success" @click.stop="pickFile">浏览文件</n-button>
-      </div>
-
-      <div v-if="hasFile" class="file-card">
-        <div class="file-icon"><n-icon :size="20"><File /></n-icon></div>
-        <div class="file-info">
-          <div class="file-name">{{ fileName }}</div>
-          <div class="file-size tnum">{{ fileSize }}</div>
-        </div>
-        <n-button quaternary circle size="small" @click="clearFile" title="移除">
-          <template #icon><n-icon><X /></n-icon></template>
-        </n-button>
-      </div>
-
-      <n-button type="primary" block size="large" round @click="addToQueue" :disabled="!hasFile || store.isProcessing">
-        <template #icon><n-icon><CirclePlus /></n-icon></template>
-        加入队列
+      <n-button text size="tiny" class="back-link" @click="router.push('/')">
+        <template #icon><n-icon :size="12"><ArrowLeft /></n-icon></template>返回
       </n-button>
+
+      <div class="terminal">
+        <div class="term-hdr">
+          <span class="term-hdr-title">@channel</span>
+          <span class="term-hdr-addr">// 本地文件</span>
+          <span class="term-hdr-div"></span>
+          <span class="term-hdr-stat">{{ hasFile ? '● READY' : '○ IDLE' }}</span>
+        </div>
+
+        <div class="term-screen">
+          <div class="term-msg">
+            <span class="term-msg-tag">[INFO]</span>
+            导入本地音视频文件 · 适合已下载的课程、录屏或音频稿
+          </div>
+
+          <div class="term-drop" role="button" tabindex="0" @click="pickFile" @keydown.enter="pickFile">
+            <div class="term-drop-row">
+              <span class="term-cursor" :class="{ blink: !hasFile }">▮</span>
+              <span class="term-drop-text">{{ hasFile ? '点击更换文件' : '点击选择文件...' }}</span>
+            </div>
+            <div class="term-drop-meta">mp3 / wav / m4a / flac / mp4 / mkv / avi / mov</div>
+            <n-button size="small" quaternary type="warning" @click.stop="pickFile">浏览文件</n-button>
+          </div>
+
+          <div v-if="hasFile" class="term-file">
+            <span class="term-file-time">{{ new Date().toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit',second:'2-digit'}) }}</span>
+            <span class="term-file-ok">OK</span>
+            <span class="term-file-name">{{ fileName }}</span>
+            <span class="term-file-size">{{ fileSize }}</span>
+            <n-button quaternary circle size="tiny" @click="clearFile" class="term-file-rm" title="移除">
+              <template #icon><n-icon :size="14"><X /></n-icon></template>
+            </n-button>
+          </div>
+
+          <div class="term-send">
+            <n-button type="primary" size="large" round @click="addToQueue" :disabled="!hasFile || store.isProcessing">
+              <template #icon><n-icon><Send /></n-icon></template>
+              SEND
+            </n-button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
 .source-root { display: flex; flex-direction: column; height: 100%; overflow-y: auto; scrollbar-gutter: stable; }
-.page-bar { display: flex; align-items: center; gap: 12px; height: var(--header-height); padding: 0 20px; background: var(--color-surface); border-bottom: 1px solid var(--color-border); flex-shrink: 0; position: sticky; top: 0; z-index: 5; }
-.bar-back { color: var(--color-text-secondary); }
-.bar-title { display: inline-flex; align-items: center; gap: 9px; font-size: 15px; }
-.bar-ic { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; }
-.bar-ic.local { background: var(--color-success-soft); color: var(--color-success); }
-.source-body { flex: 1; padding: 32px 28px 40px; max-width: var(--content-max-source); margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 16px; }
-.intro-card { padding: 0 2px 6px; }
-.intro-title { font-size: var(--font-size-page); font-weight: 700; letter-spacing: -0.01em; color: var(--color-text); margin-bottom: 7px; }
-.intro-desc { font-size: 13px; color: var(--color-text-secondary); line-height: 1.6; }
-.upload-area { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 230px; padding: 40px 24px; border: 1.5px dashed var(--color-border-strong); border-radius: var(--radius-xl); cursor: pointer; background: var(--color-surface); transition: border-color var(--dur-2), background var(--dur-2), box-shadow var(--dur-2); }
-.upload-area:hover { border-color: var(--color-success); background: var(--color-success-soft); box-shadow: 0 0 0 2px rgba(29, 237, 63,0.2), 0 8px 28px rgba(0,0,0,0.3), 0 0 20px rgba(29, 237, 63,0.08); }
-.upload-icon { width: 60px; height: 60px; border-radius: 16px; display: grid; place-items: center; background: var(--color-success-soft); color: var(--color-success); margin-bottom: 4px; transition: background var(--dur-2); }
-.upload-area:hover .upload-icon { background: rgba(29, 237, 63,0.12); box-shadow: 0 0 16px rgba(29, 237, 63,0.12); animation: icon-bounce 0.5s var(--ease-out) both; }
-.upload-title { font-size: 15px; font-weight: 650; color: var(--color-text); }
-.upload-hint { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 6px; font-family: var(--font-mono); }
-.file-card { display: flex; align-items: center; gap: 13px; padding: 13px 14px; background: linear-gradient(90deg, rgba(29, 237, 63,0.1), rgba(29, 237, 63,0.03)); background-size: 0% 100%; background-repeat: no-repeat; border: 1px solid var(--color-success-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-xs); transition: background-size 0.4s cubic-bezier(0.22,0.61,0.36,1), border-color 0.3s, box-shadow 0.3s; animation: fadeUp var(--dur-3) var(--ease-out); }
-.file-card:hover { background-size: 100% 100%; border-color: rgba(29, 237, 63,0.5); box-shadow: 0 0 0 1px rgba(29, 237, 63,0.2), 0 4px 20px rgba(0,0,0,0.3); }
-.file-icon { width: 42px; height: 42px; display: grid; place-items: center; background: var(--color-success-soft); color: var(--color-success); border-radius: 10px; flex-shrink: 0; }
-.file-info { flex: 1; min-width: 0; }
-.file-name { font-size: 14px; font-weight: 600; color: var(--color-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.file-size { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; font-family: var(--font-mono); }
+
+/* --- Body --- */
+.source-body { flex: 1; padding: 24px 28px 40px; max-width: var(--content-max-source); margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 10px; }
+
+/* --- Back link --- */
+.back-link { align-self: flex-start; color: var(--color-text-tertiary); font-size: 12px; padding: 0; }
+
+/* --- Terminal window --- */
+/* ref: Steins;Gate Divergence Meter / @channel --- nixie tube amber terminal */
+.terminal { border: 1px solid var(--color-log-border); border-radius: var(--radius-lg); background: var(--color-log-bg); overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+
+/* Terminal header bar */
+.term-hdr { display: flex; align-items: center; gap: 8px; padding: 7px 16px; background: rgba(255,255,255,0.025); border-bottom: 1px solid var(--color-log-border); font-family: var(--font-mono); font-size: 11px; }
+/* ref: Steins;Gate Nixie Tube --- warm amber phosphor glow for terminal text */
+.term-hdr-title { color: #FF8C42; font-weight: 700; letter-spacing: 0.03em; }
+.term-hdr-addr { color: var(--color-text-tertiary); letter-spacing: 0.03em; }
+.term-hdr-div { flex: 1; }
+.term-hdr-stat { color: var(--color-text-secondary); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; }
+
+/* Terminal screen body */
+.term-screen { flex: 1; padding: 20px 20px 24px; display: flex; flex-direction: column; gap: 16px; font-family: var(--font-mono); }
+
+/* System message */
+.term-msg { font-size: 13px; color: #FF8C42; opacity: 0.65; line-height: 1.6; }
+.term-msg-tag { color: #FF8C42; font-weight: 600; margin-right: 6px; opacity: 1; }
+
+/* Drop zone --- terminal prompt area */
+/* ref: Steins;Gate Divergence Meter --- amber nixie tube prompt */
+.term-drop { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 32px 20px; border: 1px dashed rgba(255, 140, 66, 0.22); border-radius: var(--radius-md); cursor: pointer; transition: border-color var(--dur-2), background var(--dur-2); }
+.term-drop:hover { border-color: rgba(255, 140, 66, 0.5); background: rgba(255, 140, 66, 0.03); }
+.term-drop-row { display: flex; align-items: center; gap: 8px; }
+.term-cursor { color: #FF8C42; font-size: 14px; font-weight: 700; }
+.term-cursor.blink { animation: cursor-blink 0.9s step-end infinite; }
+.term-drop-text { color: #FF8C42; font-size: 14px; opacity: 0.7; }
+.term-drop-meta { font-size: 11px; color: var(--color-text-tertiary); }
+
+/* File loaded log line */
+.term-file { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 10px 14px; border: 1px solid rgba(255, 140, 66, 0.15); border-radius: var(--radius-sm); background: rgba(255, 140, 66, 0.04); animation: fadeUp var(--dur-3) var(--ease-out); }
+.term-file-time { color: var(--color-text-tertiary); font-size: 11px; }
+.term-file-ok { color: #FF8C42; font-size: 11px; font-weight: 700; }
+.term-file-name { color: #FF8C42; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.term-file-size { color: var(--color-text-secondary); font-size: 12px; }
+.term-file-rm { opacity: 0.5; transition: opacity var(--dur-2); }
+.term-file-rm:hover { opacity: 1; }
+
+/* Send button area */
+.term-send { padding-top: 6px; display: flex; justify-content: center; }
+
+/* --- Animations --- */
+@keyframes cursor-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* --- Light mode overrides --- */
+/* ref: Steins;Gate lab notes --- warm amber ink on paper terminal */
+[data-theme="light"] .terminal { border-color: var(--color-border-strong); background: var(--color-surface); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 1px 4px rgba(0, 0, 0, 0.06); }
+[data-theme="light"] .term-hdr { background: var(--color-surface-muted); border-bottom-color: var(--color-border); }
+[data-theme="light"] .term-hdr-title { color: #B5601E; }
+[data-theme="light"] .term-msg,
+[data-theme="light"] .term-msg-tag { color: #A05830; }
+[data-theme="light"] .term-drop { border-color: var(--color-border); }
+[data-theme="light"] .term-drop:hover { border-color: #B5601E; background: rgba(181, 96, 30, 0.06); }
+[data-theme="light"] .term-cursor,
+[data-theme="light"] .term-drop-text { color: #B5601E; }
+[data-theme="light"] .term-file { border-color: rgba(181, 96, 30, 0.18); background: rgba(181, 96, 30, 0.04); }
+[data-theme="light"] .term-file-ok,
+[data-theme="light"] .term-file-name { color: #B5601E; }
 </style>

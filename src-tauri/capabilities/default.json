@@ -55,6 +55,15 @@
           "args": true
         }
       ]
+    },
+    "fs:allow-stat",
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        {
+          "path": "**"
+        }
+      ]
     }
   ]
 }
