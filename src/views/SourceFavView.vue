@@ -325,7 +325,8 @@ function fmtDur(sec: number) {
   align-items: center;
   gap: 2px;
   padding: 6px 18px;
-  background: var(--color-bg);
+  min-height: 38px;
+  background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
   overflow-x: auto;
@@ -365,7 +366,7 @@ function fmtDur(sec: number) {
 .source-body {
   flex: 1;
   overflow-y: auto;
-  padding: 0 24px 32px;
+  padding: 4px 24px 32px;
   max-width: 960px;
   width: 100%;
   margin: 0 auto;
@@ -380,8 +381,8 @@ function fmtDur(sec: number) {
   margin-bottom: 4px;
   border-bottom: 1px solid var(--color-border);
   position: sticky;
-  top: 0;
-  z-index: 4;
+  top: 38px;
+  z-index: 3;
   background: var(--color-bg);
 }
 
@@ -457,8 +458,9 @@ function fmtDur(sec: number) {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 0;
-  min-height: 40px;
+  padding: 10px 0;
+  min-height: 44px;
+  border-bottom: 1px solid var(--color-border);
 }
 .toolbar-search {
   max-width: 280px;
@@ -486,7 +488,7 @@ function fmtDur(sec: number) {
 .folder-list {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 
 .folder-row {
@@ -497,7 +499,7 @@ function fmtDur(sec: number) {
   border-radius: var(--radius-sm);
   cursor: pointer;
   border-left: 2px solid transparent;
-  transition: background 0.12s, border-left-color 0.12s;
+  transition: background 0.15s, border-left-color 0.15s;
 }
 .folder-row:hover {
   background: var(--color-ink-hover);
@@ -585,7 +587,8 @@ function fmtDur(sec: number) {
   border-radius: var(--radius-sm);
   cursor: pointer;
   border-left: 3px solid transparent;
-  transition: background 0.12s, border-left-color 0.12s;
+  transition: background 0.15s, border-left-color 0.15s;
+  animation: materialize 0.28s var(--ease-out) both;
 }
 .video-row:hover {
   background: var(--color-ink-hover);
@@ -737,6 +740,4 @@ function fmtDur(sec: number) {
   50% { opacity: 0.7; }
 }
 
-/* All list rows -- uniform entrance, no stagger cap (ref: Linear) */
-.video-row { animation: materialize 0.28s var(--ease-out) both; }
 </style>
