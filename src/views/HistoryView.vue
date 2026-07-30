@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from "vue";
 import { NButton, NText, NIcon, NInput, NPagination, NDrawer, NDrawerContent, NSpace, NDivider, NPopconfirm, NModal, createDiscreteApi } from "naive-ui";
-import { ArrowBackOutline, TrashOutline, EyeOutline, SearchOutline, RefreshOutline, CopyOutline, DownloadOutline, TimeOutline, DocumentTextOutline, Star, StarOutline, BeakerOutline, FlashOutline, CheckmarkDoneOutline } from "@vicons/ionicons5";
+import { TrashOutline, EyeOutline, SearchOutline, RefreshOutline, CopyOutline, DownloadOutline, TimeOutline, DocumentTextOutline, Star, StarOutline, BeakerOutline, FlashOutline, CheckmarkDoneOutline } from "@vicons/ionicons5";
 import { useRouter } from "vue-router";
 import { useTemplateStore } from "../stores/templates";
 import { useAppStore } from "../stores/app";
@@ -10,9 +10,10 @@ import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import type { HistoryEntry, HistoryListResult, PipelineResult, AnalysisMeta } from "../utils/types";
 
 const router = useRouter();
-const { message } = createDiscreteApi(["message"]);
+const { message } = createDiscreteApi(["message"], { messageProviderProps: { placement: "bottom-right" } });
 
 const loading = ref(false);
+const clearing = ref(false);
 const search = ref("");
 const page = ref(1);
 const pageSize = 30;
@@ -134,7 +135,22 @@ async function exportDetail() {
 
 async function doDelete(entry: HistoryEntry) { try { await deleteHistoryItem(entry.id); load(); } catch(e:any){ message.error("删除失败: "+String(e)); } }
 async function toggleStar(entry: HistoryEntry) { try { const newVal = await toggleHistoryStar(entry.id); entry.starred = newVal; } catch(e:any){ message.error("操作失败: "+String(e)); } }
-async function doClearAll() { try { const count = await clearHistory(); load(); message.success(count > 0 ? "已清除" + count + "条记录，星标置顶已保留" : "无可清除记录"); } catch(e:any){ message.error("清除失败: "+String(e)); } }
+async function doClearAll() {
+  clearing.value = true;
+  try {
+    const count = await clearHistory();
+    if (count > 0) {
+      load();
+      message.success("已清除" + count + "条记录，星标置顶已保留");
+    } else {
+      message.info("所有记录已星标置顶，无需清除");
+    }
+  } catch(e: any) {
+    message.error("清除失败: " + String(e));
+  } finally {
+    clearing.value = false;
+  }
+}
 
 function fmtDate(ts: number) {
   const d = new Date(ts), now = new Date(), diffH = (now.getTime()-ts)/3600000;
@@ -171,16 +187,15 @@ function badgeStyle(source: string) {
   <div class="history-root">
     <div class="history-header">
       <div class="header-left">
-        <n-button text class="bar-back" @click="router.push('/')"><template #icon><n-icon><ArrowLeft /></n-icon></template>返回</n-button>
         <div class="title-wrap">
-          <span class="bar-ic history"><n-icon :size="15"><Clock /></n-icon></span>
+          <span class="bar-ic history"><n-icon :size="15"><TimeOutline /></n-icon></span>
           <n-text strong>历史记录</n-text>
         </div>
       </div>
       <n-space :size="8">
-        <n-button size="small" @click="load()" :loading="loading"><template #icon><n-icon><RotateCw /></n-icon></template></n-button>
+        <n-button size="small" @click="load()" :loading="loading"><template #icon><n-icon><RefreshOutline /></n-icon></template>刷新</n-button>
         <n-popconfirm @positive-click="doClearAll">
-          <template #trigger><n-button size="small" type="error" secondary :disabled="!data||data.total===0">清空全部</n-button></template>
+          <template #trigger><n-button size="small" type="error" secondary :disabled="!data||data.total===0" :loading="clearing">清空全部</n-button></template>
           确认清除全部？星标置顶的记录会保留。
         </n-popconfirm>
       </n-space>
@@ -188,36 +203,29 @@ function badgeStyle(source: string) {
 
     <div class="history-bar">
       <n-input v-model:value="search" placeholder="搜索标题、UP主、BV号..." size="small" clearable round style="width:320px;">
-        <template #prefix><n-icon><Search /></n-icon></template>
+        <template #prefix><n-icon><SearchOutline /></n-icon></template>
       </n-input>
       <n-text depth="3" class="total-text tnum" v-if="data&&!loading">共 {{ data.total }} 条</n-text>
     </div>
 
     <div class="history-list" v-if="data&&data.entries.length>0">
       <div v-for="entry in data.entries" :key="entry.id"
-        class="h-entry" :class="{'h-done':entry.status==='done','h-err':entry.status==='error'}"
+        class="h-card"
+        :class="'src-'+entry.source"
         @click="openDetail(entry)">
         <div class="h-thumb">
-          <img v-if="entry.cover" :src="entry.cover+'@160w_100h_1c'" class="h-cover" referrerpolicy="no-referrer" />
-          <div v-else class="h-cover-fb"><n-icon size="20" color="var(--color-text-tertiary)"><Eye /></n-icon></div>
+          <img v-if="entry.cover" :src="entry.cover+'@320w_180h_1c'" class="h-cover" referrerpolicy="no-referrer" />
+          <div v-else class="h-cover-fb"><n-icon size="18" color="var(--color-text-tertiary)"><EyeOutline /></n-icon></div>
         </div>
         <div class="h-body">
-          <div class="h-line1">
-            <span class="h-title">{{ entry.title }}</span>
-          </div>
-          <div class="h-line2">
+          <div class="h-title">{{ entry.title }}</div>
+          <div class="h-meta-row">
             <span class="h-badge" :style="badgeStyle(entry.source)">{{ sourceLabel[entry.source]||entry.source }}</span>
-            <span class="h-dot">&middot;</span>
-            <span v-if="entry.uploader" class="h-meta">{{ entry.uploader }}</span>
-            <span v-if="entry.uploader" class="h-dot">&middot;</span>
-            <span v-if="entry.duration>0" class="h-meta tnum">{{ fmtDur(entry.duration) }}</span>
-            <span v-if="entry.duration>0" class="h-dot">&middot;</span>
-            <span class="h-meta">{{ fmtDate(entry.created_at) }}</span>
-            <span class="h-dot">&middot;</span>
+            <span class="h-meta-dot">&middot;</span>
+            <span class="h-meta-text">{{ fmtDate(entry.created_at) }}</span>
             <span class="h-elapsed tnum">{{ fmtElapsed(entry.elapsed_ms) }}</span>
           </div>
-        </div>
-        <div class="h-actions" @click.stop>
+        </div>        <div class="h-actions" @click.stop>
           <n-button size="tiny" text @click="toggleStar(entry)" :title="entry.starred ? '取消置顶' : '置顶星标'">
             <template #icon>
               <n-icon size="14" :color="entry.starred ? 'var(--color-warning)' : 'var(--color-text-tertiary)'">
@@ -226,9 +234,9 @@ function badgeStyle(source: string) {
               </n-icon>
             </template>
           </n-button>
-          <n-button size="tiny" text @click="openDetail(entry)"><template #icon><n-icon size="14"><Eye /></n-icon></template></n-button>
+          <n-button size="tiny" text @click="openDetail(entry)"><template #icon><n-icon size="14"><EyeOutline /></n-icon></template></n-button>
           <n-popconfirm @positive-click="doDelete(entry)">
-            <template #trigger><n-button size="tiny" text type="error"><template #icon><n-icon size="14"><Trash2 /></n-icon></template></n-button></template>
+            <template #trigger><n-button size="tiny" text type="error"><template #icon><n-icon size="14"><TrashOutline /></n-icon></template></n-button></template>
             确认删除此记录？
           </n-popconfirm>
         </div>
@@ -236,7 +244,7 @@ function badgeStyle(source: string) {
     </div>
 
     <div class="history-empty" v-else-if="!loading">
-      <div class="empty-icon"><n-icon :size="30"><FileText /></n-icon></div>
+      <div class="empty-icon"><n-icon :size="32"><DocumentTextOutline /></n-icon></div>
       <div class="empty-title">{{ search ? "未找到匹配记录" : "暂无历史记录" }}</div>
       <div class="empty-desc">{{ search ? "试试换个关键词" : "处理视频后会自动保存在这里" }}</div>
     </div>
@@ -259,8 +267,8 @@ function badgeStyle(source: string) {
             <a v-if="detailEntry.url&&detailEntry.source!=='local'" :href="detailEntry.url" target="_blank" class="detail-link">{{ detailEntry.bvid||detailEntry.url }}</a>
           </div>
           <n-space style="margin:10px 0 0;">
-            <n-button size="small" @click="copyDetail"><template #icon><n-icon><Copy /></n-icon></template>复制</n-button>
-            <n-button size="small" @click="exportDetail"><template #icon><n-icon><Download /></n-icon></template>导出</n-button>
+            <n-button size="small" @click="copyDetail"><template #icon><n-icon><CopyOutline /></n-icon></template>复制</n-button>
+            <n-button size="small" @click="exportDetail"><template #icon><n-icon><DownloadOutline /></n-icon></template>导出</n-button>
           </n-space>
           <div class="analysis-tabs" v-if="analyses.length>0">
             <div class="analysis-tabs-inner">
@@ -312,42 +320,73 @@ function badgeStyle(source: string) {
   </div>
 </template>
 
+
 <style scoped>
-.history-root{display:flex;flex-direction:column;height:100%;background:var(--color-bg);overflow-y:auto;scrollbar-gutter:stable}
-.history-header{display:flex;align-items:center;justify-content:space-between;height:var(--header-height);padding:0 20px;background:var(--color-surface);border-bottom:1px solid var(--color-border);flex-shrink:0;position:sticky;top:0;z-index:5}
-.bar-back{color:var(--color-text-secondary)}
+/* === History Grid — Card Grid + Source Accent === */
+/* ref: QueueView — header scrolls with content, root handles scroll */
+/* ref: Linear — card grid with top color accent per category */
+
+/* --- Root (ref: QueueView — centered, scrolled, padded) --- */
+.history-root{height:100%;overflow-y:auto;scrollbar-gutter:stable;padding:28px 24px 40px;max-width:var(--content-max-wide);margin:0 auto;width:100%;background:var(--color-bg)}
+
+/* --- Header (ref: QueueView — bottom-border separator, scrolls with content) --- */
+.history-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--color-border)}
 .header-left{display:flex;align-items:center;gap:10px}
 .title-wrap{display:inline-flex;align-items:center;gap:9px;font-size:15px}
 .bar-ic{width:26px;height:26px;border-radius:7px;display:grid;place-items:center}
 .bar-ic.history{background:var(--color-accent-indigo-soft);color:var(--color-accent-indigo)}
-.history-bar{display:flex;align-items:center;justify-content:space-between;padding:18px 24px 12px;flex-shrink:0;position:sticky;top:52px;z-index:4;background:var(--color-bg);max-width:var(--content-max-wide);width:100%;margin:0 auto}
+
+/* --- Search Bar (ref: SourceFavView toolbar-row — standalone, scrolls with content) --- */
+.history-bar{display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid var(--color-border);margin-bottom:16px}
 .total-text{font-size:12px;font-family:var(--font-mono)}
-.history-list{flex:1;overflow-y:auto;padding:2px 24px 20px;display:flex;flex-direction:column;gap:8px;max-width:var(--content-max-wide);width:100%;margin:0 auto}
-.history-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding-bottom:80px;animation:empty-enter 0.4s ease-out both}
-.empty-icon{width:60px;height:60px;border-radius:16px;display:grid;place-items:center;background:var(--color-accent-indigo-soft);color:var(--color-accent-indigo);margin-bottom:4px}
+
+/* --- Card Grid --- */
+/* ref: Raycast history grid — responsive auto-fill columns */
+.history-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(272px,1fr));gap:12px;align-content:start}
+
+/* --- Card --- */
+/* ref: Linear issue cards — surface bg, tight border, source-colored top accent */
+.h-card{position:relative;overflow:hidden;display:flex;flex-direction:column;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);cursor:pointer;transition:border-color var(--dur-2),box-shadow var(--dur-2);box-shadow:var(--shadow-xs)}
+/* ref: QueueView — hover pattern: border-color + shadow, no translateY */
+.h-card:hover{border-color:var(--color-border-strong);box-shadow:var(--shadow-sm)}
+/* ref: Linear — category-color top accent bar (3px) */
+.h-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;z-index:1;transition:opacity var(--dur-2)}
+.h-card.src-url::before{background:var(--color-brand)}
+.h-card.src-fav::before{background:var(--color-accent-pink)}
+.h-card.src-local::before{background:var(--color-success)}
+.h-card.src-history::before,.h-card.src-default::before{background:var(--color-accent-indigo)}
+.h-card:hover::before{opacity:.85}
+
+/* --- Thumbnail --- */
+.h-thumb{position:relative;overflow:hidden}
+.h-cover{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--color-surface-muted)}
+.h-cover-fb{width:100%;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;background:var(--color-surface-muted)}
+
+/* --- Body --- */
+.h-body{flex:1;display:flex;flex-direction:column;gap:8px;padding:12px 14px 14px;min-width:0}
+/* ref: Linear — two-line title clamp for readability */
+.h-title{font-size:13.5px;font-weight:650;color:var(--color-text);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.h-meta-row{display:flex;align-items:center;gap:6px;font-size:12px;flex-wrap:wrap;margin-top:auto}
+.h-badge{font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:var(--radius-full);flex-shrink:0;white-space:nowrap;line-height:1.5}
+.h-meta-dot{color:var(--color-border-strong);font-weight:600;font-size:10px}
+.h-meta-text{color:var(--color-text-secondary)}
+.h-elapsed{font-size:11px;color:var(--color-text-tertiary);font-weight:600;font-family:var(--font-mono);flex-shrink:0;margin-left:auto}
+
+/* --- Actions (hover reveal, slides in without card movement) --- */
+/* ref: Linear — action buttons appear on card hover */
+.h-actions{position:absolute;top:6px;right:6px;z-index:2;display:flex;align-items:center;gap:2px;padding:2px 4px;background:var(--color-surface);border-radius:var(--radius-sm);border:1px solid var(--color-border);opacity:0;transform:translateY(-4px);transition:opacity var(--dur-2),transform var(--dur-2) var(--ease-out)}
+.h-card:hover .h-actions{opacity:1;transform:translateY(0)}
+
+/* --- Empty State --- */
+.history-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:80px 0;animation:empty-enter .4s ease-out both}
+.empty-icon{width:64px;height:64px;border-radius:16px;display:grid;place-items:center;background:var(--color-accent-indigo-soft);color:var(--color-accent-indigo);margin-bottom:4px}
 .empty-title{font-size:16px;font-weight:650}
 .empty-desc{font-size:13px;color:var(--color-text-secondary)}
-.history-pagination{display:flex;justify-content:center;padding:12px 0 20px;flex-shrink:0}
-.h-entry{position:relative;display:flex;align-items:center;gap:4px;background:var(--color-surface);border-radius:var(--radius-lg);border:1px solid var(--color-border);cursor:pointer;padding:12px 14px 12px 18px;box-shadow:var(--shadow-xs);transition:border-color var(--dur-1),box-shadow var(--dur-2),transform var(--dur-2) var(--ease-out)}
-.h-entry::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 2px 2px 0;background:transparent;transition:background var(--dur-2),box-shadow var(--dur-2)}
-.h-entry:hover{transform:translateY(-1px);border-color:var(--color-border-strong);box-shadow:var(--shadow-card)}
-.h-entry.h-done{border-color:var(--color-success-border)}
-.h-entry.h-done::before{background:var(--color-success)}
-.h-entry.h-err{border-color:var(--color-error-border)}
-.h-entry.h-err::before{background:var(--color-error)}
-.h-thumb{width:112px;flex-shrink:0;display:flex;align-items:center}
-.h-cover{width:104px;aspect-ratio:16/9;object-fit:cover;border-radius:var(--radius-md);background:var(--color-surface-muted)}
-.h-cover-fb{width:104px;aspect-ratio:16/9;border-radius:var(--radius-md);background:var(--color-surface-muted);border:1px solid var(--color-border);display:flex;align-items:center;justify-content:center}
-.h-body{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:6px;padding:0 10px}
-.h-line1{display:flex;align-items:baseline;gap:8px;min-width:0}
-.h-title{font-size:14px;font-weight:650;color:var(--color-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;line-height:1.35}
-.h-badge{font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:var(--radius-full);flex-shrink:0;white-space:nowrap;line-height:1.5}
-.h-line2{display:flex;align-items:center;gap:6px;font-size:12px}
-.h-meta{color:var(--color-text-secondary)}
-.h-dot{color:var(--color-border-strong);font-weight:600}
-.h-elapsed{font-size:11px;color:var(--color-success);font-weight:600;font-family:var(--font-mono)}
-.h-actions{flex-shrink:0;display:flex;align-items:center;gap:2px;padding-left:8px;opacity:.6}
-.h-entry:hover .h-actions{opacity:1}
+
+/* --- Pagination --- */
+.history-pagination{display:flex;justify-content:center;padding-top:20px}
+
+/* --- Detail Drawer --- */
 .detail-scroll{overflow-y:auto}
 .detail-meta{display:flex;gap:14px;font-size:12px;color:var(--color-text-secondary);flex-wrap:wrap;align-items:center}
 .meta-badge{font-size:11px;font-weight:600;padding:2px 10px;border-radius:var(--radius-full);font-family:var(--font-mono)}
