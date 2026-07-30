@@ -131,7 +131,7 @@ function fmtDur(sec: number) {
         <aside class="pane-left" :class="{ 'pane-left--full': activeTab==='follow' || activeTab==='watchlater' || activeTab==='history' }">
           <div class="pane-content">
             <!-- Folders / Collected -->
-            <template title="刷新">
+            <template v-if="activeTab===folders || activeTab===collected">
               <div class="pane-search">
                 <n-input v-model:value="folderSearch" placeholder="搜索..." size="small" clearable />
               </div>
