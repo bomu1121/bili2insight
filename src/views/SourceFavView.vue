@@ -351,8 +351,12 @@ function fmtDur(sec: number) {
   padding: 0;
   min-width: 28px;
   height: 28px;
+  transition: color 0.2s, filter 0.2s;
 }
-.bar-back:hover { color: var(--color-text); }
+.bar-back:hover {
+  color: var(--color-text);
+  filter: drop-shadow(0 0 3px rgba(139,62,62,0.3));
+}
 
 /* Title (ref: Steins;Gate -- @channel path notation) */
 .bar-title {
