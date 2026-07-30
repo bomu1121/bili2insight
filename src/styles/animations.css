@@ -841,3 +841,19 @@
   0%, 100% { opacity: 0.5; transform: scale(0.8); }
   50% { opacity: 1; transform: scale(1.2); }
 }
+
+/* ============================================
+   glowPulse — 空状态图标呼吸（补充缺失定义）
+   ============================================ */
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.75; }
+}
+
+/* ============================================
+   empty-enter — 空状态入场（一次性，终态后静止）
+   ============================================ */
+@keyframes empty-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}

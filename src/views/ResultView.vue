@@ -128,7 +128,7 @@ async function exportFile() {
 .bar-back { color: var(--color-text-secondary); flex-shrink: 0; }
 .result-title { flex: 1; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; margin: 0; }
 .result-actions { display: flex; gap: 8px; flex-shrink: 0; }
-.result-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+.result-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; animation: empty-enter 0.4s ease-out both; }
 .empty-icon { width: 60px; height: 60px; border-radius: 16px; display: grid; place-items: center; background: var(--color-brand-soft); color: var(--color-brand); }
 .empty-title { font-size: 16px; font-weight: 650; }
 .empty-desc { font-size: 13px; color: var(--color-text-secondary); }

@@ -205,7 +205,7 @@ function fmtDur(sec: number) {
                 <n-pagination :page="store.favPage" :page-count="store.favTotalPages" @update:page="loadPage" size="small" />
               </div>
             </div>
-            <div v-else-if="!store.favLoading" class="empty-state">
+            <div v-else-if="!store.favLoadingVideos" class="empty-state">
               <div class="empty-icon"><n-icon :size="36" color="var(--color-text-tertiary)"><Inbox /></n-icon></div>
               <div class="empty-title">此收藏夹为空</div>
               <div class="empty-desc">该收藏夹中还没有视频</div>
@@ -262,7 +262,7 @@ function fmtDur(sec: number) {
               </div>
             </div>
           </div>
-          <div v-else-if="!store.followLoading" class="empty-state">
+          <div v-else-if="!store.watchLaterLoading" class="empty-state">
             <div class="empty-icon"><n-icon :size="36" color="var(--color-text-tertiary)"><ListVideo /></n-icon></div>
             <div class="empty-title">暂无数据</div>
             <div class="empty-desc">点击「稍后再看」标签自动加载</div>
@@ -291,7 +291,7 @@ function fmtDur(sec: number) {
               </div>
             </div>
           </div>
-          <div v-else-if="!store.followLoading" class="empty-state">
+          <div v-else-if="!store.historyLoading" class="empty-state">
             <div class="empty-icon"><n-icon :size="36" color="var(--color-text-tertiary)"><History /></n-icon></div>
             <div class="empty-title">暂无数据</div>
             <div class="empty-desc">点击「历史记录」标签自动加载</div>
@@ -668,6 +668,7 @@ function fmtDur(sec: number) {
   gap: 10px;
   padding: 64px 16px;
   text-align: center;
+  animation: empty-enter 0.4s ease-out both;
 }
 .empty-icon {
   width: 64px;

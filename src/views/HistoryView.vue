@@ -323,7 +323,7 @@ function badgeStyle(source: string) {
 .history-bar{display:flex;align-items:center;justify-content:space-between;padding:18px 24px 12px;flex-shrink:0;position:sticky;top:52px;z-index:4;background:var(--color-bg);max-width:var(--content-max-wide);width:100%;margin:0 auto}
 .total-text{font-size:12px;font-family:var(--font-mono)}
 .history-list{flex:1;overflow-y:auto;padding:2px 24px 20px;display:flex;flex-direction:column;gap:8px;max-width:var(--content-max-wide);width:100%;margin:0 auto}
-.history-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding-bottom:80px}
+.history-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding-bottom:80px;animation:empty-enter 0.4s ease-out both}
 .empty-icon{width:60px;height:60px;border-radius:16px;display:grid;place-items:center;background:var(--color-accent-indigo-soft);color:var(--color-accent-indigo);margin-bottom:4px}
 .empty-title{font-size:16px;font-weight:650}
 .empty-desc{font-size:13px;color:var(--color-text-secondary)}

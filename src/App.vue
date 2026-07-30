@@ -557,7 +557,7 @@ const tplPrompt = computed({
 .queue-actions { display: flex; gap: 8px; flex-wrap: wrap; padding-bottom: 2px; }
 .queue-list { display: flex; flex-direction: column; gap: 8px; }
 .queue-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 72px 16px; text-align: center; color: var(--color-text-secondary); }
-.queue-empty .n-icon { animation: glowPulse 3s ease-in-out infinite; }
+.queue-empty .n-icon { animation: materialize 0.5s var(--spring-snappy) both; }
 .queue-full-link { display: inline-flex; align-items: center; gap: 6px; border: none; background: transparent; font-family: var(--font-mono); font-size: 11px; font-weight: 500; color: var(--color-text-secondary); cursor: pointer; padding: 2px 0; transition: color var(--dur-2), text-shadow var(--dur-2); }
 .queue-full-link:hover { color: var(--color-brand); text-shadow: var(--divergence-glow); }
 .q-item { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 11px 12px 10px 15px; border-radius: var(--radius-md); border: 1px solid var(--color-border); background: var(--color-surface); box-shadow: var(--shadow-xs); transition: border-color var(--dur-2), box-shadow var(--dur-2); overflow: hidden; min-width: 0; }

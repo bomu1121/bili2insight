@@ -171,7 +171,7 @@ function updateItemTemplate(itemId: string, val: number) {
 .bar-ic.queue { background: var(--color-brand-soft); color: var(--color-brand); }
 .page-title { font-size: var(--font-size-page); font-weight: 700; letter-spacing: -0.01em; }
 .count-pill { min-width: 22px; height: 20px; padding: 0 7px; border-radius: var(--radius-full); background: var(--color-brand-soft); color: var(--color-brand); font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
-.queue-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 88px 16px; text-align: center; }
+.queue-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 88px 16px; text-align: center; animation: empty-enter 0.4s ease-out both; }
 .empty-icon { width: 60px; height: 60px; border-radius: 16px; display: grid; place-items: center; background: var(--color-brand-soft); color: var(--color-brand); margin-bottom: 4px; }
 .empty-title { font-size: 16px; font-weight: 650; }
 .empty-desc { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 6px; }
