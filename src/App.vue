@@ -554,9 +554,9 @@ const tplPrompt = computed({
 
 /* Queue drawer */
 .queue-drawer { display: flex; flex-direction: column; gap: 12px; }
-.queue-actions { display: flex; gap: 8px; flex-wrap: wrap; padding-bottom: 2px; }
+.queue-actions { display: flex; gap: 8px; flex-wrap: nowrap; padding: 2px 0 14px; border-bottom: 1px solid var(--color-border); margin-bottom: 6px; }
 .queue-list { display: flex; flex-direction: column; gap: 8px; }
-.queue-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 72px 16px; text-align: center; color: var(--color-text-secondary); }
+.queue-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 72px 16px; text-align: center; color: var(--color-text-secondary); animation: empty-enter 0.5s var(--ease-out) both; }
 .queue-empty .n-icon { animation: materialize 0.5s var(--spring-snappy) both; }
 .queue-full-link { display: inline-flex; align-items: center; gap: 6px; border: none; background: transparent; font-family: var(--font-mono); font-size: 11px; font-weight: 500; color: var(--color-text-secondary); cursor: pointer; padding: 2px 0; transition: color var(--dur-2), text-shadow var(--dur-2); }
 .queue-full-link:hover { color: var(--color-brand); text-shadow: var(--divergence-glow); }
@@ -581,8 +581,8 @@ const tplPrompt = computed({
 .q-tag.error { color: var(--color-error); background: var(--color-error-soft); }
 .q-elapsed { font-size: 10px; color: var(--color-text-tertiary); font-family: var(--font-mono); }
 .q-action { flex-shrink: 0; display: flex; align-items: center; }
-.q-bar { height: 4px; background: rgba(139,62,62,0.08); border-radius: var(--radius-full); overflow: hidden; }
-.q-fill { height: 100%; background: linear-gradient(90deg, #783030, #8B3E3E, #A04A4A); border-radius: var(--radius-full); transition: width 0.3s ease; box-shadow: var(--brand-glow-soft); }
+.q-bar { width: 100%; height: 4px; background: var(--color-brand-soft); border-radius: var(--radius-full); overflow: hidden; }
+.q-fill { height: 100%; background: linear-gradient(90deg, var(--color-brand-pressed), var(--color-brand), var(--color-brand-hover)); border-radius: var(--radius-full); transition: width 0.3s ease; box-shadow: var(--brand-glow-soft); }
 
 .login-body { display: flex; flex-direction: column; align-items: center; padding: 28px 0; gap: 16px; }
 .login-success { display: flex; flex-direction: column; align-items: center; }

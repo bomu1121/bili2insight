@@ -249,7 +249,7 @@
 
 /* Drawer 滑入动画重写 — 弹簧 + 绿边辉光 */
 .n-drawer.n-drawer--right-placement {
-  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.6, 1) !important;
 }
 .n-drawer.n-drawer--right-placement .n-drawer__content {
   border-left: 1px solid rgba(139, 62, 62, 0.1) !important;
