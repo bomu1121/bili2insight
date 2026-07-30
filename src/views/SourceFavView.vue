@@ -138,7 +138,7 @@ function fmtDur(sec: number) {
                 </div>
               </div>
             </div>
-            <div v-else class="empty-state">
+            <div v-else-if="!store.favLoading" class="empty-state">
               <div class="empty-icon"><n-icon :size="36" color="var(--color-text-tertiary)"><SearchX v-if="folderSearch.trim()" /><Inbox v-else /></n-icon></div>
               <div class="empty-title">{{ folderSearch.trim() ? '无匹配结果' : '暂无内容' }}</div>
               <div class="empty-desc">{{ folderSearch.trim() ? '尝试其他关键词' : '还没有收藏任何视频' }}</div>
@@ -205,7 +205,7 @@ function fmtDur(sec: number) {
                 <n-pagination :page="store.favPage" :page-count="store.favTotalPages" @update:page="loadPage" size="small" />
               </div>
             </div>
-            <div v-else class="empty-state">
+            <div v-else-if="!store.favLoading" class="empty-state">
               <div class="empty-icon"><n-icon :size="36" color="var(--color-text-tertiary)"><Inbox /></n-icon></div>
               <div class="empty-title">此收藏夹为空</div>
               <div class="empty-desc">该收藏夹中还没有视频</div>
@@ -236,7 +236,7 @@ function fmtDur(sec: number) {
               </div>
             </div>
           </div>
-          <div v-else class="empty-state">
+          <div v-else-if="!store.followLoading" class="empty-state">
             <div class="empty-icon"><n-icon :size="36" color="var(--color-text-tertiary)"><Film /></n-icon></div>
             <div class="empty-title">暂无数据</div>
             <div class="empty-desc">点击「追番」或「追剧」加载内容</div>
@@ -262,7 +262,7 @@ function fmtDur(sec: number) {
               </div>
             </div>
           </div>
-          <div v-else class="empty-state">
+          <div v-else-if="!store.followLoading" class="empty-state">
             <div class="empty-icon"><n-icon :size="36" color="var(--color-text-tertiary)"><ListVideo /></n-icon></div>
             <div class="empty-title">暂无数据</div>
             <div class="empty-desc">点击「稍后再看」标签自动加载</div>
@@ -291,7 +291,7 @@ function fmtDur(sec: number) {
               </div>
             </div>
           </div>
-          <div v-else class="empty-state">
+          <div v-else-if="!store.followLoading" class="empty-state">
             <div class="empty-icon"><n-icon :size="36" color="var(--color-text-tertiary)"><History /></n-icon></div>
             <div class="empty-title">暂无数据</div>
             <div class="empty-desc">点击「历史记录」标签自动加载</div>
