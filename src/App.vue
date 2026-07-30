@@ -189,7 +189,7 @@ const tplPrompt = computed({
 
       <div class="side-foot"><div class="divergence-display tnum"><span class="div-label">Divergence</span><span class="div-number">1.048596</span></div>
         <!-- 已登录: popover 菜单 -->
-        <n-popover v-if="authStore.isLoggedIn" trigger="click" placement="top-end" :width="220" :show-arrow="false" :to="false">
+        <n-popover v-if="authStore.isLoggedIn" trigger="click" placement="top-end" :width="220" :show-arrow="false">
           <template #trigger>
             <button type="button" class="side-user" :title="authStore.loginUname">
               <span ref="avatarRef" class="side-avatar tilt-card">
