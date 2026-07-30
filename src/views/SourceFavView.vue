@@ -117,7 +117,20 @@ function fmtDur(sec: number) {
             <span class="toolbar-meta tnum" v-if="!folderSearch.trim()">{{ createdFolders.length }} 个收藏夹</span>
           </div>
 
-          <n-spin :show="store.favLoading">
+          <template v-if="store.favLoading">
+                <div class="skeleton-list skeleton-list--video">
+                  <div class="skeleton-row" v-for="n in 6" :key="'sk' + n">
+                    <div class="skeleton-no"></div>
+                    <div class="skeleton-thumb"></div>
+                    <div class="skeleton-lines">
+                      <div class="skeleton-line skeleton-line--title"></div>
+                      <div class="skeleton-line skeleton-line--meta"></div>
+                    </div>
+                  </div>
+                </div>
+          </template>
+          <template v-else>
+
             <div class="folder-list" v-if="activePaneFolders.length > 0">
               <div
                 v-for="f in activePaneFolders"
@@ -143,7 +156,8 @@ function fmtDur(sec: number) {
               <div class="empty-title">{{ folderSearch.trim() ? '无匹配结果' : '暂无内容' }}</div>
               <div class="empty-desc">{{ folderSearch.trim() ? '尝试其他关键词' : '还没有收藏任何视频' }}</div>
             </div>
-          </n-spin>
+          
+          </template>
         </template>
 
         <!-- Video list mode -->
@@ -180,7 +194,20 @@ function fmtDur(sec: number) {
             </div>
           </div>
 
-          <n-spin :show="store.favLoadingVideos">
+          <template v-if="store.favLoadingVideos">
+                <div class="skeleton-list skeleton-list--video">
+                  <div class="skeleton-row" v-for="n in 6" :key="'sk' + n">
+                    <div class="skeleton-no"></div>
+                    <div class="skeleton-thumb"></div>
+                    <div class="skeleton-lines">
+                      <div class="skeleton-line skeleton-line--title"></div>
+                      <div class="skeleton-line skeleton-line--meta"></div>
+                    </div>
+                  </div>
+                </div>
+          </template>
+          <template v-else>
+
             <div v-if="store.favVideos.length > 0">
               <div class="video-list">
                 <div
@@ -210,7 +237,8 @@ function fmtDur(sec: number) {
               <div class="empty-title">此收藏夹为空</div>
               <div class="empty-desc">该收藏夹中还没有视频</div>
             </div>
-          </n-spin>
+          
+          </template>
         </template>
       </template>
 
@@ -224,7 +252,20 @@ function fmtDur(sec: number) {
           <span class="toolbar-meta tnum">已加载 {{ store.followItems.length }} 项</span>
         </div>
 
-        <n-spin :show="store.followLoading">
+        <template v-if="store.followLoading">
+                <div class="skeleton-list skeleton-list--video">
+                  <div class="skeleton-row" v-for="n in 6" :key="'sk' + n">
+                    <div class="skeleton-no"></div>
+                    <div class="skeleton-thumb"></div>
+                    <div class="skeleton-lines">
+                      <div class="skeleton-line skeleton-line--title"></div>
+                      <div class="skeleton-line skeleton-line--meta"></div>
+                    </div>
+                  </div>
+                </div>
+          </template>
+          <template v-else>
+
           <div v-if="store.followItems.length>0" class="video-list">
             <div v-for="(item, i) in store.followItems" :key="item.season_id" class="video-row" @click="store.addQueueItem({url:item.url,pageInfo:{page:1,part:item.title,cid:0,duration:0},source:'fav'});message.success('已添加: '+item.title)">
               <span class="row-no tnum">{{ String(i+1).padStart(3,'0') }}</span>
@@ -241,7 +282,8 @@ function fmtDur(sec: number) {
             <div class="empty-title">暂无数据</div>
             <div class="empty-desc">点击「追番」或「追剧」加载内容</div>
           </div>
-        </n-spin>
+        
+          </template>
       </template>
 
       <!-- =============== WATCHLATER =============== -->
@@ -251,7 +293,20 @@ function fmtDur(sec: number) {
           <span class="toolbar-meta tnum">{{ store.watchLaterItems.length }} 个视频</span>
         </div>
 
-        <n-spin :show="store.watchLaterLoading">
+        <template v-if="store.watchLaterLoading">
+                <div class="skeleton-list skeleton-list--video">
+                  <div class="skeleton-row" v-for="n in 6" :key="'sk' + n">
+                    <div class="skeleton-no"></div>
+                    <div class="skeleton-thumb"></div>
+                    <div class="skeleton-lines">
+                      <div class="skeleton-line skeleton-line--title"></div>
+                      <div class="skeleton-line skeleton-line--meta"></div>
+                    </div>
+                  </div>
+                </div>
+          </template>
+          <template v-else>
+
           <div v-if="store.watchLaterItems.length>0" class="video-list">
             <div v-for="(v,i) in store.watchLaterItems" :key="i" class="video-row" @click="store.addQueueItem({url:'https://www.bilibili.com/video/'+v.bvid,pageInfo:{page:1,part:v.title,cid:v.cid,duration:v.duration},source:'fav'});message.success('已添加')">
               <span class="row-no tnum">{{ String(i+1).padStart(3,'0') }}</span>
@@ -270,7 +325,8 @@ function fmtDur(sec: number) {
           <div class="pane-pagination" v-if="store.watchLaterTotalPages > 1">
             <n-pagination :page="store.watchLaterPage" :page-count="store.watchLaterTotalPages" @update:page="(p:number)=>store.loadWatchLater(p)" size="small" />
           </div>
-        </n-spin>
+        
+          </template>
       </template>
 
       <!-- =============== HISTORY =============== -->
@@ -280,7 +336,20 @@ function fmtDur(sec: number) {
           <span class="toolbar-meta tnum">{{ store.historyItems.length }} 条</span>
         </div>
 
-        <n-spin :show="store.historyLoading">
+        <template v-if="store.historyLoading">
+                <div class="skeleton-list skeleton-list--video">
+                  <div class="skeleton-row" v-for="n in 6" :key="'sk' + n">
+                    <div class="skeleton-no"></div>
+                    <div class="skeleton-thumb"></div>
+                    <div class="skeleton-lines">
+                      <div class="skeleton-line skeleton-line--title"></div>
+                      <div class="skeleton-line skeleton-line--meta"></div>
+                    </div>
+                  </div>
+                </div>
+          </template>
+          <template v-else>
+
           <div v-if="store.historyItems.length>0" class="video-list">
             <div v-for="(v,i) in store.historyItems" :key="i" class="video-row" @click="store.addQueueItem({url:'https://www.bilibili.com/video/'+v.bvid,pageInfo:{page:1,part:v.title,cid:v.cid,duration:v.duration},source:'fav'});message.success('已添加')">
               <span class="row-no tnum">{{ String(i+1).padStart(3,'0') }}</span>
@@ -299,7 +368,8 @@ function fmtDur(sec: number) {
           <div class="pane-pagination" v-if="store.historyTotalPages > 1">
             <n-pagination :page="store.historyPage" :page-count="store.historyTotalPages" @update:page="(p:number)=>store.loadHistory(p)" size="small" />
           </div>
-        </n-spin>
+        
+          </template>
       </template>
 
     </div>
