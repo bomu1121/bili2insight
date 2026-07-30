@@ -92,6 +92,8 @@ function fmtDur(sec: number) {
       >{{ t.label }}</button>
     </nav>
 
+    <div class="scroll-wrapper">
+
     <!-- Not logged in -- full-width -->
     <div v-if="!authStore.isLoggedIn" class="source-body">
       <div class="empty-state">
@@ -301,6 +303,7 @@ function fmtDur(sec: number) {
       </template>
 
     </div>
+    </div>
   </div>
 </template>
 
@@ -316,8 +319,7 @@ function fmtDur(sec: number) {
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow-y: auto;
-  scrollbar-gutter: stable;
+  overflow: hidden;
 }
 
 /* ===== TAB BAR (ref: Linear segmented + Steins;Gate active prefix) ===== */
@@ -332,11 +334,15 @@ function fmtDur(sec: number) {
   flex-shrink: 0;
   overflow-x: auto;
   scrollbar-width: none;
-  position: sticky;
-  top: 0;
-  z-index: 5;
 }
 .tab-bar::-webkit-scrollbar { display: none; }
+
+/* ===== SCROLL WRAPPER -- fills remaining space, scrolls at viewport edge ===== */
+.scroll-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
 
 .tab-item {
   padding: 3px 10px;
@@ -784,23 +790,23 @@ function fmtDur(sec: number) {
 
 
 /* ===== SCROLLBAR (ref: Linear -- thin, subtle, anti-ornament) ===== */
-.source-root::-webkit-scrollbar {
+.scroll-wrapper::-webkit-scrollbar {
   width: 5px;
 }
-.source-root::-webkit-scrollbar-track {
+.scroll-wrapper::-webkit-scrollbar-track {
   background: transparent;
 }
-.source-root::-webkit-scrollbar-thumb {
+.scroll-wrapper::-webkit-scrollbar-thumb {
   background: var(--color-border);
   border-radius: 3px;
   transition: background 0.2s;
 }
-.source-root::-webkit-scrollbar-thumb:hover {
+.scroll-wrapper::-webkit-scrollbar-thumb:hover {
   background: var(--color-border-strong);
 }
 
 /* Firefox thin scrollbar */
-.source-root {
+.scroll-wrapper {
   scrollbar-width: thin;
   scrollbar-color: var(--color-border) transparent;
 }
