@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from "vue";
 import { NButton, NText, NIcon, NCheckbox, NSpin, NPagination, NInput, createDiscreteApi } from "naive-ui";
-import { ArrowLeft, CirclePlus, FolderOpen, RotateCw, Bookmark, LogIn } from "lucide-vue-next";
+import { ArrowLeft, CirclePlus, FolderOpen, RotateCw, Bookmark, LogIn, Inbox, SearchX, Film, ListVideo, History } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 import { useAppStore } from "../stores/app";
@@ -93,164 +93,101 @@ function fmtDur(sec: number) {
     </nav>
 
     <!-- Not logged in -- full-width -->
-    <div v-if="!authStore.isLoggedIn" class="source-body single-pane">
-      <div class="fav-empty">
-        <div class="empty-icon"><n-icon :size="30"><LogIn /></n-icon></div>
+    <div v-if="!authStore.isLoggedIn" class="source-body">
+      <div class="empty-state">
+        <div class="empty-icon"><n-icon :size="36"><LogIn /></n-icon></div>
         <div class="empty-title">需要登录 B 站账号</div>
         <div class="empty-desc">登录后可导入收藏夹、合集、稍后再看等内容</div>
         <n-button type="primary" round @click="authStore.startLogin()">去登录</n-button>
       </div>
     </div>
 
-    <!-- ===== Dual Pane (ref: Hey inbox) ===== -->
-    <template v-else>
-      <div class="source-body dual-pane">
-        <!-- LEFT: Directory -->
-        <aside class="pane-left" :class="{ 'pane-left--full': activeTab==='follow' || activeTab==='watchlater' || activeTab==='history' }">
-          <div class="pane-content">
-            <!-- Folders / Collected -->
-            <template v-if="activeTab===folders || activeTab===collected">
-              <div class="pane-search">
-                <n-input v-model:value="folderSearch" placeholder="搜索..." size="small" clearable />
-              </div>
-              <n-spin :show="store.favLoading">
-                <div class="folder-list" v-if="activePaneFolders.length > 0">
-                  <div
-                    v-for="f in activePaneFolders"
-                    :key="f.id"
-                    class="folder-row"
-                    :class="{ active: selectedFolderId === f.id }"
-                    @click="openFolder(f)"
-                  >
-                    <div class="folder-row-icon">
-                      <n-icon size="15" :color="activeTab==='collected' ? 'var(--color-accent-indigo)' : 'var(--color-accent-pink)'">
-                        <Bookmark v-if="activeTab==='collected'" />
-                        <FolderOpen v-else />
-                      </n-icon>
-                    </div>
-                    <div class="folder-row-info">
-                      <span class="folder-row-title">{{ f.title }}</span>
-                      <span class="folder-row-count tnum">{{ f.count }}</span>
-                    </div>
-                  </div>
-                </div>
-                <div v-else class="pane-empty"><n-text depth="3">{{ folderSearch.trim() ? "无匹配结果" : "暂无内容" }}</n-text></div>
-              </n-spin>
-            </template>
+    <!-- ===== Logged in: single column layout (ref: Arc + Raycast) ===== -->
+    <div v-else class="source-body">
 
-            <!-- Follow -- type toggles -->
-            <template v-if="activeTab==='follow'">
-              <div class="pane-section-label">分类</div>
-              <div class="pane-chips">
-                <button class="chip" :class="{ on: store.followType===1 }" @click="store.loadFollowList(1,1)">追番</button>
-                <button class="chip" :class="{ on: store.followType===2 }" @click="store.loadFollowList(2,1)">追剧</button>
-              </div>
-              <div class="pane-meta">已加载 {{ store.followItems.length }} 项</div>
-              <div class="pane-hint">点击右侧卡片 → 添加至队列</div>
-            </template>
+      <!-- =============== FOLDERS / COLLECTED =============== -->
+      <template v-if="activeTab==='folders' || activeTab==='collected'">
 
-            <template v-if="activeTab==='watchlater'">
-              <div class="pane-section-label">稍后再看</div>
-              <div class="pane-meta">{{ store.watchLaterItems.length }} 个视频</div>
-              <div class="pane-hint">点击行 → 添加至队列</div>
-            </template>
-
-            <template v-if="activeTab==='history'">
-              <div class="pane-section-label">历史记录</div>
-              <div class="pane-meta">{{ store.historyItems.length }} 条</div>
-              <div class="pane-hint">点击行 → 添加至队列</div>
-            </template>
-          </div>
-        </aside>
-
-        <!-- RIGHT: Content -->
-        <main class="pane-right">
-          <!-- Folder video browser (ref: Linear -- single unified sticky bar) -->
-          <template v-if="(activeTab==='folders' || activeTab==='collected') && selectedFolderId">
-            <n-spin :show="store.favLoadingVideos">
-              <div v-if="store.favVideos.length > 0">
-                <div class="right-top-bar">
-                  <div class="right-top-left">
-                    <span class="right-top-channel">@channel</span>
-                    <span class="right-top-sep">/</span>
-                    <span class="right-top-title">{{ store.favCurrentFolderTitle }}</span>
-                  </div>
-                  <div class="right-top-right">
-                    <label class="right-top-check">
-                      <n-checkbox
-                        :checked="store.favSelectedVideos.size === store.favVideos.length && store.favVideos.length > 0"
-                        @update:checked="store.selectAllFavVideos()"
-                        size="small"
-                      />
-                    </label>
-                    <span class="right-top-meta tnum" v-if="store.favSelectedVideos.size > 0">
-                      已选 <span class="nixie-num">{{ store.favSelectedVideos.size }}</span>/{{ store.favVideos.length }}
-                    </span>
-                    <span class="right-top-meta tnum" v-else>
-                      <span class="nixie-num">{{ store.favTotal }}</span> 个视频
-                    </span>
-                    <n-button v-if="store.favSelectedVideos.size > 0" size="tiny" type="primary" @click="addSelectedToQueue">
-                      <template #icon><n-icon size="12"><CirclePlus /></n-icon></template>
-                      添加到队列
-                    </n-button>
-                  </div>
-                </div>
-
-                <div class="video-list">
-                  <div
-                    v-for="(v, i) in store.favVideos"
-                    :key="i"
-                    class="video-row"
-                    :class="{ sel: store.favSelectedVideos.has(i) }"
-                    @click="store.toggleFavVideo(i)"
-                  >
-                    <span class="row-no tnum">{{ String(i+1).padStart(3,'0') }}</span>
-                    <img v-if="v.cover" :src="v.cover" class="row-thumb" referrerpolicy="no-referrer" />
-                    <div class="row-info">
-                      <span class="row-title">{{ v.title }}</span>
-                      <span class="row-meta tnum">{{ v.uploader }} · {{ fmtDur(v.duration) }}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <n-text v-if="authStore.loginError" depth="3" type="error" style="font-size:12px;display:block;margin:8px 0;">{{ authStore.loginError }}</n-text>
-
-                <div class="pane-pagination" v-if="store.favTotalPages > 1">
-                  <n-pagination :page="store.favPage" :page-count="store.favTotalPages" @update:page="loadPage" size="small" />
-                </div>
-              </div>
-              <div v-else class="pane-empty"><n-text depth="3">此收藏夹为空</n-text></div>
-            </n-spin>
-          </template>
-
-          <!-- Placeholder -->
-          <div v-else-if="(activeTab==='folders' || activeTab==='collected') && !selectedFolderId" class="pane-placeholder">
-            <div class="placeholder-icon"><n-icon size="36" color="var(--color-text-tertiary)"><FolderOpen /></n-icon></div>
-            <n-text depth="3">选择左侧文件夹查看视频</n-text>
+        <!-- Folder browser mode -->
+        <template v-if="!selectedFolderId">
+          <div class="toolbar-row">
+            <n-input v-model:value="folderSearch" placeholder="搜索收藏夹..." size="small" clearable class="toolbar-search" />
+            <span class="toolbar-meta tnum" v-if="!folderSearch.trim()">{{ createdFolders.length }} 个收藏夹</span>
           </div>
 
-          <!-- Follow -->
-          <template v-if="activeTab==='follow'">
-            <n-spin :show="store.followLoading">
-              <div v-if="store.followItems.length>0" class="follow-list">
-                <div v-for="item in store.followItems" :key="item.season_id" class="follow-card" @click="store.addQueueItem({url:item.url,pageInfo:{page:1,part:item.title,cid:0,duration:0},source:'fav'});message.success('已添加: '+item.title)">
-                  <img v-if="item.cover" :src="item.cover" class="follow-cover" referrerpolicy="no-referrer" />
-                  <div class="follow-info">
-                    <n-text style="font-size:13px;font-weight:600;">{{ item.title }}</n-text>
-                    <n-text depth="3" style="font-size:11px;">{{ item.type }}{{ item.area?' · '+item.area:'' }} · {{ item.new_ep||item.progress }}</n-text>
-                    <n-text depth="3" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ item.desc }}</n-text>
-                  </div>
+          <n-spin :show="store.favLoading">
+            <div class="folder-list" v-if="activePaneFolders.length > 0">
+              <div
+                v-for="f in activePaneFolders"
+                :key="f.id"
+                class="folder-row"
+                :class="{ active: selectedFolderId === f.id }"
+                @click="openFolder(f)"
+              >
+                <div class="folder-row-icon">
+                  <n-icon size="15" :color="activeTab==='collected' ? 'var(--color-accent-indigo)' : 'var(--color-accent-pink)'">
+                    <Bookmark v-if="activeTab==='collected'" />
+                    <FolderOpen v-else />
+                  </n-icon>
+                </div>
+                <div class="folder-row-info">
+                  <span class="folder-row-title">{{ f.title }}</span>
+                  <span class="folder-row-count tnum">{{ f.count }}</span>
                 </div>
               </div>
-              <div v-else class="pane-empty"><n-text depth="3">点击左侧“追番”或“追剧”加载</n-text></div>
-            </n-spin>
-          </template>
+            </div>
+            <div v-else class="empty-state">
+              <div class="empty-icon"><n-icon :size="36" color="var(--color-text-tertiary)"><SearchX v-if="folderSearch.trim()" /><Inbox v-else /></n-icon></div>
+              <div class="empty-title">{{ folderSearch.trim() ? '无匹配结果' : '暂无内容' }}</div>
+              <div class="empty-desc">{{ folderSearch.trim() ? '尝试其他关键词' : '还没有收藏任何视频' }}</div>
+            </div>
+          </n-spin>
+        </template>
 
-          <!-- Watchlater -->
-          <template v-if="activeTab==='watchlater'">
-            <n-spin :show="store.watchLaterLoading">
-              <div v-if="store.watchLaterItems.length>0" class="video-list">
-                <div v-for="(v,i) in store.watchLaterItems" :key="i" class="video-row" @click="store.addQueueItem({url:'https://www.bilibili.com/video/'+v.bvid,pageInfo:{page:1,part:v.title,cid:v.cid,duration:v.duration},source:'fav'});message.success('已添加')">
+        <!-- Video list mode -->
+        <template v-else>
+          <div class="breadcrumb-bar">
+            <div class="breadcrumb-left">
+              <button class="breadcrumb-back" @click="backToFolders">
+                <n-icon :size="15"><ArrowLeft /></n-icon>
+              </button>
+              <span class="breadcrumb-path">
+                <span class="breadcrumb-channel">@channel</span>
+                <span class="breadcrumb-sep">/</span>
+                <span class="breadcrumb-current">{{ store.favCurrentFolderTitle }}</span>
+              </span>
+            </div>
+            <div class="breadcrumb-right">
+              <label class="breadcrumb-check">
+                <n-checkbox
+                  :checked="store.favSelectedVideos.size === store.favVideos.length && store.favVideos.length > 0"
+                  @update:checked="store.selectAllFavVideos()"
+                  size="small"
+                />
+              </label>
+              <span class="breadcrumb-meta tnum" v-if="store.favSelectedVideos.size > 0">
+                已选 <span class="nixie-num">{{ store.favSelectedVideos.size }}</span>/{{ store.favVideos.length }}
+              </span>
+              <span class="breadcrumb-meta tnum" v-else>
+                <span class="nixie-num">{{ store.favTotal }}</span> 个视频
+              </span>
+              <n-button v-if="store.favSelectedVideos.size > 0" size="tiny" type="primary" @click="addSelectedToQueue">
+                <template #icon><n-icon size="12"><CirclePlus /></n-icon></template>
+                添加到队列
+              </n-button>
+            </div>
+          </div>
+
+          <n-spin :show="store.favLoadingVideos">
+            <div v-if="store.favVideos.length > 0">
+              <div class="video-list">
+                <div
+                  v-for="(v, i) in store.favVideos"
+                  :key="i"
+                  class="video-row"
+                  :class="{ sel: store.favSelectedVideos.has(i) }"
+                  @click="store.toggleFavVideo(i)"
+                >
                   <span class="row-no tnum">{{ String(i+1).padStart(3,'0') }}</span>
                   <img v-if="v.cover" :src="v.cover" class="row-thumb" referrerpolicy="no-referrer" />
                   <div class="row-info">
@@ -259,44 +196,119 @@ function fmtDur(sec: number) {
                   </div>
                 </div>
               </div>
-              <div v-else class="pane-empty"><n-text depth="3">点击上方标签自动加载</n-text></div>
-            </n-spin>
-            <div class="pane-pagination" v-if="store.watchLaterTotalPages > 1">
-              <n-pagination :page="store.watchLaterPage" :page-count="store.watchLaterTotalPages" @update:page="(p:number)=>store.loadWatchLater(p)" size="small" />
-            </div>
-          </template>
 
-          <!-- History -->
-          <template v-if="activeTab==='history'">
-            <n-spin :show="store.historyLoading">
-              <div v-if="store.historyItems.length>0" class="video-list">
-                <div v-for="(v,i) in store.historyItems" :key="i" class="video-row" @click="store.addQueueItem({url:'https://www.bilibili.com/video/'+v.bvid,pageInfo:{page:1,part:v.title,cid:v.cid,duration:v.duration},source:'fav'});message.success('已添加')">
-                  <span class="row-no tnum">{{ String(i+1).padStart(3,'0') }}</span>
-                  <img v-if="v.cover" :src="v.cover" class="row-thumb" referrerpolicy="no-referrer" />
-                  <div class="row-info">
-                    <span class="row-title">{{ v.title }}</span>
-                    <span class="row-meta tnum">{{ v.uploader }} · {{ fmtDur(v.duration) }}</span>
-                  </div>
-                </div>
+              <n-text v-if="authStore.loginError" depth="3" type="error" style="font-size:12px;display:block;margin:8px 0;">{{ authStore.loginError }}</n-text>
+
+              <div class="pane-pagination" v-if="store.favTotalPages > 1">
+                <n-pagination :page="store.favPage" :page-count="store.favTotalPages" @update:page="loadPage" size="small" />
               </div>
-              <div v-else class="pane-empty"><n-text depth="3">点击上方标签自动加载</n-text></div>
-            </n-spin>
-            <div class="pane-pagination" v-if="store.historyTotalPages > 1">
-              <n-pagination :page="store.historyPage" :page-count="store.historyTotalPages" @update:page="(p:number)=>store.loadHistory(p)" size="small" />
             </div>
-          </template>
-        </main>
-      </div>
-    </template>
+            <div v-else class="empty-state">
+              <div class="empty-icon"><n-icon :size="36" color="var(--color-text-tertiary)"><Inbox /></n-icon></div>
+              <div class="empty-title">此收藏夹为空</div>
+              <div class="empty-desc">该收藏夹中还没有视频</div>
+            </div>
+          </n-spin>
+        </template>
+      </template>
+
+      <!-- =============== FOLLOW =============== -->
+      <template v-if="activeTab==='follow'">
+        <div class="toolbar-row">
+          <div class="pane-chips">
+            <button class="chip" :class="{ on: store.followType===1 }" @click="store.loadFollowList(1,1)">追番</button>
+            <button class="chip" :class="{ on: store.followType===2 }" @click="store.loadFollowList(2,1)">追剧</button>
+          </div>
+          <span class="toolbar-meta tnum">已加载 {{ store.followItems.length }} 项</span>
+        </div>
+
+        <n-spin :show="store.followLoading">
+          <div v-if="store.followItems.length>0" class="video-list">
+            <div v-for="(item, i) in store.followItems" :key="item.season_id" class="video-row" @click="store.addQueueItem({url:item.url,pageInfo:{page:1,part:item.title,cid:0,duration:0},source:'fav'});message.success('已添加: '+item.title)">
+              <span class="row-no tnum">{{ String(i+1).padStart(3,'0') }}</span>
+              <img v-if="item.cover" :src="item.cover" class="row-thumb" referrerpolicy="no-referrer" />
+              <div class="row-info">
+                <span class="row-title">{{ item.title }}</span>
+                <span class="row-meta tnum">{{ item.type }}{{ item.area?' · '+item.area:'' }} · {{ item.new_ep||item.progress }}</span>
+                <span class="row-meta tnum" style="opacity:0.65">{{ item.desc }}</span>
+              </div>
+            </div>
+          </div>
+          <div v-else class="empty-state">
+            <div class="empty-icon"><n-icon :size="36" color="var(--color-text-tertiary)"><Film /></n-icon></div>
+            <div class="empty-title">暂无数据</div>
+            <div class="empty-desc">点击「追番」或「追剧」加载内容</div>
+          </div>
+        </n-spin>
+      </template>
+
+      <!-- =============== WATCHLATER =============== -->
+      <template v-if="activeTab==='watchlater'">
+        <div class="toolbar-row">
+          <span class="toolbar-label">稍后再看</span>
+          <span class="toolbar-meta tnum">{{ store.watchLaterItems.length }} 个视频</span>
+        </div>
+
+        <n-spin :show="store.watchLaterLoading">
+          <div v-if="store.watchLaterItems.length>0" class="video-list">
+            <div v-for="(v,i) in store.watchLaterItems" :key="i" class="video-row" @click="store.addQueueItem({url:'https://www.bilibili.com/video/'+v.bvid,pageInfo:{page:1,part:v.title,cid:v.cid,duration:v.duration},source:'fav'});message.success('已添加')">
+              <span class="row-no tnum">{{ String(i+1).padStart(3,'0') }}</span>
+              <img v-if="v.cover" :src="v.cover" class="row-thumb" referrerpolicy="no-referrer" />
+              <div class="row-info">
+                <span class="row-title">{{ v.title }}</span>
+                <span class="row-meta tnum">{{ v.uploader }} · {{ fmtDur(v.duration) }}</span>
+              </div>
+            </div>
+          </div>
+          <div v-else class="empty-state">
+            <div class="empty-icon"><n-icon :size="36" color="var(--color-text-tertiary)"><ListVideo /></n-icon></div>
+            <div class="empty-title">暂无数据</div>
+            <div class="empty-desc">点击「稍后再看」标签自动加载</div>
+          </div>
+          <div class="pane-pagination" v-if="store.watchLaterTotalPages > 1">
+            <n-pagination :page="store.watchLaterPage" :page-count="store.watchLaterTotalPages" @update:page="(p:number)=>store.loadWatchLater(p)" size="small" />
+          </div>
+        </n-spin>
+      </template>
+
+      <!-- =============== HISTORY =============== -->
+      <template v-if="activeTab==='history'">
+        <div class="toolbar-row">
+          <span class="toolbar-label">历史记录</span>
+          <span class="toolbar-meta tnum">{{ store.historyItems.length }} 条</span>
+        </div>
+
+        <n-spin :show="store.historyLoading">
+          <div v-if="store.historyItems.length>0" class="video-list">
+            <div v-for="(v,i) in store.historyItems" :key="i" class="video-row" @click="store.addQueueItem({url:'https://www.bilibili.com/video/'+v.bvid,pageInfo:{page:1,part:v.title,cid:v.cid,duration:v.duration},source:'fav'});message.success('已添加')">
+              <span class="row-no tnum">{{ String(i+1).padStart(3,'0') }}</span>
+              <img v-if="v.cover" :src="v.cover" class="row-thumb" referrerpolicy="no-referrer" />
+              <div class="row-info">
+                <span class="row-title">{{ v.title }}</span>
+                <span class="row-meta tnum">{{ v.uploader }} · {{ fmtDur(v.duration) }}</span>
+              </div>
+            </div>
+          </div>
+          <div v-else class="empty-state">
+            <div class="empty-icon"><n-icon :size="36" color="var(--color-text-tertiary)"><History /></n-icon></div>
+            <div class="empty-title">暂无数据</div>
+            <div class="empty-desc">点击「历史记录」标签自动加载</div>
+          </div>
+          <div class="pane-pagination" v-if="store.historyTotalPages > 1">
+            <n-pagination :page="store.historyPage" :page-count="store.historyTotalPages" @update:page="(p:number)=>store.loadHistory(p)" size="small" />
+          </div>
+        </n-spin>
+      </template>
+
+    </div>
   </div>
 </template>
 
 
 <style scoped>
 /* ================================================================
-   Steins;Gate Favorites — Inbox dual-pane
-   ref: Linear (sticky header, segmented tabs, list accents)
-        Steins;Gate DSGN (typography, glow, @channel prefix)
+   Steins;Gate Favorites — Single Column (ref: Arc + Raycast)
+   C: 收藏夹为中心的单页体验 -- full-width, breadcrumb nav
    ================================================================ */
 
 /* --- Root --- */
@@ -307,80 +319,17 @@ function fmtDur(sec: number) {
   overflow: hidden;
 }
 
-/* ===== PAGE HEADER ===== */
-/* ref: Linear -- sticky, compact, identity-connected */
-.page-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  height: var(--header-height);
-  padding: 0 18px;
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-  flex-shrink: 0;
-  position: sticky;
-  top: 0;
-  z-index: 6;
-}
-
-/* Back -- minimal, no label, just arrow */
-.bar-back {
-  color: var(--color-text-tertiary);
-  padding: 0;
-  min-width: 28px;
-  height: 28px;
-  transition: color 0.2s, filter 0.2s;
-}
-.bar-back:hover {
-  color: var(--color-text);
-  filter: drop-shadow(0 0 3px rgba(139,62,62,0.3));
-}
-
-/* Title (ref: Steins;Gate -- @channel path notation) */
-.bar-title {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 2px;
-  font-size: 13px;
-}
-.bar-prefix {
-  color: var(--color-text-tertiary);
-  font-weight: 400;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: -0.2px;
-}
-.bar-sep {
-  color: var(--color-border-strong);
-  margin: 0 2px;
-  font-weight: 300;
-}
-.bar-name {
-  color: var(--color-text);
-  font-weight: 600;
-}
-
-.bar-right {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
 /* ===== TAB BAR (ref: Linear segmented + Steins;Gate active prefix) ===== */
 .tab-bar {
   display: flex;
   align-items: center;
   gap: 2px;
-  padding: 6px 14px;
+  padding: 6px 18px;
   background: var(--color-bg);
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
   overflow-x: auto;
   scrollbar-width: none;
-  position: sticky;
-  top: 0;
-  z-index: 6;
 }
 .tab-bar::-webkit-scrollbar { display: none; }
 
@@ -405,7 +354,6 @@ function fmtDur(sec: number) {
   color: var(--color-brand);
   background: rgba(139,62,62,0.12);
 }
-/* SteinsGate: active tab gets > prefix like @channel */
 .tab-item.active::before {
   content: "> ";
   font-family: var(--font-mono);
@@ -413,44 +361,128 @@ function fmtDur(sec: number) {
   color: var(--color-brand);
 }
 
-/* --- Single-pane (not logged in) --- */
-.single-pane {
+/* ===== SOURCE BODY -- single column, full width (ref: Arc) ===== */
+.source-body {
   flex: 1;
-  padding: 16px 24px 32px;
-  max-width: var(--content-max-wide);
-  margin: 0 auto;
+  overflow-y: auto;
+  padding: 0 24px 32px;
+  max-width: 960px;
   width: 100%;
-  overflow-y: auto;
+  margin: 0 auto;
 }
 
-/* --- Dual-pane grid --- */
-.dual-pane {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 256px 1fr;
-  overflow: hidden;
-}
-
-/* ===== LEFT PANE ===== */
-.pane-left {
-  border-right: 1px solid var(--color-border);
-  background: var(--color-surface-muted);
+/* ===== BREADCRUMB BAR (ref: Arc -- back navigation + path) ===== */
+.breadcrumb-bar {
   display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: var(--color-bg);
 }
 
-.pane-content {
+.breadcrumb-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   flex: 1;
-  overflow-y: auto;
-  padding: 8px 10px 16px;
+  min-width: 0;
 }
 
-.pane-search {
-  margin-bottom: 8px;
+.breadcrumb-back {
+  color: var(--color-text-tertiary);
+  padding: 4px;
+  min-width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.breadcrumb-back:hover {
+  color: var(--color-text);
+  background: var(--color-ink-hover);
 }
 
-/* Folder rows (ref: Linear -- compact, left accent) */
+.breadcrumb-path {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  font-size: 13px;
+  min-width: 0;
+}
+.breadcrumb-channel {
+  color: var(--color-text-tertiary);
+  font-weight: 400;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.breadcrumb-sep {
+  color: var(--color-border-strong);
+  margin: 0 2px;
+  font-weight: 300;
+}
+.breadcrumb-current {
+  color: var(--color-text);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.breadcrumb-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.breadcrumb-check {
+  display: flex;
+  cursor: pointer;
+}
+.breadcrumb-meta {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+/* ===== TOOLBAR ROW (ref: Raycast -- compact action bar) ===== */
+.toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  min-height: 40px;
+}
+.toolbar-search {
+  max-width: 280px;
+}
+.toolbar-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.toolbar-meta {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* ===== NIXIE number (reused) ===== */
+.nixie-num {
+  color: var(--divergence-color);
+  text-shadow: var(--divergence-glow);
+  font-weight: 700;
+}
+
+/* ===== FOLDER LIST (ref: Linear -- compact, full-width list) ===== */
 .folder-list {
   display: flex;
   flex-direction: column;
@@ -460,8 +492,8 @@ function fmtDur(sec: number) {
 .folder-row {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 7px 9px;
+  gap: 10px;
+  padding: 8px 10px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   border-left: 2px solid transparent;
@@ -476,8 +508,8 @@ function fmtDur(sec: number) {
 }
 
 .folder-row-icon {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
   background: var(--color-ink-soft);
@@ -511,22 +543,7 @@ function fmtDur(sec: number) {
   flex-shrink: 0;
 }
 
-/* Left pane section labels / meta */
-.pane-section-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  margin-top: 10px;
-  margin-bottom: 4px;
-}
-.pane-section-label:first-child { margin-top: 0; }
-
-.pane-meta {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  margin: 4px 0;
-}
-
+/* ===== CHIPS (ref: Linear) ===== */
 .pane-chips {
   display: flex;
   gap: 4px;
@@ -553,96 +570,7 @@ function fmtDur(sec: number) {
   color: var(--color-brand);
 }
 
-.pane-hint {
-  font-size: 11px;
-  color: var(--color-text-tertiary);
-  line-height: 1.5;
-  margin-top: 6px;
-}
-
-.pane-empty {
-  padding: 24px 0;
-  text-align: center;
-}
-
-/* ===== RIGHT PANE ===== */
-.pane-right {
-  overflow-y: auto;
-  padding: 10px 18px 24px;
-}
-
-.pane-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding-top: 80px;
-  text-align: center;
-}
-.placeholder-icon { opacity: 0.25; }
-
-/* Right top bar (ref: Linear -- single unified sticky bar: title + count + checkbox + actions) */
-.right-top-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 12px;
-  margin-bottom: 4px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  position: sticky;
-  top: 0;
-  z-index: 4;
-}
-.right-top-left {
-  display: flex;
-  align-items: baseline;
-  gap: 2px;
-  flex: 1;
-  min-width: 0;
-}
-.right-top-channel {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--color-text-tertiary);
-}
-.right-top-sep {
-  color: var(--color-border-strong);
-  margin: 0 2px;
-  font-weight: 300;
-}
-.right-top-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.right-top-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-.right-top-check {
-  display: flex;
-  cursor: pointer;
-}
-.right-top-meta {
-  font-size: 11px;
-  color: var(--color-text-secondary);
-}
-/* Nixie tube style — reused in right-top-bar */
-.nixie-num {
-  color: var(--divergence-color);
-  text-shadow: var(--divergence-glow);
-  font-weight: 700;
-}
-
-/* Video list (ref: Linear -- no height cap, natural flow) */
+/* ===== VIDEO LIST (ref: Linear -- full-width rows) ===== */
 .video-list {
   display: flex;
   flex-direction: column;
@@ -652,8 +580,8 @@ function fmtDur(sec: number) {
 .video-row {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 7px 9px;
+  gap: 10px;
+  padding: 8px 10px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   border-left: 3px solid transparent;
@@ -672,14 +600,14 @@ function fmtDur(sec: number) {
   font-size: 11px;
   font-weight: 600;
   color: var(--color-text-tertiary);
-  min-width: 32px;
+  min-width: 36px;
   flex-shrink: 0;
   transition: color 0.15s;
 }
 .video-row.sel .row-no { color: var(--color-brand); }
 
 .row-thumb {
-  width: 84px;
+  width: 96px;
   aspect-ratio: 16/9;
   object-fit: cover;
   border-radius: var(--radius-sm);
@@ -712,70 +640,103 @@ function fmtDur(sec: number) {
   margin-top: 14px;
 }
 
-/* Follow list */
-.follow-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.follow-card {
-  display: flex;
-  gap: 12px;
-  padding: 10px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  cursor: pointer;
-  background: var(--color-surface);
-  transition: border-color 0.18s, box-shadow 0.18s;
-}
-.follow-card:hover {
-  border-color: var(--color-accent-pink-border);
-  box-shadow: 0 2px 12px rgba(0,0,0,0.18);
-}
-.follow-cover {
-  width: 66px;
-  height: 88px;
-  object-fit: cover;
-  border-radius: var(--radius-sm);
-  flex-shrink: 0;
-  background: var(--color-surface-muted);
-}
-.follow-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding-top: 2px;
-}
-
-/* Not logged in empty state */
-.fav-empty {
+/* ===== UNIFIED EMPTY STATE (ref: Notion + Refactoring UI) ===== */
+.empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: 72px 16px;
+  padding: 64px 16px;
   text-align: center;
 }
 .empty-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
   display: grid;
   place-items: center;
-  background: var(--color-accent-pink-soft);
-  color: var(--color-accent-pink);
+  background: var(--color-ink-soft);
+  color: var(--color-text-tertiary);
+  margin-bottom: 4px;
+  border: 1px solid var(--color-border);
+}
+.empty-title {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--color-text);
+}
+.empty-desc {
+  font-size: 13px;
+  color: var(--color-text-secondary);
   margin-bottom: 4px;
 }
-.empty-title { font-size: 15px; font-weight: 650; color: var(--color-text); }
-.empty-desc { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 8px; }
 
-/* Staggered entrance */
+/* ===== SKELETON LOADING (ref: Linear) ===== */
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+}
+.skeleton-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: var(--color-ink-soft);
+  animation: skel-pulse 1.6s ease-in-out infinite;
+  flex-shrink: 0;
+}
+.skeleton-no {
+  width: 36px;
+  height: 13px;
+  border-radius: 4px;
+  background: var(--color-ink-soft);
+  animation: skel-pulse 1.6s ease-in-out infinite;
+  flex-shrink: 0;
+}
+.skeleton-thumb {
+  width: 96px;
+  aspect-ratio: 16/9;
+  border-radius: var(--radius-sm);
+  background: var(--color-ink-soft);
+  animation: skel-pulse 1.6s ease-in-out infinite;
+  flex-shrink: 0;
+}
+.skeleton-lines {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.skeleton-line {
+  border-radius: 4px;
+  background: var(--color-ink-soft);
+  animation: skel-pulse 1.6s ease-in-out infinite;
+}
+.skeleton-line--title {
+  height: 13px;
+  width: 70%;
+}
+.skeleton-line--meta {
+  height: 10px;
+  width: 45%;
+}
+.skeleton-line--wide {
+  height: 13px;
+  width: 85%;
+}
+
+@keyframes skel-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.7; }
+}
+
+/* All list rows -- uniform entrance, no stagger cap (ref: Linear) */
 .video-row { animation: materialize 0.28s var(--ease-out) both; }
-.video-row:nth-child(1) { animation-delay: 0s; }
-.video-row:nth-child(2) { animation-delay: 0.04s; }
-.video-row:nth-child(3) { animation-delay: 0.08s; }
-.video-row:nth-child(4) { animation-delay: 0.12s; }
-.video-row:nth-child(5) { animation-delay: 0.16s; }
 </style>
