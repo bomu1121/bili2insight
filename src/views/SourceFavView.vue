@@ -636,10 +636,51 @@ function fmtDur(sec: number) {
   color: var(--color-text-tertiary);
 }
 
+.pane-empty {
+  padding: 24px 0;
+  text-align: center;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
 .pane-pagination {
   display: flex;
   justify-content: center;
   margin-top: 14px;
+}
+
+/* ===== UNIFIED EMPTY STATE (ref: Notion + Refactoring UI) ===== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 64px 16px;
+  text-align: center;
+}
+.empty-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: var(--color-ink-soft);
+  color: var(--color-text-tertiary);
+  margin-bottom: 4px;
+  border: 1px solid var(--color-border);
+}
+.empty-title {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--color-text);
+}
+.empty-desc {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-bottom: 4px;
 }
 
 /* ===== UNIFIED EMPTY STATE (ref: Notion + Refactoring UI) ===== */
