@@ -312,11 +312,13 @@ function fmtDur(sec: number) {
    ================================================================ */
 
 /* --- Root --- */
+/* ref: Arc -- entire page scrolls, header sticky */
 .source-root {
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 /* ===== TAB BAR (ref: Linear segmented + Steins;Gate active prefix) ===== */
@@ -331,6 +333,9 @@ function fmtDur(sec: number) {
   flex-shrink: 0;
   overflow-x: auto;
   scrollbar-width: none;
+  position: sticky;
+  top: 0;
+  z-index: 5;
 }
 .tab-bar::-webkit-scrollbar { display: none; }
 
@@ -365,8 +370,7 @@ function fmtDur(sec: number) {
 /* ===== SOURCE BODY -- single column, full width (ref: Arc) ===== */
 .source-body {
   flex: 1;
-  overflow-y: auto;
-  padding: 4px 24px 32px;
+  padding: 16px 24px 40px;
   max-width: 960px;
   width: 100%;
   margin: 0 auto;
@@ -382,7 +386,7 @@ function fmtDur(sec: number) {
   border-bottom: 1px solid var(--color-border);
   position: sticky;
   top: 38px;
-  z-index: 3;
+  z-index: 4;
   background: var(--color-bg);
 }
 
@@ -458,9 +462,10 @@ function fmtDur(sec: number) {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 0;
+  padding: 10px 0 14px;
   min-height: 44px;
   border-bottom: 1px solid var(--color-border);
+  margin-bottom: 4px;
 }
 .toolbar-search {
   max-width: 280px;
@@ -740,4 +745,26 @@ function fmtDur(sec: number) {
   50% { opacity: 0.7; }
 }
 
+
+/* ===== SCROLLBAR (ref: Linear -- thin, subtle, anti-ornament) ===== */
+.source-root::-webkit-scrollbar {
+  width: 5px;
+}
+.source-root::-webkit-scrollbar-track {
+  background: transparent;
+}
+.source-root::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+  transition: background 0.2s;
+}
+.source-root::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-strong);
+}
+
+/* Firefox thin scrollbar */
+.source-root {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
 </style>
