@@ -96,7 +96,7 @@ function fmtDur(sec: number) {
           size="tiny" quaternary
           @click="store.loadFavFolders()"
           :loading="store.favLoading"
-          v-if="activeTab==='folders' || activeTab==='collected'"
+          title="刷新"
         >
           <template #icon><n-icon size="13"><RotateCw /></n-icon></template>
         </n-button>
@@ -131,7 +131,7 @@ function fmtDur(sec: number) {
         <aside class="pane-left" :class="{ 'pane-left--full': activeTab==='follow' || activeTab==='watchlater' || activeTab==='history' }">
           <div class="pane-content">
             <!-- Folders / Collected -->
-            <template v-if="activeTab==='folders' || activeTab==='collected'">
+            <template title="刷新">
               <div class="pane-search">
                 <n-input v-model:value="folderSearch" placeholder="搜索..." size="small" clearable />
               </div>
@@ -385,14 +385,13 @@ function fmtDur(sec: number) {
   gap: 6px;
 }
 
-/* ===== TAB BAR (ref: Linear -- segmented pill-style) ===== */
+/* ===== TAB BAR (ref: Linear segmented + Steins;Gate active prefix) ===== */
 .tab-bar {
   display: flex;
   align-items: center;
   gap: 2px;
-  padding: 6px 14px;
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
+  padding: 4px 14px;
+  background: var(--color-bg);
   flex-shrink: 0;
   overflow-x: auto;
   scrollbar-width: none;
@@ -418,7 +417,14 @@ function fmtDur(sec: number) {
 }
 .tab-item.active {
   color: var(--color-brand);
-  background: var(--color-brand-soft);
+  background: rgba(139,62,62,0.12);
+}
+/* SteinsGate: active tab gets > prefix like @channel */
+.tab-item.active::before {
+  content: "> ";
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-brand);
 }
 
 /* --- Single-pane (not logged in) --- */
