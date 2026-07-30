@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch, computed } from "vue";
 import { NInput, NButton, NSpace, NText, NIcon, NTabs, NTabPane, createDiscreteApi, NDrawer, NDrawerContent, NSelect, NConfigProvider, type GlobalThemeOverrides } from "naive-ui";
-import { Settings, List, Play, Trash2, Eye, CircleCheckBig, CircleX, RefreshCw, CircleUserRound, LogOut, RotateCw, Smartphone, QrCode, ArrowRight, Copy, LinkIcon, FolderOpen, CloudUpload, Clock, Moon, Sun } from "lucide-vue-next";
+import { Settings, List, Play, Trash2, Eye, CircleCheckBig, CircleX, RefreshCw, CircleUserRound, LogOut, RotateCw, Smartphone, QrCode, ArrowRight, Copy, LinkIcon, FolderOpen, CloudUpload, Clock, Moon, Sun, BookOpen } from "lucide-vue-next";
 import { useRoute, useRouter } from "vue-router";
 import { useAppStore } from "./stores/app";
 import { useAuthStore } from "./stores/auth";
@@ -161,7 +161,7 @@ const tplPrompt = computed({
           </button>
           <button type="button" class="nav-item" :class="{ on: route.path === '/source/fav' }" @click="router.push('/source/fav'); createRipple()">
             <n-icon :size="17"><FolderOpen /></n-icon>
-            <span class="nav-label">收藏夹</span>
+            <span class="nav-label">B站收藏</span>
           </button>
           <button type="button" class="nav-item" :class="{ on: route.path === '/source/local' }" @click="router.push('/source/local'); createRipple()">
             <n-icon :size="17"><CloudUpload /></n-icon>
@@ -175,6 +175,10 @@ const tplPrompt = computed({
             <span class="nav-label">处理队列</span>
             <span v-if="store.isProcessing" class="nav-pulse signal-dot" title="正在处理" />
             <span v-if="store.queueCount > 0" class="nav-badge tnum">{{ store.queueCount }}</span>
+          </button>
+          <button type="button" class="nav-item" :class="{ on: route.path === '/notes' }" @click="router.push('/notes'); createRipple()">
+            <n-icon :size="17"><BookOpen /></n-icon>
+            <span class="nav-label">笔记</span>
           </button>
           <button type="button" class="nav-item" :class="{ on: route.path === '/history' }" @click="router.push('/history'); createRipple()">
             <n-icon :size="17"><Clock /></n-icon>

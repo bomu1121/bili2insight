@@ -3,6 +3,7 @@ use crate::pipeline;
 use crate::export;
 use crate::VideoInfo;
 use crate::history::{HistoryEntry, HistoryListResult, HistoryState};
+use crate::notes::{NoteFolder, NoteEntry, NoteState};
 use tauri::{AppHandle, Emitter, Manager};
 use std::path::PathBuf;
 
@@ -576,3 +577,60 @@ pub async fn history_rerun_ai(
 
     Ok(analysis_id)
 }
+
+// --- Notes commands ---
+
+#[tauri::command]
+pub fn notes_create_folder(state: tauri::State<'_, NoteState>, title: String, color: String) -> Result<NoteFolder, String> {
+    let mut store = state.0.lock().map_err(|e| format!("Lock error: {}", e))?;
+    store.create_folder(title, color).map_err(|e| format!("Create folder error: {}", e))
+}
+
+#[tauri::command]
+pub fn notes_get_folders(state: tauri::State<'_, NoteState>) -> Result<Vec<NoteFolder>, String> {
+    let store = state.0.lock().map_err(|e| format!("Lock error: {}", e))?;
+    Ok(store.get_folders())
+}
+
+#[tauri::command]
+pub fn notes_update_folder(state: tauri::State<'_, NoteState>, id: String, title: Option<String>, color: Option<String>) -> Result<Option<NoteFolder>, String> {
+    let mut store = state.0.lock().map_err(|e| format!("Lock error: {}", e))?;
+    store.update_folder(&id, title, color).map_err(|e| format!("Update folder error: {}", e))
+}
+
+#[tauri::command]
+pub fn notes_delete_folder(state: tauri::State<'_, NoteState>, id: String) -> Result<bool, String> {
+    let mut store = state.0.lock().map_err(|e| format!("Lock error: {}", e))?;
+    store.delete_folder(&id).map_err(|e| format!("Delete folder error: {}", e))
+}
+
+#[tauri::command]
+pub fn notes_create_note(state: tauri::State<'_, NoteState>, folder_id: String, title: String, content: String) -> Result<NoteEntry, String> {
+    let mut store = state.0.lock().map_err(|e| format!("Lock error: {}", e))?;
+    store.create_note(folder_id, title, content).map_err(|e| format!("Create note error: {}", e))
+}
+
+#[tauri::command]
+pub fn notes_get_notes(state: tauri::State<'_, NoteState>, folder_id: String) -> Result<Vec<NoteEntry>, String> {
+    let store = state.0.lock().map_err(|e| format!("Lock error: {}", e))?;
+    Ok(store.get_notes(&folder_id))
+}
+
+#[tauri::command]
+pub fn notes_get_note(state: tauri::State<'_, NoteState>, id: String) -> Result<Option<NoteEntry>, String> {
+    let store = state.0.lock().map_err(|e| format!("Lock error: {}", e))?;
+    Ok(store.get_note(&id))
+}
+
+#[tauri::command]
+pub fn notes_update_note(state: tauri::State<'_, NoteState>, id: String, title: Option<String>, content: Option<String>) -> Result<Option<NoteEntry>, String> {
+    let mut store = state.0.lock().map_err(|e| format!("Lock error: {}", e))?;
+    store.update_note(&id, title, content).map_err(|e| format!("Update note error: {}", e))
+}
+
+#[tauri::command]
+pub fn notes_delete_note(state: tauri::State<'_, NoteState>, id: String) -> Result<bool, String> {
+    let mut store = state.0.lock().map_err(|e| format!("Lock error: {}", e))?;
+    store.delete_note(&id).map_err(|e| format!("Delete note error: {}", e))
+}
+

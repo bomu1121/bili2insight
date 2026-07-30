@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { PipelineResult, VideoInfo, QrGenerateResult, QrPollResult, LoginCheckResult, FavFoldersResult, FavVideosResult } from "./types";
-import type { HistoryListResult } from "./types";
+import type { NoteFolder, NoteEntry, HistoryListResult } from "./types";
 
 export async function previewVideo(url: string, proxy?: string): Promise<VideoInfo> {
   return invoke<VideoInfo>("preview_video", { url, proxy: proxy || null, pageCid: null });
@@ -18,7 +18,7 @@ export async function runPipelineWithPage(
 ): Promise<PipelineResult> {
   console.log("invoke run_pipeline", { url: url.slice(0,40), pageCid, queueItemId });
   try {
-    const r = await invoke<PipelineResult>("run_pipeline", { url, proxy: proxy || null, aiApiUrl: aiApiUrl || null, aiApiKey: aiApiKey || null, aiModel: aiModel || null, aiPrompt: aiPrompt || null, pageCid: pageCid ?? null, asrModel: asrModel || null, asrApiUrl: asrApiUrl || null, asrApiKey: asrApiKey || null, queueItemId: queueItemId || null, templateName: templateName || null, templateName: templateName || null });
+    const r = await invoke<PipelineResult>("run_pipeline", { url, proxy: proxy || null, aiApiUrl: aiApiUrl || null, aiApiKey: aiApiKey || null, aiModel: aiModel || null, aiPrompt: aiPrompt || null, pageCid: pageCid ?? null, asrModel: asrModel || null, asrApiUrl: asrApiUrl || null, asrApiKey: asrApiKey || null, queueItemId: queueItemId || null, templateName: templateName || null });
     console.log("invoke run_pipeline done");
     return r;
   } catch(e) { console.error("invoke run_pipeline FAILED:", e); throw e; }
@@ -102,3 +102,32 @@ export async function historyRerunAi(
 export async function clearHistory(): Promise<number> {
     return invoke<number>("history_clear");
 }
+// --- Notes commands ---
+export async function notesCreateFolder(title: string, color: string): Promise<NoteFolder> {
+    return invoke<NoteFolder>("notes_create_folder", { title, color });
+}
+export async function notesGetFolders(): Promise<NoteFolder[]> {
+    return invoke<NoteFolder[]>("notes_get_folders");
+}
+export async function notesUpdateFolder(id: string, title?: string, color?: string): Promise<NoteFolder | null> {
+    return invoke<NoteFolder | null>("notes_update_folder", { id, title: title || null, color: color || null });
+}
+export async function notesDeleteFolder(id: string): Promise<boolean> {
+    return invoke<boolean>("notes_delete_folder", { id });
+}
+export async function notesCreateNote(folderId: string, title: string, content: string): Promise<NoteEntry> {
+    return invoke<NoteEntry>("notes_create_note", { folderId, title, content });
+}
+export async function notesGetNotes(folderId: string): Promise<NoteEntry[]> {
+    return invoke<NoteEntry[]>("notes_get_notes", { folderId });
+}
+export async function notesGetNote(id: string): Promise<NoteEntry | null> {
+    return invoke<NoteEntry | null>("notes_get_note", { id });
+}
+export async function notesUpdateNote(id: string, title?: string, content?: string): Promise<NoteEntry | null> {
+    return invoke<NoteEntry | null>("notes_update_note", { id, title: title || null, content: content || null });
+}
+export async function notesDeleteNote(id: string): Promise<boolean> {
+    return invoke<boolean>("notes_delete_note", { id });
+}
+

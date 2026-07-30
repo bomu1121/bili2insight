@@ -2,6 +2,7 @@ mod commands;
 mod pipeline;
 mod export;
 mod history;
+mod notes;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct QrGenerateResult {
@@ -158,6 +159,15 @@ pub fn run() {
             commands::history_get_analyses,
             commands::history_get_analysis_result,
             commands::history_rerun_ai,
+            commands::notes_create_folder,
+            commands::notes_get_folders,
+            commands::notes_update_folder,
+            commands::notes_delete_folder,
+            commands::notes_create_note,
+            commands::notes_get_notes,
+            commands::notes_get_note,
+            commands::notes_update_note,
+            commands::notes_delete_note,
        ])
        .setup(|app| {
            let http_client = reqwest::Client::builder()
@@ -172,6 +182,13 @@ pub fn run() {
                 .join("history");
             app.manage(crate::history::HistoryState(
                 std::sync::Mutex::new(crate::history::HistoryStore::load(history_data_dir))
+            ));
+            let notes_data_dir = app.path().app_data_dir()
+                .map_err(|e| format!("app_data_dir: {}", e))
+                .unwrap_or_default()
+                .join("notes");
+            app.manage(crate::notes::NoteState(
+                std::sync::Mutex::new(crate::notes::NoteStore::load(notes_data_dir))
             ));
            Ok(())
        })

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from "vue";
 import { NButton, NText, NIcon, NInput, NPagination, NDrawer, NDrawerContent, NSpace, NDivider, NPopconfirm, NModal, createDiscreteApi } from "naive-ui";
-import { TrashOutline, EyeOutline, SearchOutline, RefreshOutline, CopyOutline, DownloadOutline, TimeOutline, DocumentTextOutline, Star, StarOutline, BeakerOutline, FlashOutline, CheckmarkDoneOutline } from "@vicons/ionicons5";
+import { TrashOutline, EyeOutline, SearchOutline, RefreshOutline, CopyOutline, DownloadOutline, TimeOutline, DocumentTextOutline, Star, StarOutline, BeakerOutline, FlashOutline, CheckmarkDoneOutline, FolderOpen } from "@vicons/ionicons5";
 import { useRouter } from "vue-router";
 import { useTemplateStore } from "../stores/templates";
 import { useAppStore } from "../stores/app";
+import { useNotesStore } from "../stores/notes";
 import { fetchHistoryList, getHistoryResult, deleteHistoryItem, clearHistory, toggleHistoryStar, historyGetAnalyses, historyGetAnalysisResult, historyRerunAi } from "../utils/invoke";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import type { HistoryEntry, HistoryListResult, PipelineResult, AnalysisMeta } from "../utils/types";
@@ -29,6 +30,37 @@ const analysisLoading = ref(false);
 const rerunShow = ref(false);
 const rerunLoading = ref(false);
 const rerunTemplateIndex = ref(0);
+const sendToNoteShow = ref(false);
+const sendToNoteFolderId = ref<string>("");
+const sendToNoteNewFolder = ref("");
+const sendToNoteFolders = ref<{id:string,title:string}[]>([]);
+const sendToNoteLoading = ref(false);
+
+async function openSendToNote() {
+  sendToNoteShow.value = true;
+  sendToNoteFolderId.value = "";
+  sendToNoteNewFolder.value = "";
+  sendToNoteLoading.value = true;
+  try { sendToNoteFolders.value = await useNotesStore().loadFoldersAndReturn(); }
+  catch(e:any) { message.error("加载文件夹失败: " + String(e)); }
+  finally { sendToNoteLoading.value = false; }
+}
+async function doSendToNote() {
+  if (!detailResult.value || !detailEntry.value) return;
+  let folderId = sendToNoteFolderId.value;
+  if (!folderId && sendToNoteNewFolder.value.trim()) {
+    try { const folder = await useNotesStore().createFolder(sendToNoteNewFolder.value.trim()); folderId = folder.id; }
+    catch(e:any) { message.error("创建文件夹失败: " + String(e)); return; }
+  }
+  if (!folderId) { message.warning("请选择或创建文件夹"); return; }
+  try {
+    const title = detailEntry.value.title || "未命名笔记";
+    const content = aiContent.value || "";
+    await useNotesStore().createNote(folderId, title, content);
+    message.success("已发送到笔记");
+    sendToNoteShow.value = false;
+  } catch(e:any) { message.error("发送失败: " + String(e)); }
+}
 
 async function load() {
   loading.value = true;
@@ -269,6 +301,7 @@ function badgeStyle(source: string) {
           <n-space style="margin:10px 0 0;">
             <n-button size="small" @click="copyDetail"><template #icon><n-icon><CopyOutline /></n-icon></template>复制</n-button>
             <n-button size="small" @click="exportDetail"><template #icon><n-icon><DownloadOutline /></n-icon></template>导出</n-button>
+            <n-button size="small" type="primary" @click="openSendToNote" ghost><template #icon><n-icon><DocumentTextOutline /></n-icon></template>发送到笔记</n-button>
           </n-space>
           <div class="analysis-tabs" v-if="analyses.length>0">
             <div class="analysis-tabs-inner">
@@ -289,13 +322,36 @@ function badgeStyle(source: string) {
               </n-button>
             </div>
           </div>
-          <n-divider style="margin:12px 0;" />
           <div v-if="analysisLoading" style="text-align:center;padding:30px;"><n-text depth="3">加载中...</n-text></div>
           <div v-else class="md-preview" v-html="renderMarkdown(aiContent)" />
         </div>
         <n-text depth="3" v-else style="display:block;text-align:center;padding:60px;">该记录无结果数据</n-text>
       </n-drawer-content>
     </n-drawer>
+
+    
+    <n-modal v-model:show="sendToNoteShow" preset="card" title="发送到笔记" style="width:420px;">
+      <n-space vertical :size="12">
+        <n-text depth="2">将 AI 分析结果保存到笔记文件夹</n-text>
+        <div v-if="sendToNoteLoading" style="text-align:center;padding:20px;"><n-text depth="3">加载中...</n-text></div>
+        <template v-else>
+          <div v-if="sendToNoteFolders.length > 0" style="max-height:180px;overflow-y:auto;">
+            <div v-for="f in sendToNoteFolders" :key="f.id" class="stn-folder-item" :class="{selected:sendToNoteFolderId===f.id}" @click="sendToNoteFolderId=f.id;sendToNoteNewFolder=''">
+              <n-icon size="14" :color="sendToNoteFolderId===f.id?'var(--color-brand)':'var(--color-text-tertiary)'"><FolderOpen /></n-icon>
+              <span>{{ f.title }}</span>
+            </div>
+          </div>
+          <n-divider style="margin:8px 0;">或创建新文件夹</n-divider>
+          <n-input v-model:value="sendToNoteNewFolder" placeholder="新文件夹名称" size="small" @focus="sendToNoteFolderId=''" />
+        </template>
+      </n-space>
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="sendToNoteShow=false">取消</n-button>
+          <n-button type="primary" @click="doSendToNote" :disabled="!sendToNoteFolderId && !sendToNoteNewFolder.trim()">发送</n-button>
+        </n-space>
+      </template>
+    </n-modal>
 
     <n-modal v-model:show="rerunShow" preset="card" title="选择提示词模板重新分析" style="width:480px;">
       <n-space vertical :size="12">
@@ -410,4 +466,9 @@ function badgeStyle(source: string) {
 .md-preview :deep(code){background:var(--color-surface-muted);border:1px solid var(--color-border);padding:1px 6px;border-radius:var(--radius-xs);font-size:12.5px;font-family:var(--font-mono)}
 .md-preview :deep(li){margin-left:22px;margin-bottom:4px}
 .md-preview :deep(hr){border:none;border-top:1px solid var(--color-border);margin:18px 0}
+
+.stn-folder-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--radius-md);border:1px solid var(--color-border);cursor:pointer;transition:all var(--dur-1);font-size:13px}
+.stn-folder-item:hover{border-color:var(--color-brand);background:var(--color-brand-soft)}
+.stn-folder-item.selected{border-color:var(--color-brand);background:var(--color-brand-soft);font-weight:600;color:var(--color-text)}
+
 </style>

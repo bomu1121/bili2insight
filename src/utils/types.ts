@@ -157,3 +157,19 @@ export interface HistoryListResult {
   page_size: number;
   total_pages: number;
 }
+export interface NoteFolder {
+  id: string;
+  title: string;
+  created_at: number;
+  color: string;
+}
+
+export interface NoteEntry {
+  id: string;
+  folder_id: string;
+  title: string;
+  content: string;
+  created_at: number;
+  updated_at: number;
+}
+

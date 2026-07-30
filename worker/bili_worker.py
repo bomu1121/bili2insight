@@ -657,7 +657,7 @@ def _mode_fav_follow_list(client, cookies_arg, follow_type, page):
         params["wts"] = round(__import__("time").time())
         params = dict(sorted(params.items()))
         params = {k:"".join(filter(lambda ch:ch not in "!'()*",str(v))) for k,v in params.items()}
-        query_str = __import__("urllib.parse").urlencode(params)
+        query_str = urllib.parse.urlencode(params)
         wbi_sign = __import__("hashlib").md5((query_str+mixin_key).encode()).hexdigest()
         params["w_rid"] = wbi_sign
     url = f"https://api.bilibili.com/x/space/bangumi/follow/list?{urllib.parse.urlencode(params)}"
@@ -708,7 +708,7 @@ def _mode_fav_watch_later(client, cookies_arg, page):
         params["wts"] = round(__import__("time").time())
         params = dict(sorted(params.items()))
         params = {k:"".join(filter(lambda ch:ch not in "!'()*",str(v))) for k,v in params.items()}
-        qs = __import__("urllib.parse").urlencode(params)
+        qs = urllib.parse.urlencode(params)
         params["w_rid"] = __import__("hashlib").md5((qs+mixin_key).encode()).hexdigest()
     url = f"https://api.bilibili.com/x/v2/history/toview/web?{urllib.parse.urlencode(params)}"
     data = client.get(url).json()

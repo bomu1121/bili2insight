@@ -6,6 +6,7 @@ const routes = [
   { path: "/source/local", name: "source-local", component: () => import("./views/SourceLocalView.vue") },
  { path: "/queue", name: "queue", component: () => import("./views/QueueView.vue") },
  { path: "/source/fav", name: "source-fav", component: () => import("./views/SourceFavView.vue") },
+  { path: "/notes", name: "notes", component: () => import("./views/NotesView.vue") },
   { path: "/history", name: "history", component: () => import("./views/HistoryView.vue") },
  { path: "/result/:id", name: "result", component: () => import("./views/ResultView.vue") },
 ];
