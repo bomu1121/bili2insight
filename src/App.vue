@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch, computed } from "vue";
 import { NInput, NButton, NSpace, NText, NIcon, NTabs, NTabPane, NPopover, createDiscreteApi, NDrawer, NDrawerContent, NSelect, NConfigProvider, type GlobalThemeOverrides } from "naive-ui";
+import { zhCN, dateZhCN } from "naive-ui";
 import { Settings, List, Play, Trash2, Eye, CircleCheckBig, CircleX, RefreshCw, CircleUserRound, LogOut, RotateCw, Smartphone, QrCode, ArrowRight, Copy, LinkIcon, FolderOpen, CloudUpload, Clock, Moon, Sun, BookOpen } from "lucide-vue-next";
 import { useRoute, useRouter } from "vue-router";
 import { useAppStore } from "./stores/app";
@@ -141,7 +142,7 @@ const tplPrompt = computed({
 </script>
 
 <template>
-  <n-config-provider :theme-overrides="themeOverrides">
+  <n-config-provider :theme-overrides="themeOverrides" :locale="zhCN" :date-locale="dateZhCN">
   <div class="app-root">
     <aside class="side">
       <div class="side-brand" @click="router.push('/')" title="返回首页">
@@ -494,7 +495,7 @@ const tplPrompt = computed({
 .side-brand { display: flex; align-items: center; gap: 10px; padding: 18px 16px 16px; cursor: pointer; user-select: none; border-bottom: 1px solid var(--color-border); position: relative; overflow: hidden; }
 .side-brand::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at center, rgba(139,62,62,0.04) 0%, transparent 70%); opacity: 0; transition: opacity 0.4s; pointer-events: none; }
 .side-brand:hover::after { opacity: 1; }
-.logo-mark { position: relative; width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(135deg, #1a1d2a, #0a0a10); color: var(--color-brand); display: grid; place-items: center; flex-shrink: 0; box-shadow: var(--brand-glow-soft); transition: box-shadow var(--dur-3) var(--ease-out); }
+.logo-mark { position: relative; width: 34px; height: 34px; border-radius: 9px; background: transparent; color: var(--color-brand); display: grid; place-items: center; flex-shrink: 0; box-shadow: var(--brand-glow-soft); transition: box-shadow var(--dur-3) var(--ease-out); }
 .side-brand:hover .logo-mark { box-shadow: 0 0 8px rgba(139,62,62,0.5), 0 0 16px rgba(139,62,62,0.2); }
 .logo-gear { animation: spin 20s linear infinite; }
 .side-brand:hover .logo-gear { animation-duration: 3s; }
