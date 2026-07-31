@@ -41,6 +41,7 @@
   --color-error: #B53A3A;
   --color-error-soft: rgba(181, 58, 58, 0.07);
   --color-error-border: rgba(181, 58, 58, 0.18);
+  --color-on-error: #FFF1E8;
   --color-info: #439AB1;
   --color-info-soft: rgba(67, 154, 177, 0.07);
   --color-info-border: rgba(67, 154, 177, 0.18);
@@ -156,6 +157,7 @@
   --color-error: #A03030;
   --color-error-soft: rgba(160, 48, 48, 0.07);
   --color-error-border: rgba(160, 48, 48, 0.16);
+  --color-on-error: #FFFFFF;
   --color-info: #2A7A8C;
   --color-info-soft: rgba(42, 122, 140, 0.07);
   --color-info-border: rgba(42, 122, 140, 0.16);

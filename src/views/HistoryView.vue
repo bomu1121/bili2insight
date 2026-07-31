@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from "vue";
-import { NButton, NText, NIcon, NInput, NPagination, NDrawer, NDrawerContent, NSpace, NDivider, NPopconfirm, NModal, createDiscreteApi } from "naive-ui";
+import { NButton, NText, NIcon, NInput, NPagination, NDrawer, NDrawerContent, NSpace, NDivider, NModal, createDiscreteApi } from "naive-ui";
 import { TrashOutline, EyeOutline, SearchOutline, RefreshOutline, CopyOutline, DownloadOutline, TimeOutline, DocumentTextOutline, Star, StarOutline, BeakerOutline, FlashOutline, CheckmarkDoneOutline, FolderOpen } from "@vicons/ionicons5";
 import { useRouter } from "vue-router";
 import { useTemplateStore } from "../stores/templates";
 import { useAppStore } from "../stores/app";
 import { useNotesStore } from "../stores/notes";
 import { fetchHistoryList, getHistoryResult, deleteHistoryItem, clearHistory, toggleHistoryStar, historyGetAnalyses, historyGetAnalysisResult, historyRerunAi } from "../utils/invoke";
+import DmailConfirm from "../components/DmailConfirm.vue";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import type { HistoryEntry, HistoryListResult, PipelineResult, AnalysisMeta } from "../utils/types";
 
@@ -15,6 +16,8 @@ const { message } = createDiscreteApi(["message"], { messageProviderProps: { pla
 
 const loading = ref(false);
 const clearing = ref(false);
+const clearShow = ref(false);
+const deleteEntry = ref<HistoryEntry | null>(null);
 const search = ref("");
 const page = ref(1);
 const pageSize = 30;
@@ -181,7 +184,17 @@ async function doClearAll() {
     message.error("清除失败: " + String(e));
   } finally {
     clearing.value = false;
+    clearShow.value = false;
   }
+}
+
+const deleteMessage = computed(() => deleteEntry.value ? `确认删除《${deleteEntry.value.title}》？删除后无法恢复。` : "");
+
+async function confirmDelete() {
+  const entry = deleteEntry.value;
+  if (!entry) return;
+  deleteEntry.value = null;
+  await doDelete(entry);
 }
 
 function fmtDate(ts: number) {
@@ -226,10 +239,7 @@ function badgeStyle(source: string) {
       </div>
       <n-space :size="8">
         <n-button size="small" @click="load()" :loading="loading"><template #icon><n-icon><RefreshOutline /></n-icon></template>刷新</n-button>
-        <n-popconfirm @positive-click="doClearAll">
-          <template #trigger><n-button size="small" type="error" secondary :disabled="!data||data.total===0" :loading="clearing">清空全部</n-button></template>
-          确认清除全部？星标置顶的记录会保留。
-        </n-popconfirm>
+        <n-button size="small" type="error" secondary :disabled="!data||data.total===0" :loading="clearing" @click="clearShow = true">清空全部</n-button>
       </n-space>
     </div>
 
@@ -267,10 +277,7 @@ function badgeStyle(source: string) {
             </template>
           </n-button>
           <n-button size="tiny" text @click="openDetail(entry)"><template #icon><n-icon size="14"><EyeOutline /></n-icon></template></n-button>
-          <n-popconfirm @positive-click="doDelete(entry)">
-            <template #trigger><n-button size="tiny" text type="error"><template #icon><n-icon size="14"><TrashOutline /></n-icon></template></n-button></template>
-            确认删除此记录？
-          </n-popconfirm>
+          <n-button size="tiny" text type="error" @click="deleteEntry = entry"><template #icon><n-icon size="14"><TrashOutline /></n-icon></template></n-button>
         </div>
       </div>
     </div>
@@ -353,26 +360,55 @@ function badgeStyle(source: string) {
       </template>
     </n-modal>
 
-    <n-modal v-model:show="rerunShow" preset="card" title="选择提示词模板重新分析" style="width:480px;">
-      <n-space vertical :size="12">
-        <n-text depth="2">将使用原始转写文本重新运行 AI 分析，原分析结果会保留。</n-text>
-        <div v-for="(tpl, idx) in useTemplateStore().allTemplates" :key="idx" class="rerun-tpl-item" :class="{selected:rerunTemplateIndex===idx}" @click="rerunTemplateIndex=idx">
+    <DmailConfirm
+      :show="clearShow"
+      severity="danger"
+      message="确认清除全部历史记录？星标置顶的记录会保留。"
+      confirm-text="清除"
+      cancel-text="取消"
+      :loading="clearing"
+      loading-text="清除中..."
+      @confirm="doClearAll"
+      @cancel="clearShow = false"
+    />
+    <DmailConfirm
+      :show="!!deleteEntry"
+      severity="danger"
+      :message="deleteMessage"
+      confirm-text="删除"
+      cancel-text="取消"
+      @confirm="confirmDelete"
+      @cancel="deleteEntry = null"
+    />
+    <DmailConfirm
+      :show="rerunShow"
+      severity="warning"
+      message="将使用原始转写文本重新运行 AI 分析，原分析结果会保留。"
+      confirm-text="开始分析"
+      cancel-text="取消"
+      :loading="rerunLoading"
+      loading-text="分析中..."
+      @confirm="doRerun"
+      @cancel="rerunShow = false"
+    >
+      <template #extra>
+        <div class="rerun-tpl-label">选择提示词模板</div>
+        <div
+          v-for="(tpl, idx) in useTemplateStore().allTemplates"
+          :key="idx"
+          class="rerun-tpl-item"
+          :class="{selected:rerunTemplateIndex===idx}"
+          tabindex="0"
+          @click="rerunTemplateIndex=idx"
+          @keydown.enter="rerunTemplateIndex=idx"
+        >
           <n-icon size="14" :color="rerunTemplateIndex===idx?'var(--color-brand)':'var(--color-text-tertiary)'">
             <BeakerOutline v-if="rerunTemplateIndex!==idx" /><CheckmarkDoneOutline v-else />
           </n-icon>
           <span>{{ tpl.name }}</span>
         </div>
-      </n-space>
-      <template #footer>
-        <n-space justify="end">
-          <n-button @click="rerunShow=false">取消</n-button>
-          <n-button type="primary" @click="doRerun()" :loading="rerunLoading">
-            <template #icon><n-icon><FlashOutline /></n-icon></template>
-            开始分析
-          </n-button>
-        </n-space>
       </template>
-    </n-modal>
+    </DmailConfirm>
   </div>
 </template>
 
@@ -454,8 +490,10 @@ function badgeStyle(source: string) {
 .analysis-tab:hover{border-color:var(--color-brand);color:var(--color-brand)}
 .analysis-tab.active{background:var(--color-brand-soft);border-color:var(--color-brand);color:var(--color-brand);font-weight:600}
 .analysis-tab-label{max-width:100px;overflow:hidden;text-overflow:ellipsis}
+.rerun-tpl-label{font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--color-text-tertiary);letter-spacing:0.05em;margin-bottom:8px}
 .rerun-tpl-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--radius-md);border:1px solid var(--color-border);cursor:pointer;transition:all var(--dur-1);font-size:13px}
 .rerun-tpl-item:hover{border-color:var(--color-brand);background:var(--color-brand-soft)}
+.rerun-tpl-item:focus-visible{outline:2px solid var(--color-brand-border);outline-offset:1px}
 .rerun-tpl-item.selected{border-color:var(--color-brand);background:var(--color-brand-soft);font-weight:600;color:var(--color-text)}
 .md-preview{line-height:var(--line-height-loose);color:var(--color-text);font-size:14.5px;padding:4px 0 12px}
 .md-preview :deep(h1){font-size:21px;margin:18px 0 10px;color:var(--color-text);letter-spacing:-.01em}

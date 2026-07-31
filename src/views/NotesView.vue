@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick, computed } from "vue";
-import { NButton, NIcon, NInput, NSpace, NPopconfirm, createDiscreteApi } from "naive-ui";
+import { NButton, NIcon, NInput, NSpace, createDiscreteApi } from "naive-ui";
 import { FolderOpen, FileText, Plus, Trash2, Edit3, Search, StickyNote, ArrowLeft, PenLine } from "lucide-vue-next";
 import { useNotesStore } from "../stores/notes";
+import DmailConfirm from "../components/DmailConfirm.vue";
 import type { NoteFolder } from "../utils/types";
 
 const store = useNotesStore();
@@ -18,6 +19,13 @@ const noteTitleInput = ref<HTMLInputElement | null>(null);
 const contentTextarea = ref<HTMLTextAreaElement | null>(null);
 const showPreview = ref(true);
 const sidebarCollapsed = ref(false);
+const folderDeleteId = ref<string | null>(null);
+const noteDeleteId = ref<string | null>(null);
+
+const folderDeleteMessage = computed(() => {
+  const f = store.folders.find(x => x.id === folderDeleteId.value);
+  return f ? `确认删除文件夹「${f.title}」及其所有笔记？删除后无法恢复。` : "";
+});
 
 // --- Folder ---
 const filteredFolders = computed(() => {
@@ -80,6 +88,18 @@ function onContentInput(e: Event) {
 }
 async function removeNote(id: string) {
   try { await store.removeNote(id); } catch (e: any) { message.error("\u5220\u9664\u5931\u8d25: " + String(e)); }
+}
+async function confirmRemoveFolder() {
+  const id = folderDeleteId.value;
+  if (!id) return;
+  folderDeleteId.value = null;
+  await removeFolder(id);
+}
+async function confirmRemoveNote() {
+  const id = noteDeleteId.value;
+  if (!id) return;
+  noteDeleteId.value = null;
+  await removeNote(id);
 }
 function goBackToNotes() {
   showPreview.value = true;
@@ -172,14 +192,9 @@ onMounted(async () => {
             <button type="button" class="fa-btn" @click.stop="startRenameFolder(folder)" title="重命名">
               <n-icon :size="12"><Edit3 /></n-icon>
             </button>
-            <n-popconfirm @positive-click="removeFolder(folder.id)">
-              <template #trigger>
-                <button type="button" class="fa-btn danger" @click.stop title="删除">
-                  <n-icon :size="12"><Trash2 /></n-icon>
-                </button>
-              </template>
-              确认删除文件夹及其所有笔记？
-            </n-popconfirm>
+            <button type="button" class="fa-btn danger" @click.stop="folderDeleteId = folder.id" title="删除">
+              <n-icon :size="12"><Trash2 /></n-icon>
+            </button>
           </div>
         </div>
 
@@ -285,12 +300,9 @@ onMounted(async () => {
               <template #icon><n-icon :size="14"><PenLine /></n-icon></template>
             </n-button>
             <n-button size="tiny" :type="showPreview ? 'primary' : 'default'" @click="showPreview = true" quaternary>预览</n-button>
-            <n-popconfirm @positive-click="removeNote(store.currentNote.id)">
-              <template #trigger>
-                <n-button size="tiny" type="error" quaternary><template #icon><n-icon :size="14"><Trash2 /></n-icon></template></n-button>
-              </template>
-              确认删除此笔记？
-            </n-popconfirm>
+            <n-button size="tiny" type="error" quaternary @click="noteDeleteId = store.currentNote.id">
+              <template #icon><n-icon :size="14"><Trash2 /></n-icon></template>
+            </n-button>
           </n-space>
         </div>
 
@@ -320,6 +332,25 @@ onMounted(async () => {
         </div>
       </div>
     </main>
+
+    <DmailConfirm
+      :show="!!folderDeleteId"
+      severity="danger"
+      :message="folderDeleteMessage"
+      confirm-text="删除"
+      cancel-text="取消"
+      @confirm="confirmRemoveFolder"
+      @cancel="folderDeleteId = null"
+    />
+    <DmailConfirm
+      :show="!!noteDeleteId"
+      severity="danger"
+      message="确认删除此笔记？删除后无法恢复。"
+      confirm-text="删除"
+      cancel-text="取消"
+      @confirm="confirmRemoveNote"
+      @cancel="noteDeleteId = null"
+    />
   </div>
 </template>
 
