@@ -736,7 +736,7 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover);
-  box-shadow: 0 0 6px rgba(139, 62, 62, 0.15);
+  box-shadow: var(--brand-glow);
 }
 
 /* ============================================
