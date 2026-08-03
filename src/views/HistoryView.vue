@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from "vue";
+import { ref, onMounted, onBeforeUnmount, watch, computed } from "vue";
 import { NButton, NText, NIcon, NInput, NPagination, NDrawer, NDrawerContent, NSpace, NDivider, NModal, createDiscreteApi } from "naive-ui";
 import { TrashOutline, EyeOutline, SearchOutline, RefreshOutline, CopyOutline, DownloadOutline, TimeOutline, DocumentTextOutline, Star, StarOutline, BeakerOutline, FlashOutline, CheckmarkDoneOutline, FolderOpen } from "@vicons/ionicons5";
 import { useTemplateStore } from "../stores/templates";
@@ -13,6 +13,8 @@ import type { HistoryEntry, HistoryListResult, PipelineResult, AnalysisMeta } fr
 const { message } = createDiscreteApi(["message"], { messageProviderProps: { placement: "bottom-right" } });
 
 const loading = ref(false);
+const refreshing = ref(false);
+const refreshDone = ref(false);
 const clearing = ref(false);
 const clearShow = ref(false);
 const deleteEntry = ref<HistoryEntry | null>(null);
@@ -20,15 +22,6 @@ const search = ref("");
 const page = ref(1);
 const pageSize = 30;
 const data = ref<HistoryListResult | null>(null);
-
-const scrollRef = ref<HTMLElement | null>(null);
-const scrollProgress = ref(0);
-function onScroll() {
-  const el = scrollRef.value;
-  if (!el) return;
-  const max = el.scrollHeight - el.clientHeight;
-  scrollProgress.value = max > 0 ? el.scrollTop / max : 0;
-}
 
 const detailDrawer = ref(false);
 const detailEntry = ref<HistoryEntry | null>(null);
@@ -72,17 +65,59 @@ async function doSendToNote() {
   } catch(e:any) { message.error("发送失败: " + String(e)); }
 }
 
-async function load() {
+let loadToken = 0;
+let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+async function load(opts: { fromRefresh?: boolean } = {}) {
+  const token = ++loadToken;
   loading.value = true;
-  try { const q = search.value.trim() || undefined; data.value = await fetchHistoryList(page.value, pageSize, q); }
-  catch (e: any) { message.error("加载失败: " + String(e)); }
-  finally { loading.value = false; }
+  if (opts.fromRefresh) refreshing.value = true;
+  try {
+    const q = search.value.trim() || undefined;
+    const result = await fetchHistoryList(page.value, pageSize, q);
+    if (token !== loadToken) return;
+    data.value = result;
+    if (opts.fromRefresh) {
+      refreshDone.value = true;
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => { refreshDone.value = false; }, 900);
+    }
+  }
+  catch (e: any) {
+    if (token === loadToken) message.error("加载失败: " + String(e));
+  }
+  finally {
+    if (token === loadToken) {
+      loading.value = false;
+      refreshing.value = false;
+    }
+  }
+}
+
+function refresh() {
+  if (loading.value || refreshing.value) return;
+  refreshDone.value = false;
+  if (refreshTimer) { clearTimeout(refreshTimer); refreshTimer = null; }
+  load({ fromRefresh: true });
 }
 
 let searchTimer: ReturnType<typeof setTimeout> | null = null;
-watch(search, () => { if (searchTimer) clearTimeout(searchTimer); searchTimer = setTimeout(() => { page.value = 1; load(); }, 300); });
+watch(search, () => {
+  if (searchTimer) clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    if (page.value !== 1) {
+      page.value = 1;
+    } else {
+      load();
+    }
+  }, 300);
+});
 watch(page, () => load());
 onMounted(() => load());
+onBeforeUnmount(() => {
+  if (searchTimer) clearTimeout(searchTimer);
+  if (refreshTimer) clearTimeout(refreshTimer);
+});
 
 async function openDetail(entry: HistoryEntry) {
   detailEntry.value = entry; detailResult.value = null; detailDrawer.value = true; detailLoading.value = true;
@@ -237,33 +272,40 @@ function badgeStyle(source: string) {
 
 <template>
   <div class="history-root">
-    <div class="history-deck">
+    <div class="history-inner">
       <div class="history-header">
         <div class="header-left">
-          <div class="title-wrap">
-            <span class="bar-ic history"><n-icon :size="15"><TimeOutline /></n-icon></span>
-            <n-text strong>历史记录</n-text>
-          </div>
+          <span class="bar-ic history"><n-icon :size="15"><TimeOutline /></n-icon></span>
+          <n-text strong class="page-title">历史记录</n-text>
         </div>
         <n-space :size="8">
-          <n-button size="small" @click="load()" :loading="loading"><template #icon><n-icon><RefreshOutline /></n-icon></template>刷新</n-button>
+          <n-button
+            class="refresh-btn"
+            :class="{ refreshing, done: refreshDone }"
+            size="small"
+            :disabled="loading || refreshing"
+            :title="refreshing ? '刷新中...' : '刷新'"
+            @click="refresh"
+          >
+            <template #icon>
+              <n-icon :size="14" class="refresh-icon">
+                <RefreshOutline v-if="!refreshDone" />
+                <CheckmarkDoneOutline v-else />
+              </n-icon>
+            </template>
+            刷新
+          </n-button>
           <n-button size="small" type="error" secondary :disabled="!data||data.total===0" :loading="clearing" @click="clearShow = true">清空全部</n-button>
         </n-space>
       </div>
 
       <div class="history-bar">
-        <n-input v-model:value="search" placeholder="搜索标题、UP主、BV号..." size="small" clearable round style="width:min(320px,100%);">
+        <n-input v-model:value="search" placeholder="搜索标题、UP主、BV号..." size="small" clearable class="history-search">
           <template #prefix><n-icon><SearchOutline /></n-icon></template>
         </n-input>
-        <n-text depth="3" class="total-text tnum" v-if="data&&!loading">共 {{ data.total }} 条</n-text>
+        <span class="total-text tnum" v-if="data&&!loading">共 {{ data.total }} 条</span>
       </div>
 
-      <div class="deck-gauge" aria-hidden="true">
-        <span :style="{ width: (scrollProgress * 100).toFixed(2) + '%' }"></span>
-      </div>
-    </div>
-
-    <div ref="scrollRef" class="history-scroll" @scroll="onScroll">
       <div class="history-list" v-if="data&&data.entries.length>0">
         <div v-for="entry in data.entries" :key="entry.id"
           class="h-card"
@@ -430,41 +472,38 @@ function badgeStyle(source: string) {
 
 
 <style scoped>
-/* === History Grid — Fixed Observation Deck + Independent Scroll Area === */
-/* ref: VS Code titlebarpart.css — fixed title zone, content scrolls separately */
-/* ref: shadcn/ui ScrollArea — viewport fills remaining space and owns the scrollbar */
+/* === History Page — QueueView root scroll + SourceFav toolbar === */
+/* ref: QueueView — header scrolls with content, root owns the scrollbar */
 /* ref: Linear — card grid with top color accent per category */
 
 /* --- Root --- */
-.history-root{height:100%;display:flex;flex-direction:column;max-width:var(--content-max-wide);margin:0 auto;width:100%;background:var(--color-bg);overflow:hidden}
+.history-root{height:100%;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;background:var(--color-bg)}
+.history-inner{max-width:var(--content-max-wide);margin:0 auto;padding:28px 28px 40px;width:100%}
 
-/* --- Deck (ref: VS Code titlebar — fixed-height surface band with bottom hairline) --- */
-.history-deck{flex-shrink:0;position:relative;z-index:2;padding:26px 24px 0;background:var(--color-surface);box-shadow:var(--shadow-xs)}
-.history-header{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:30px;margin-bottom:14px}
+/* --- Header (ref: QueueView — bottom-border separator, scrolls with content) --- */
+.history-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--color-border)}
+.history-header .n-button{font-size:11px !important;padding:0 8px !important;min-width:unset !important}
+.history-header .n-space{gap:5px !important;flex-wrap:nowrap !important}
 .header-left{display:flex;align-items:center;gap:10px;min-width:0}
-.title-wrap{display:inline-flex;align-items:center;gap:9px;font-size:15px;white-space:nowrap;min-width:0}
 .bar-ic{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;flex-shrink:0}
 .bar-ic.history{background:var(--color-accent-indigo-soft);color:var(--color-accent-indigo)}
+.page-title{font-size:var(--font-size-page);font-weight:700;letter-spacing:-0.01em}
 
-/* --- Search Bar (ref: vue-element-admin Navbar — compact fixed bar, right-side meta) --- */
-.history-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:14px;flex-wrap:wrap}
-.total-text{font-size:12px;font-family:var(--font-mono);flex-shrink:0}
+/* --- Refresh micro-interaction --- */
+.refresh-btn .refresh-icon{will-change:transform;transition:color var(--dur-2)}
+.refresh-btn.refreshing .refresh-icon{animation:refresh-spin .9s linear infinite;color:var(--color-brand)}
+.refresh-btn.done .refresh-icon{animation:refresh-done .45s var(--spring-bounce) both;color:var(--color-success)}
+@keyframes refresh-spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes refresh-done{
+  0%{transform:scale(.5) rotate(-24deg);opacity:0}
+  60%{transform:scale(1.22) rotate(8deg);opacity:1}
+  100%{transform:scale(1) rotate(0);opacity:1}
+}
 
-/* --- Scroll gauge (ref: Steins;Gate divergence meter — orange signal hairline) --- */
-.deck-gauge{height:2px;background:var(--color-border);border-radius:2px;overflow:hidden}
-.deck-gauge span{display:block;height:100%;width:0;background:var(--divergence-color);box-shadow:var(--divergence-glow);border-radius:inherit;transition:width .08s linear}
-
-/* --- Scroll area (ref: shadcn/ui ScrollArea — viewport owns the scrollbar) --- */
-.history-scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;padding:20px 24px 40px}
-
-/* --- Scrollbar (ref: VS Code scrollbars.css — quiet track, slider brightens with hover) --- */
-.history-scroll{scrollbar-width:thin;scrollbar-color:var(--color-border-strong) transparent}
-.history-scroll::-webkit-scrollbar{width:10px}
-.history-scroll::-webkit-scrollbar-track{background:transparent;border-radius:6px;transition:background var(--dur-2)}
-.history-scroll:hover::-webkit-scrollbar-track{background:var(--color-surface-muted)}
-.history-scroll::-webkit-scrollbar-thumb{background:var(--color-border-strong);border:2px solid transparent;background-clip:padding-box;border-radius:6px;min-height:48px;transition:background var(--dur-2),box-shadow var(--dur-2)}
-.history-scroll::-webkit-scrollbar-thumb:hover{background:var(--color-brand);box-shadow:var(--brand-glow)}
-.history-scroll::-webkit-scrollbar-thumb:active{background:var(--color-brand-pressed);box-shadow:var(--brand-glow)}
+/* --- Search Bar (ref: SourceFavView toolbar-row — compact, right-side meta) --- */
+.history-bar{display:flex;align-items:center;gap:10px;padding:10px 0 14px;min-height:44px;border-bottom:1px solid var(--color-border);margin-bottom:4px}
+.history-search{max-width:280px}
+.total-text{font-size:12px;color:var(--color-text-secondary);margin-left:auto;flex-shrink:0}
 
 /* --- Card Grid --- */
 /* ref: Raycast history grid — responsive auto-fill columns */

@@ -203,7 +203,22 @@ for (const theme of ["dark", "light"]) {
   }
   await page.waitForTimeout(1200);
   await page.screenshot({ path: path.join(OUT_DIR, `history-${theme}-top.png`) });
-  const scrollBox = await page.locator(".history-scroll").boundingBox();
+
+  // Refresh micro-interaction: hold the request open to capture both states.
+  await page.evaluate(() => {
+    const orig = window.__TAURI_INTERNALS__.invoke;
+    window.__TAURI_INTERNALS__.invoke = async (cmd, args) => {
+      if (cmd === "history_list") await new Promise((r) => setTimeout(r, 1200));
+      return orig(cmd, args);
+    };
+  });
+  await page.locator(".refresh-btn").click();
+  await page.waitForTimeout(350);
+  await page.screenshot({ path: path.join(OUT_DIR, `history-${theme}-refreshing.png`) });
+  await page.waitForTimeout(1400);
+  await page.screenshot({ path: path.join(OUT_DIR, `history-${theme}-refreshed.png`) });
+
+  const scrollBox = await page.locator(".history-root").boundingBox();
   if (scrollBox) {
     await page.mouse.move(scrollBox.x + scrollBox.width - 5, scrollBox.y + 26);
     await page.waitForTimeout(400);
@@ -212,7 +227,7 @@ for (const theme of ["dark", "light"]) {
     await page.waitForTimeout(200);
   }
   await page.evaluate(() => {
-    const el = document.querySelector(".history-scroll");
+    const el = document.querySelector(".history-root");
     if (el) el.scrollTop = el.scrollHeight;
   });
   await page.waitForTimeout(500);
