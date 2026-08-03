@@ -2,7 +2,7 @@
 import { onMounted, onUnmounted, ref, watch, computed } from "vue";
 import { NInput, NButton, NSpace, NText, NIcon, NTabs, NTabPane, NPopover, createDiscreteApi, NDrawer, NDrawerContent, NSelect, NConfigProvider, type GlobalThemeOverrides } from "naive-ui";
 import { zhCN, dateZhCN } from "naive-ui";
-import { Settings, List, Play, Trash2, Eye, CircleCheckBig, CircleX, RefreshCw, Activity, CircleUserRound, LogOut, RotateCw, Smartphone, QrCode, ArrowRight, Copy, LinkIcon, FolderOpen, CloudUpload, Clock, Moon, Sun, BookOpen } from "lucide-vue-next";
+import { Settings, List, Play, Trash2, Eye, CircleCheckBig, CircleX, RefreshCw, CircleUserRound, LogOut, RotateCw, Smartphone, QrCode, ArrowRight, Copy, LinkIcon, FolderOpen, CloudUpload, Clock, Moon, Sun, BookOpen } from "lucide-vue-next";
 import { useRoute, useRouter } from "vue-router";
 import { useAppStore } from "./stores/app";
 import { useAuthStore } from "./stores/auth";
@@ -85,19 +85,6 @@ async function copyAllTitles() {
 const templateOptions = computed(() => {
   const opts = templateStore.allTemplates.map((t, i) => ({ label: t.name, value: i }));
   return [{ label: `默认（${templateStore.allTemplates[templateStore.selectedTemplateIndex]?.name ?? ""}）`, value: -1 }, ...opts];
-});
-
-const queueStats = computed(() => {
-  const pending = store.queue.filter(q => q.status === "pending").length;
-  const running = store.queue.filter(q => q.status === "running").length;
-  const done = store.queue.filter(q => q.status === "done").length;
-  const error = store.queue.filter(q => q.status === "error").length;
-  return { pending, running, done, error, total: store.queue.length };
-});
-
-const activeStage = computed(() => {
-  const running = store.queue.find(q => q.status === "running");
-  return running?.stageLabel || "";
 });
 
 function updateItemTemplate(itemId: string, val: number) {
@@ -267,26 +254,7 @@ const tplPrompt = computed({
     <!-- Queue Drawer -->
     <n-drawer v-model:show="showQueue" width="420" placement="right">
       <n-drawer-content title="观测队列" closable>
-        <div class="queue-drawer">
-          <!-- ref: Linear sidebar status strip + Steins;Gate CRT terminal -->
-          <div class="queue-status-band" :class="{ running: store.isProcessing }">
-            <div class="queue-status-main">
-              <span class="queue-status-icon" :class="{ live: store.isProcessing }">
-                <n-icon v-if="store.isProcessing" :size="15" color="var(--color-warning)"><Activity /></n-icon>
-                <span v-else class="queue-status-idle-dot"></span>
-              </span>
-              <div class="queue-status-text">
-                <span class="queue-status-label">{{ store.isProcessing ? "正在观测" : "观测待机" }}</span>
-                <span v-if="store.isProcessing && activeStage" class="queue-status-stage">{{ activeStage }}</span>
-              </div>
-            </div>
-            <div class="queue-counts">
-              <span class="queue-count tnum">{{ queueStats.total }}<em>队列</em></span>
-              <span class="queue-count running tnum">{{ queueStats.running }}<em>运行</em></span>
-              <span class="queue-count done tnum">{{ queueStats.done }}<em>完成</em></span>
-              <span class="queue-count error tnum">{{ queueStats.error }}<em>失败</em></span>
-            </div>
-          </div>
+        <div class="queue-drawer" v-if="store.queue.length > 0">
           <div class="queue-actions">
             <n-button size="small" type="primary" @click="startProcessing" :disabled="store.isProcessing || store.queue.filter(q=>q.status==='pending').length===0">
               <template #icon><n-icon><Play /></n-icon></template>开始观测
@@ -301,62 +269,54 @@ const tplPrompt = computed({
               <template #icon><n-icon><Copy /></n-icon></template>复制标题
             </n-button>
           </div>
-          <template v-if="store.queue.length > 0">
-            <div class="queue-list">
-              <div v-for="item in store.queue" :key="item.id" class="q-item" :class="{ running: item.status === 'running', done: item.status === 'done', error: item.status === 'error' }">
-                <div class="q-row1">
-                  <span class="q-s">
-                    <n-icon v-if="item.status === 'done'" color="var(--color-success)" size="16"><CircleCheckBig /></n-icon>
-                    <n-icon v-else-if="item.status === 'error'" color="var(--color-error)" size="16"><CircleX /></n-icon>
-                    <n-icon v-else-if="item.status === 'running'" color="var(--color-warning)" size="16" class="spinning"><RefreshCw /></n-icon>
-                    <span v-else class="q-pending-dot">&#9679;</span>
+          <div class="queue-list">
+            <div v-for="item in store.queue" :key="item.id" class="q-item" :class="{ running: item.status === 'running', done: item.status === 'done', error: item.status === 'error' }">
+              <div class="q-row1">
+                <span class="q-s">
+                  <n-icon v-if="item.status === 'done'" color="var(--color-success)" size="16"><CircleCheckBig /></n-icon>
+                  <n-icon v-else-if="item.status === 'error'" color="var(--color-error)" size="16"><CircleX /></n-icon>
+                  <n-icon v-else-if="item.status === 'running'" color="var(--color-brand)" size="16" class="spinning"><RefreshCw /></n-icon>
+                  <span v-else class="q-pending-dot">&#9679;</span>
+                </span>
+                <span class="q-title" :title="item.pageInfo.part">{{ item.pageInfo.part }}</span>
+                <div class="q-meta">
+                  <span class="q-dur tnum">{{ (item.pageInfo.duration ? String(Math.floor(item.pageInfo.duration/60)).padStart(2,'0') + ':' + String(item.pageInfo.duration%60).padStart(2,'0') : '') }}</span>
+                  <span v-if="item.status !== 'done'" class="q-tag" :class="item.status">
+                    {{ item.status === 'error' ? '失败' : item.status === 'running' ? item.stageLabel : '等待' }}
                   </span>
-                  <span class="q-title" :title="item.pageInfo.part">{{ item.pageInfo.part }}</span>
-                  <div class="q-meta">
-                    <span class="q-dur tnum">{{ (item.pageInfo.duration ? String(Math.floor(item.pageInfo.duration/60)).padStart(2,'0') + ':' + String(item.pageInfo.duration%60).padStart(2,'0') : '') }}</span>
-                    <span v-if="item.status !== 'done'" class="q-tag" :class="item.status">
-                      {{ item.status === 'error' ? '失败' : item.status === 'running' ? item.stageLabel : '等待' }}
-                    </span>
-                    <span class="q-elapsed tnum">{{ item.elapsedMs ? fmtElapsed(item.elapsedMs) : '' }}</span>
-                  </div>
-                  <div class="q-action">
-                    <n-select
-                      v-if="item.status === 'pending'"
-                      :value="item.templateIndex ?? -1"
-                      :options="templateOptions"
-                      size="tiny"
-                      :consistent-menu-width="false"
-                      class="q-tpl-select"
-                      @update:value="(v: number) => updateItemTemplate(item.id, v)"
-                    />
-                    <n-button v-if="item.status === 'done'" size="tiny" text @click="viewResult(item.id)" style="padding:0 4px;">
-                      <template #icon><n-icon size="16"><Eye /></n-icon></template>
-                    </n-button>
-                  </div>
+                  <span class="q-elapsed tnum">{{ item.elapsedMs ? fmtElapsed(item.elapsedMs) : '' }}</span>
                 </div>
-                <div v-if="item.status === 'running'" class="q-row2">
-                  <div class="q-bar"><div class="q-fill" :style="{ width: Math.round(item.progress*100)+'%' }"></div></div>
+                <div class="q-action">
+                  <n-select
+                    v-if="item.status === 'pending'"
+                    :value="item.templateIndex ?? -1"
+                    :options="templateOptions"
+                    size="tiny"
+                    :consistent-menu-width="false"
+                    class="q-tpl-select"
+                    @update:value="(v: number) => updateItemTemplate(item.id, v)"
+                  />
+                  <n-button v-if="item.status === 'done'" size="tiny" text @click="viewResult(item.id)" style="padding:0 4px;">
+                    <template #icon><n-icon size="16"><Eye /></n-icon></template>
+                  </n-button>
                 </div>
               </div>
+              <div v-if="item.status === 'running'" class="q-row2">
+                <div class="q-bar"><div class="q-fill" :style="{ width: Math.round(item.progress*100)+'%' }"></div></div>
+              </div>
             </div>
-          </template>
-          <n-text depth="3" v-else class="queue-empty">
-            <n-icon :size="40" color="var(--color-text-tertiary)"><List /></n-icon>
-            <span>队列为空</span>
-            <span class="queue-empty-hint">返回首页添加视频后在此处理</span>
-          </n-text>
-        </div>
-        <template #footer>
-          <div class="queue-ops">
-            <div class="queue-ops-stage" :class="{ live: store.isProcessing }">
-              <span class="queue-ops-dot"></span>
-              <span class="queue-ops-label">{{ store.isProcessing ? (activeStage || "处理中") : "观测待机" }}</span>
-            </div>
-            <button type="button" class="queue-full-link" @click="openQueuePage">
-              打开完整队列页
-              <n-icon :size="14"><ArrowRight /></n-icon>
-            </button>
           </div>
+        </div>
+        <n-text depth="3" v-else class="queue-empty">
+          <n-icon :size="40" color="var(--color-text-tertiary)"><List /></n-icon>
+          <span>队列为空</span>
+          <span class="queue-empty-hint">返回首页添加视频后在此处理</span>
+        </n-text>
+        <template #footer>
+          <button type="button" class="queue-full-link" @click="openQueuePage">
+            打开完整队列页
+            <n-icon :size="14"><ArrowRight /></n-icon>
+          </button>
         </template>
       </n-drawer-content>
     </n-drawer>
@@ -649,49 +609,20 @@ const tplPrompt = computed({
 .nav-item.on::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 1px; background: linear-gradient(90deg, transparent 5%, rgba(139,62,62,0.6) 20%, rgba(139,62,62,0.6) 80%, transparent 95%); box-shadow: 0 0 4px rgba(139,62,62,0.3); animation: scanline-sweep 2.8s ease-in-out infinite; pointer-events: none; }
 
 /* Queue drawer */
-.queue-drawer { display: flex; flex-direction: column; gap: 10px; }
-/* ref: Linear sidebar status strip -- compact live state + count legend */
-.queue-status-band { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 10px 9px 13px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-muted); position: relative; overflow: hidden; }
-.queue-status-band::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 0 2px 2px 0; background: var(--color-text-tertiary); transition: background var(--dur-2), box-shadow var(--dur-2); }
-.queue-status-band.running { border-color: var(--color-warning-border); }
-.queue-status-band.running::before { background: var(--color-warning); box-shadow: var(--amber-glow); }
-.queue-status-main { display: flex; align-items: center; gap: 9px; min-width: 0; }
-.queue-status-icon { width: 20px; height: 20px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1px solid var(--color-border); border-radius: 50%; background: var(--color-surface); }
-.queue-status-icon.live { border-color: var(--color-warning-border); background: var(--color-warning-soft); }
-.queue-status-idle-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-text-tertiary); }
-.queue-status-icon.live .n-icon { filter: drop-shadow(var(--amber-glow)); }
-.queue-status-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.queue-status-label { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--color-text); letter-spacing: 0; }
-.queue-status-stage { font-family: var(--font-mono); font-size: 10px; color: var(--color-warning); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.queue-counts { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
-.queue-count { display: inline-flex; align-items: baseline; gap: 3px; min-width: 46px; height: 24px; padding: 0 6px; justify-content: center; border-radius: var(--radius-sm); background: var(--color-surface); border: 1px solid var(--color-border); font-size: 12px; font-weight: 700; color: var(--color-text); font-variant-numeric: tabular-nums; }
-.queue-count em { font-style: normal; font-family: var(--font-family); font-size: 9.5px; font-weight: 500; color: var(--color-text-tertiary); }
-.queue-count.running { color: var(--color-warning); border-color: var(--color-warning-border); background: var(--color-warning-soft); }
-.queue-count.running em { color: var(--color-warning); }
-.queue-count.done { color: var(--color-success); border-color: var(--color-success-border); background: var(--color-success-soft); }
-.queue-count.done em { color: var(--color-success); }
-.queue-count.error { color: var(--color-error); border-color: var(--color-error-border); background: var(--color-error-soft); }
-.queue-count.error em { color: var(--color-error); }
-.queue-actions { display: flex; gap: 5px; flex-wrap: nowrap; padding: 2px 0 10px; border-bottom: 1px solid var(--color-border); margin-bottom: 2px; }
+.queue-drawer { display: flex; flex-direction: column; gap: 12px; }
+.queue-actions { display: flex; gap: 5px; flex-wrap: nowrap; padding: 2px 0 14px; border-bottom: 1px solid var(--color-border); margin-bottom: 6px; }
 /* ref: GitHub Actions sidebar -- compact button group in narrow panels */
 .queue-actions .n-button { font-size: 11px !important; padding: 0 8px !important; min-width: unset !important; }
 .queue-list { display: flex; flex-direction: column; gap: 8px; }
 .queue-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 72px 16px; text-align: center; color: var(--color-text-secondary); animation: empty-enter 0.5s var(--ease-out) both; }
 .queue-empty .n-icon { animation: materialize 0.5s var(--spring-snappy) both; }
-.queue-ops { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 2px 0 0; border-top: 1px solid var(--color-border); }
-.queue-ops-stage { display: inline-flex; align-items: center; gap: 7px; min-width: 0; font-family: var(--font-mono); font-size: 10.5px; color: var(--color-text-tertiary); }
-.queue-ops-stage.live { color: var(--color-warning); }
-.queue-ops-dot { width: 6px; height: 6px; flex-shrink: 0; border-radius: 50%; background: var(--color-text-tertiary); }
-.queue-ops-stage.live .queue-ops-dot { background: var(--color-warning); box-shadow: var(--amber-glow); animation: pulse-dot 1.2s ease-in-out infinite; }
-.queue-ops-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.queue-full-link { display: inline-flex; align-items: center; gap: 6px; border: none; background: transparent; font-family: var(--font-mono); font-size: 11px; font-weight: 500; color: var(--color-text-secondary); cursor: pointer; padding: 2px 0; white-space: nowrap; transition: color var(--dur-2), text-shadow var(--dur-2); }
+.queue-full-link { display: inline-flex; align-items: center; gap: 6px; border: none; background: transparent; font-family: var(--font-mono); font-size: 11px; font-weight: 500; color: var(--color-text-secondary); cursor: pointer; padding: 2px 0; transition: color var(--dur-2), text-shadow var(--dur-2); }
 .queue-full-link:hover { color: var(--color-brand); text-shadow: var(--divergence-glow); }
 .q-item { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 11px 12px 10px 15px; border-radius: var(--radius-md); border: 1px solid var(--color-border); background: var(--color-surface); box-shadow: var(--shadow-xs); transition: border-color var(--dur-2), box-shadow var(--dur-2); overflow: hidden; min-width: 0; }
 .q-item::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 0 2px 2px 0; background: transparent; transition: background var(--dur-2), box-shadow var(--dur-2); }
 .q-item:hover { border-color: var(--color-border-strong); box-shadow: var(--shadow-sm); }
-/* ref: Steins;Gate Nixie tube -- active processing reads amber, not green */
-.q-item.running { border-color: var(--color-warning-border); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 142, 66, 0.06); }
-.q-item.running::before { background: var(--color-warning); box-shadow: var(--amber-glow); }
+.q-item.running { border-color: var(--color-brand-border); box-shadow: var(--shadow-card); }
+.q-item.running::before { background: var(--color-brand); box-shadow: var(--brand-glow-soft); }
 .q-item.done { border-color: var(--color-success-border); }
 .q-item.done::before { background: var(--color-success); }
 .q-item.error { border-color: var(--color-error-border); }
@@ -704,13 +635,12 @@ const tplPrompt = computed({
 .q-meta { flex-shrink: 0; display: flex; align-items: center; gap: 6px; }
 .q-dur { font-size: 11px; color: var(--color-text-secondary); font-family: var(--font-mono); }
 .q-tag { font-size: 10.5px; font-weight: 600; color: var(--color-text-secondary); padding: 1px 7px; border-radius: var(--radius-full); background: var(--color-ink-soft); font-family: var(--font-mono); }
-.q-tag.running { color: var(--color-warning); background: var(--color-warning-soft); }
+.q-tag.running { color: var(--color-brand); background: var(--color-brand-soft); }
 .q-tag.error { color: var(--color-error); background: var(--color-error-soft); }
 .q-elapsed { font-size: 10px; color: var(--color-text-tertiary); font-family: var(--font-mono); }
 .q-action { flex-shrink: 0; display: flex; align-items: center; }
-.q-bar { width: 100%; height: 4px; background: var(--color-warning-soft); border-radius: var(--radius-full); overflow: hidden; }
-.q-fill { height: 100%; background: linear-gradient(90deg, var(--color-warning), var(--divergence-color)); border-radius: var(--radius-full); transition: width 0.3s ease; box-shadow: var(--amber-glow); }
-.q-tpl-select { width: 132px; flex-shrink: 0; }
+.q-bar { width: 100%; height: 4px; background: var(--color-brand-soft); border-radius: var(--radius-full); overflow: hidden; }
+.q-fill { height: 100%; background: linear-gradient(90deg, var(--color-brand-pressed), var(--color-brand), var(--color-brand-hover)); border-radius: var(--radius-full); transition: width 0.3s ease; box-shadow: var(--brand-glow-soft); }
 
 /* === Login Terminal — PhoneWave 实验终端 === */
 /* ref: Steins;Gate phone-trigger + VN UI + divergence-meter */
