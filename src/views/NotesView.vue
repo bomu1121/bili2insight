@@ -333,19 +333,15 @@ function onPreviewSelection() {
   if (!highlightMode.value) return;
   wrapPreviewSelection(); // 同步执行，松手即高亮，无延迟
 }
-// 把与选区相交的完整 ==..== 高亮块整体纳入，避免残留半边标记
-function expandSelectionToHighlightBlocks(text: string, start: number, end: number) {
+// 找出所有 ==..== 高亮块的源文本范围（含标记）
+function findHighlightBlocks(text: string) {
   const hlRe = /==([\s\S]*?)==/g;
+  const blocks: { s: number; e: number }[] = [];
   let m: RegExpExecArray | null;
   while ((m = hlRe.exec(text))) {
-    const ms = m.index;
-    const me = m.index + m[0].length;
-    if (start < me && end > ms) {
-      if (ms < start) start = ms;
-      if (me > end) end = me;
-    }
+    blocks.push({ s: m.index, e: m.index + m[0].length });
   }
-  return { start, end };
+  return blocks;
 }
 async function wrapPreviewSelection() {
   if (!store.currentNote) return;
@@ -379,23 +375,21 @@ async function wrapPreviewSelection() {
     message.info("无法定位所选文本，请缩小选择范围后重试");
     return;
   }
-  // 扩展选区以包含相交的高亮块，再统一清理
-  const expanded = expandSelectionToHighlightBlocks(source, start, end);
-  start = expanded.start;
-  end = expanded.end;
-  const inner = source.slice(start, end);
-  // 滑过已高亮区域 → 取消该区域高亮（移除 == 标记）
-  if (inner.startsWith("==") && inner.endsWith("==")) {
-    const unhl = inner.replace(/==/g, "");
-    if (!unhl) return;
-    const newContent = source.slice(0, start) + unhl + source.slice(end);
+  const blocks = findHighlightBlocks(source);
+  const hit = blocks.filter(b => start < b.e && end > b.s);
+  // 滑过已高亮区域 → 取消与之相交的高亮块（整块移除），选区内的普通文本保持原样
+  if (hit.length > 0) {
+    let newContent = source;
+    for (const b of [...hit].sort((a, b) => b.s - a.s)) {
+      newContent = newContent.slice(0, b.s) + newContent.slice(b.s + 2, b.e - 2) + newContent.slice(b.e);
+    }
     if (newContent === source) return;
     try { await store.updateNote(store.currentNote.id, undefined, newContent); }
     catch (e: any) { message.error("高亮保存失败: " + String(e)); }
     return;
   }
-  // 移除选区内已有的 == 标记，避免嵌套高亮导致渲染错乱
-  const clean = inner.replace(/==/g, "");
+  // 纯普通文本 → 精确包裹实际选区，不做扩展
+  const clean = source.slice(start, end).replace(/==/g, "");
   if (!clean) return;
   const newContent = source.slice(0, start) + "==" + clean + "==" + source.slice(end);
   if (newContent === source) return;
@@ -410,24 +404,23 @@ function wrapHighlightSelection() {
   let end = ta.selectionEnd;
   if (start == null || end == null || start === end) return;
   const text = ta.value;
-  // 扩展选区以包含相交的高亮块，再统一清理
-  const expanded = expandSelectionToHighlightBlocks(text, start, end);
-  start = expanded.start;
-  end = expanded.end;
-  const sel = text.slice(start, end);
-  if (!sel) return;
-  // 滑过已高亮区域 → 取消该区域高亮（移除 == 标记）
-  if (sel.startsWith("==") && sel.endsWith("==")) {
-    const unhl = sel.replace(/==/g, "");
-    if (!unhl) return;
-    ta.setRangeText(unhl, start, end, "end");
+  const blocks = findHighlightBlocks(text);
+  const hit = blocks.filter(b => start < b.e && end > b.s);
+  // 滑过已高亮区域 → 取消与之相交的高亮块（整块移除）
+  if (hit.length > 0) {
+    let newText = text;
+    for (const b of [...hit].sort((a, b) => b.s - a.s)) {
+      newText = newText.slice(0, b.s) + newText.slice(b.s + 2, b.e - 2) + newText.slice(b.e);
+    }
+    if (newText === text) return;
+    ta.setRangeText(newText, 0, text.length, "end");
     ta.dispatchEvent(new Event("input", { bubbles: true }));
     ta.focus();
-    ta.setSelectionRange(start, start + unhl.length);
+    ta.setSelectionRange(start, start);
     return;
   }
-  // 移除选区内已有的 == 标记，避免嵌套高亮导致渲染错乱
-  const clean = sel.replace(/==/g, "");
+  // 纯普通文本 → 精确包裹实际选区，不做扩展
+  const clean = text.slice(start, end).replace(/==/g, "");
   if (!clean) return;
   ta.setRangeText("==" + clean + "==", start, end, "end");
   ta.dispatchEvent(new Event("input", { bubbles: true }));
