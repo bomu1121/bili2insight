@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch, computed } from "vue";
-import { NInput, NButton, NSpace, NText, NIcon, NTabs, NTabPane, NPopover, NSwitch, createDiscreteApi, NDrawer, NDrawerContent, NSelect, NConfigProvider, type GlobalThemeOverrides } from "naive-ui";
+import { NInput, NButton, NSpace, NText, NIcon, NTabs, NTabPane, NPopover, NSwitch, NDrawer, NDrawerContent, NSelect, NConfigProvider, type GlobalThemeOverrides } from "naive-ui";
+import { message } from "./utils/feedback";
 import { zhCN, dateZhCN } from "naive-ui";
 import { Settings, List, Play, Trash2, Eye, CircleCheckBig, CircleX, CircleStop, RefreshCw, CircleUserRound, LogOut, RotateCw, Smartphone, QrCode, ArrowRight, Copy, LinkIcon, FolderOpen, CloudUpload, Clock, BookOpen } from "lucide-vue-next";
 import { useRoute, useRouter } from "vue-router";
@@ -10,7 +11,6 @@ import { useSettingsStore } from "./stores/settingsStore";
 import { useTemplateStore } from "./stores/templates";
 import { useMagnetic, useTilt } from "./composables/useMagnetic";
 import { useRipple } from "./composables/useScrollReveal";
-const { message } = createDiscreteApi(["message"]);
 const store = useAppStore();
 const authStore = useAuthStore();
 const settingsStore = useSettingsStore();

@@ -7,6 +7,7 @@ export function renderMarkdown(text: string): string {
     .replace(/^## (.+)$/gm, "<h2>$1</h2>")
     .replace(/^# (.+)$/gm, "<h1>$1</h1>")
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/==([\s\S]+?)==/g, "<mark>$1</mark>")
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/^- (.+)$/gm, "<li>$1</li>")
     .replace(/^(\d+)\. (.+)$/gm, "<li>$2</li>")

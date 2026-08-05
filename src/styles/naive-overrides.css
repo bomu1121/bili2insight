@@ -434,52 +434,50 @@
 }
 
 /* ============================================
-   n-message (Toast) — CRT Glitch 进出
+   n-message (Toast) — 右下角 D-Mail 通知
+   ref: ancoleman/ai-design-components/toast-patterns — bottom-right 定位 + 状态色左描边
+   ref: sonner — 面板质感 + 类型图标 + 柔和投影
+   ref: steinsgate-theme — Notification = incoming D-Mail（角落新消息）
    ============================================ */
-.n-message {
-  animation: toast-crt-enter 0.45s cubic-bezier(0.22, 0.61, 0.36, 1) both;
-  border-radius: 8px !important;
-  border: 1px solid var(--color-brand-border) !important;
-  font-family: var(--font-mono) !important;
-  font-size: 12px !important;
-  position: relative;
-  overflow: hidden;
+.n-message-wrapper {
+  --n-color: var(--color-surface) !important;
+  --n-text-color: var(--color-text) !important;
+  --n-border: 1px solid var(--color-border) !important;
+  --n-border-radius: var(--radius-md) !important;
+  --n-box-shadow: var(--shadow-hover) !important;
+  --n-icon-color-info: var(--color-info) !important;
+  --n-icon-color-success: var(--color-success) !important;
+  --n-icon-color-warning: var(--color-warning) !important;
+  --n-icon-color-error: var(--color-error) !important;
+  --n-close-icon-color: var(--color-text-tertiary) !important;
+  --n-close-icon-color-hover: var(--color-brand) !important;
 }
 
-/* ref: Steins;Gate — type-specific border colors */
-.n-message.n-message--success-type { border-color: var(--color-success-border) !important; }
-.n-message.n-message--error-type { border-color: var(--color-error-border) !important; }
-.n-message.n-message--info-type { border-color: var(--color-info-border) !important; }
-.n-message.n-message--warning-type { border-color: var(--color-warning-border) !important; }
-/* Toast 进入: CRT 静态闪烁 → 清晰 */
-@keyframes toast-crt-enter {
-  0% { opacity: 0; transform: translateY(-12px) scale(0.95); filter: brightness(3) blur(2px); }
-  15% { opacity: 1; filter: brightness(0.5) blur(0); }
-  25% { filter: brightness(1.5); }
-  35% { filter: brightness(0.8); }
-  50% { filter: brightness(1.2); }
-  100% { opacity: 1; transform: translateY(0) scale(1); filter: brightness(1) blur(0); }
+.n-message {
+  position: relative;
+  overflow: hidden;
+  font-family: var(--font-family) !important;
+  font-size: 13px !important;
+  font-weight: 500;
+  line-height: 1.6;
+  animation: toast-enter 0.3s var(--ease-out) both;
 }
-/* Toast 静态扫描线进入时扫过 */
-.n-message::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    0deg, transparent, transparent 1px,
-    rgba(29, 237, 63,0.06) 1px, rgba(29, 237, 63,0.06) 2px
-  );
-  animation: toast-scanline 0.5s ease-out forwards;
-  pointer-events: none;
-  z-index: 1;
+
+/* 状态色左描边（ref: toast-patterns — borderLeft accent 模式） */
+.n-message--info-type { border-left: 3px solid var(--color-info) !important; }
+.n-message--success-type { border-left: 3px solid var(--color-success) !important; }
+.n-message--warning-type { border-left: 3px solid var(--color-warning) !important; }
+.n-message--error-type { border-left: 3px solid var(--color-error) !important; }
+
+/* 入场：从右侧滑入（新消息到达），克制无闪烁 */
+@keyframes toast-enter {
+  from { opacity: 0; transform: translateX(28px); }
+  to { opacity: 1; transform: translateX(0); }
 }
-@keyframes toast-scanline {
-  0% { opacity: 0.8; }
-  100% { opacity: 0; }
-}
-/* Toast 消失: dissolve */
+
+/* 消失：淡出 dissolve（见 animations.css） */
 .n-message.n-message--leave {
-  animation: dissolve 0.3s cubic-bezier(0.7, 0, 0.84, 0) forwards !important;
+  animation: dissolve 0.22s cubic-bezier(0.7, 0, 0.84, 0) forwards !important;
 }
 
 /* ============================================

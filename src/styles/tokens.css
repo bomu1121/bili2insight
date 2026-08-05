@@ -15,6 +15,7 @@
   --color-brand-border: rgba(139, 62, 62, 0.18);
   --color-brand-shadow: rgba(139, 62, 62, 0.14);
   --color-brand-ripple: rgba(139, 62, 62, 0.22);
+  --color-selection: rgba(139, 62, 62, 0.2);
 
   /* --- Nav Active (暖暗墨色) --- */
   --color-ink: #2A2520;
@@ -135,6 +136,7 @@
   --color-brand-border: rgba(123, 45, 45, 0.18);
   --color-brand-shadow: rgba(123, 45, 45, 0.12);
   --color-brand-ripple: rgba(123, 45, 45, 0.18);
+  --color-selection: rgba(123, 45, 45, 0.16);
 
   --color-ink: #E5DFD5;
   --color-ink-hover: #D8D0C5;
@@ -227,7 +229,7 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-::selection { background: rgba(111, 181, 132, 0.18); color: var(--color-text); }
+::selection { background: var(--color-selection); color: var(--color-text); }
 
 ::-webkit-scrollbar { width: var(--scrollbar-size); height: var(--scrollbar-size); }
 ::-webkit-scrollbar-track { background: transparent; }

@@ -6,12 +6,11 @@ import { useRoute, useRouter } from "vue-router";
 import { useAppStore } from "../stores/app";
 import { renderMarkdown } from "../utils/markdown";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { createDiscreteApi } from "naive-ui";
+import { message } from "../utils/feedback";
 
 const route = useRoute();
 const router = useRouter();
 const store = useAppStore();
-const { message } = createDiscreteApi(["message"]);
 const showLog = ref(false);
 
 const itemId = computed(() => route.params.id as string);

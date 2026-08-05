@@ -3,7 +3,7 @@ import { ref, computed } from 'vue';
 import type { NoteFolder, NoteEntry } from '../utils/types';
 import {
   notesCreateFolder, notesGetFolders, notesUpdateFolder, notesDeleteFolder,
-  notesCreateNote, notesGetNotes,  notesUpdateNote, notesDeleteNote,
+  notesCreateNote, notesGetNotes,  notesUpdateNote, notesDeleteNote, notesReorderNotes,
 } from '../utils/invoke';
 
 export const useNotesStore = defineStore('notes', () => {
@@ -77,10 +77,12 @@ export const useNotesStore = defineStore('notes', () => {
     if (updated) {
       const idx = notes.value.findIndex(n => n.id === id);
       if (idx >= 0) notes.value[idx] = updated;
-      // Refresh sort order
-      notes.value = [...notes.value].sort((a, b) => b.updated_at - a.updated_at);
     }
     return updated;
+  }
+
+  async function reorderNotes(folderId: string, orderedIds: string[]) {
+    notes.value = await notesReorderNotes(folderId, orderedIds);
   }
 
   async function removeNote(id: string) {
@@ -100,6 +102,6 @@ export const useNotesStore = defineStore('notes', () => {
     folders, notes, currentFolderId, currentNoteId, currentFolder, currentNote,
     loadingFolders, loadingNotes,
     loadFolders, loadFoldersAndReturn, createFolder, renameFolder, removeFolder,
-    loadNotes, createNote, updateNote, removeNote, selectNote,
+    loadNotes, createNote, updateNote, removeNote, selectNote, reorderNotes,
   };
 });

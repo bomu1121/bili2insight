@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { NButton, NIcon, createDiscreteApi } from "naive-ui";
+import { NButton, NIcon } from "naive-ui";
+import { message } from "../utils/feedback";
 import { ArrowLeft, X, Send } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/app";
@@ -9,7 +10,6 @@ import { open } from "@tauri-apps/plugin-dialog";
 
 const store = useAppStore();
 const router = useRouter();
-const { message } = createDiscreteApi(["message"]);
 
 const filePath = ref("");
 const fileName = ref("");

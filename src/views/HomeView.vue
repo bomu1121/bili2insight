@@ -15,11 +15,10 @@ import {
 } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
-import { createDiscreteApi } from "naive-ui";
+import { message } from "../utils/feedback";
 
 const router = useRouter();
 const authStore = useAuthStore();
-const { message } = createDiscreteApi(["message"]);
 
 const entries = [
   {

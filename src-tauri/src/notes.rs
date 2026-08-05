@@ -20,6 +20,8 @@ pub struct NoteEntry {
     pub content: String,
     pub created_at: i64,
     pub updated_at: i64,
+    #[serde(default)]
+    pub sort_order: i64,
 }
 
 pub struct NoteStore {
@@ -124,6 +126,11 @@ impl NoteStore {
 
     pub fn create_note(&mut self, folder_id: String, title: String, content: String) -> std::io::Result<NoteEntry> {
         let now = chrono::Utc::now().timestamp_millis();
+        let sort_order = self.notes_index.iter()
+            .filter(|n| n.folder_id == folder_id)
+            .map(|n| n.sort_order)
+            .max()
+            .unwrap_or(0) + 1;
         let note = NoteEntry {
             id: uuid::Uuid::new_v4().to_string(),
             folder_id,
@@ -131,6 +138,7 @@ impl NoteStore {
             content,
             created_at: now,
             updated_at: now,
+            sort_order,
         };
         self.save_note_file(&note)?;
         self.notes_index.push(note.clone());
@@ -142,8 +150,35 @@ impl NoteStore {
             .filter(|n| n.folder_id == folder_id)
             .cloned()
             .collect();
-        notes.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
+        notes.sort_by(|a, b| a.sort_order.cmp(&b.sort_order).then_with(|| b.updated_at.cmp(&a.updated_at)));
         notes
+    }
+
+    pub fn reorder_notes(&mut self, folder_id: &str, ordered_ids: &[String]) -> std::io::Result<Vec<NoteEntry>> {
+        let mut assigned: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
+        for (i, id) in ordered_ids.iter().enumerate() {
+            assigned.insert(id.clone(), (i + 1) as i64);
+        }
+        let mut next = (ordered_ids.len() + 1) as i64;
+        let mut changed: Vec<NoteEntry> = Vec::new();
+        for note in self.notes_index.iter_mut() {
+            if note.folder_id != folder_id {
+                continue;
+            }
+            let new_order = assigned.remove(&note.id).unwrap_or_else(|| {
+                let v = next;
+                next += 1;
+                v
+            });
+            if note.sort_order != new_order {
+                note.sort_order = new_order;
+                changed.push(note.clone());
+            }
+        }
+        for note in &changed {
+            self.save_note_file(note)?;
+        }
+        Ok(self.get_notes(folder_id))
     }
 
     pub fn get_note(&self, id: &str) -> Option<NoteEntry> {

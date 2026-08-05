@@ -170,7 +170,8 @@ pub fn run() {
             commands::notes_get_note,
             commands::notes_update_note,
             commands::notes_delete_note,
-       ])
+            commands::notes_reorder_notes,
+        ])
        .setup(|app| {
            let http_client = reqwest::Client::builder()
                .timeout(std::time::Duration::from_secs(120))

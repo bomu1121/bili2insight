@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, computed } from "vue";
-import { NButton, NText, NIcon, NInput, NPagination, NDrawer, NDrawerContent, NSpace, NDivider, NModal, createDiscreteApi } from "naive-ui";
+import { NButton, NText, NIcon, NInput, NPagination, NDrawer, NDrawerContent, NSpace, NDivider, NModal } from "naive-ui";
+import { message } from "../utils/feedback";
 import { TrashOutline, EyeOutline, SearchOutline, RefreshOutline, CopyOutline, DownloadOutline, TimeOutline, DocumentTextOutline, Star, StarOutline, BeakerOutline, FlashOutline, CheckmarkDoneOutline, FolderOpen } from "@vicons/ionicons5";
 import { useTemplateStore } from "../stores/templates";
 import { useAppStore } from "../stores/app";
@@ -10,8 +11,6 @@ import DmailConfirm from "../components/DmailConfirm.vue";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { renderMarkdown } from "../utils/markdown";
 import type { HistoryEntry, HistoryListResult, PipelineResult, AnalysisMeta } from "../utils/types";
-
-const { message } = createDiscreteApi(["message"], { messageProviderProps: { placement: "bottom-right" } });
 
 const loading = ref(false);
 const refreshing = ref(false);

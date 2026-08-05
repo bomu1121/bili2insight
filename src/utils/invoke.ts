@@ -134,4 +134,6 @@ export async function notesUpdateNote(id: string, title?: string, content?: stri
 export async function notesDeleteNote(id: string): Promise<boolean> {
     return invoke<boolean>("notes_delete_note", { id });
 }
-
+export async function notesReorderNotes(folderId: string, orderedIds: string[]): Promise<NoteEntry[]> {
+    return invoke<NoteEntry[]>("notes_reorder_notes", { folderId, orderedIds });
+}

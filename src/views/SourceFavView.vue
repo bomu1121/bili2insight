@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from "vue";
-import { NButton, NText, NIcon, NCheckbox, NSpin, NPagination, NInput, createDiscreteApi } from "naive-ui";
+import { NButton, NText, NIcon, NCheckbox, NSpin, NPagination, NInput } from "naive-ui";
+import { message } from "../utils/feedback";
 import { ArrowLeft, CirclePlus, FolderOpen, Bookmark, LogIn, Inbox, SearchX, Film, ListVideo, History } from "lucide-vue-next";
 import { useAuthStore } from "../stores/auth";
 import { useAppStore } from "../stores/app";
 
 const store = useAppStore();
 const authStore = useAuthStore();
-const { message } = createDiscreteApi(["message"]);
 
 // === Tabs (ref: Linear segmented + Steins;Gate @channel style) ===
 const tabs = [

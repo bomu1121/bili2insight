@@ -171,5 +171,5 @@ export interface NoteEntry {
   content: string;
   created_at: number;
   updated_at: number;
+  sort_order: number;
 }
-

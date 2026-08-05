@@ -677,3 +677,9 @@ pub fn notes_delete_note(state: tauri::State<'_, NoteState>, id: String) -> Resu
     store.delete_note(&id).map_err(|e| format!("Delete note error: {}", e))
 }
 
+#[tauri::command]
+pub fn notes_reorder_notes(state: tauri::State<'_, NoteState>, folder_id: String, ordered_ids: Vec<String>) -> Result<Vec<NoteEntry>, String> {
+    let mut store = state.0.lock().map_err(|e| format!("Lock error: {}", e))?;
+    store.reorder_notes(&folder_id, &ordered_ids).map_err(|e| format!("Reorder notes error: {}", e))
+}
+

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { NButton, NText, NIcon, NSpace, NSelect, createDiscreteApi } from "naive-ui";
+import { NButton, NText, NIcon, NSpace, NSelect } from "naive-ui";
+import { message } from "../utils/feedback";
 import {
   Trash2,
   Play,
@@ -20,7 +21,6 @@ import { useTemplateStore } from "../stores/templates";
 const store = useAppStore();
 const templateStore = useTemplateStore();
 const router = useRouter();
-const { message } = createDiscreteApi(["message"]);
 
 const fmtDur = (sec: number) => {
   const h = Math.floor(sec / 3600),
