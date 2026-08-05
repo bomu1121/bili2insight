@@ -2,8 +2,9 @@
 import { onMounted, onUnmounted, ref, watch, computed } from "vue";
 import { NInput, NButton, NSpace, NText, NIcon, NTabs, NTabPane, NPopover, NSwitch, NDrawer, NDrawerContent, NSelect, NConfigProvider, type GlobalThemeOverrides } from "naive-ui";
 import { message } from "./utils/feedback";
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { zhCN, dateZhCN } from "naive-ui";
-import { Settings, List, Play, Trash2, Eye, CircleCheckBig, CircleX, CircleStop, RefreshCw, CircleUserRound, LogOut, RotateCw, Smartphone, QrCode, ArrowRight, Copy, LinkIcon, FolderOpen, CloudUpload, Clock, BookOpen } from "lucide-vue-next";
+import { Settings, List, Play, Trash2, Eye, CircleCheckBig, CircleX, CircleStop, RefreshCw, CircleUserRound, LogOut, RotateCw, Smartphone, QrCode, ArrowRight, Copy, Check, LinkIcon, FolderOpen, CloudUpload, Clock, BookOpen } from "lucide-vue-next";
 import { useRoute, useRouter } from "vue-router";
 import { useAppStore } from "./stores/app";
 import { useAuthStore } from "./stores/auth";
@@ -67,7 +68,7 @@ const qrTab = ref("qr");
 
 
 onMounted(async () => { const saved = localStorage.getItem("theme"); if (saved === "light") { isDarkMode.value = false; document.documentElement.dataset.theme = "light"; } await store.init(); });
-onUnmounted(() => store.cleanup());
+onUnmounted(() => { store.cleanup(); if (copyTimer) clearTimeout(copyTimer); });
 watch(() => store.error, (val) => { if (val) message.error(val); });
 
 const isQueueRoute = computed(() => route.path === "/queue" || route.path.startsWith("/result"));
@@ -80,9 +81,18 @@ function stopProcessing() {
   const stopped = store.cancelQueue();
   message[stopped ? "success" : "info"](stopped ? "已停止 " + stopped + " 项处理" : "已停止处理");
 }
+const copyCopied = ref(false);
+let copyTimer: ReturnType<typeof setTimeout> | undefined;
 async function copyAllTitles() {
   const text = store.queue.map(q => q.pageInfo.part).join('\n');
-  try { await navigator.clipboard.writeText(text); } catch (_) {}
+  if (!text) return;
+  try {
+    await writeText(text);
+    message.success(`已复制 ${store.queue.length} 个标题`);
+    copyCopied.value = true;
+    if (copyTimer) clearTimeout(copyTimer);
+    copyTimer = setTimeout(() => (copyCopied.value = false), 2000);
+  } catch (e: any) { message.error("复制失败: " + String(e)); }
 }
 
 const templateOptions = computed(() => {
@@ -268,8 +278,8 @@ const tplPrompt = computed({
             <n-button size="small" @click="clearDone" :disabled="store.queue.filter(q=>q.status==='done'||q.status==='error'||q.status==='cancelled').length===0">
               <template #icon><n-icon><Trash2 /></n-icon></template>清除已完成
             </n-button>
-            <n-button size="small" @click="copyAllTitles" :disabled="store.queue.length===0">
-              <template #icon><n-icon><Copy /></n-icon></template>复制标题
+            <n-button size="small" @click="copyAllTitles" :disabled="store.queue.length===0" :class="{ copied: copyCopied }">
+              <template #icon><n-icon :color="copyCopied ? 'var(--color-success)' : undefined"><component :is="copyCopied ? Check : Copy" /></n-icon></template>{{ copyCopied ? "已复制" : "复制标题" }}
             </n-button>
           </div>
           <div class="queue-list">
@@ -664,6 +674,11 @@ const tplPrompt = computed({
 .q-tag.cancelled { color: var(--color-warning); background: var(--color-warning-soft); }
 .q-elapsed { font-size: 10px; color: var(--color-text-tertiary); font-family: var(--font-mono); }
 .q-action { flex-shrink: 0; display: flex; align-items: center; }
+.q-tpl-select { width: 134px; flex-shrink: 0; }
+/* ref: shadcn/ui copy button -- icon → check + green success tint, 2s auto-reset */
+.queue-actions .n-button .n-icon, .queue-header .n-button .n-icon { transition: transform var(--dur-2) var(--ease-out); }
+.n-button.copied { --n-color: var(--color-success-soft) !important; --n-color-hover: var(--color-success-soft) !important; --n-color-pressed: var(--color-success-soft) !important; --n-color-focus: var(--color-success-soft) !important; --n-text-color: var(--color-success) !important; --n-text-color-hover: var(--color-success) !important; --n-text-color-focus: var(--color-success) !important; --n-border-color: var(--color-success-border) !important; --n-border-color-hover: var(--color-success-border) !important; --n-border-color-focus: var(--color-success-border) !important; }
+.n-button.copied .n-icon { transform: scale(1.15); }
 .q-bar { width: 100%; height: 4px; background: var(--color-brand-soft); border-radius: var(--radius-full); overflow: hidden; }
 .q-fill { height: 100%; background: linear-gradient(90deg, var(--color-brand-pressed), var(--color-brand), var(--color-brand-hover)); border-radius: var(--radius-full); transition: width 0.3s ease; box-shadow: var(--brand-glow-soft); }
 
