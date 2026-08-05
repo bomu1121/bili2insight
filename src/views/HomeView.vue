@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { NIcon } from "naive-ui";
-import { ref as homeRef, onMounted as homeMounted } from "vue";
+import { ref as homeRef } from "vue";
 import { useScrollReveal } from "../composables/useScrollReveal";
 import {
   LinkIcon,
@@ -59,7 +59,6 @@ const entries = [
   },
 ];
 
-const heroRef = homeRef<HTMLElement | null>(null);
 const flowRef = homeRef<HTMLElement | null>(null);
 const { revealed: flowRevealed } = useScrollReveal(flowRef, { staggerDelay: 100, threshold: 0.05 });
 

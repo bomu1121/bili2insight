@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { NButton, NText, NIcon, NSpace, NSelect } from "naive-ui";
+import { NButton, NText, NIcon, NSpace, NSelect, createDiscreteApi } from "naive-ui";
 import {
   Trash2,
   Play,
@@ -11,6 +11,7 @@ import {
   Copy,
   CircleStop,
   List,
+  RotateCw,
 } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/app";
@@ -19,6 +20,7 @@ import { useTemplateStore } from "../stores/templates";
 const store = useAppStore();
 const templateStore = useTemplateStore();
 const router = useRouter();
+const { message } = createDiscreteApi(["message"]);
 
 const fmtDur = (sec: number) => {
   const h = Math.floor(sec / 3600),
@@ -52,10 +54,11 @@ function startProcessing() {
   store.processQueue();
 }
 function stopProcessing() {
-  store.cancelQueue();
+  const stopped = store.cancelQueue();
+  message[stopped ? "success" : "info"](stopped ? "已停止 " + stopped + " 项处理" : "已停止处理");
 }
 function clearDone() {
-  store.queue = store.queue.filter((q) => q.status !== "done" && q.status !== "error");
+  store.queue = store.queue.filter((q) => q.status !== "done" && q.status !== "error" && q.status !== "cancelled");
 }
 function viewResult(id: string) {
   router.push(`/result/${id}`);
@@ -98,7 +101,7 @@ function updateItemTemplate(itemId: string, val: number) {
         <n-button
           size="small"
           @click="clearDone"
-          :disabled="store.queue.filter((q) => q.status === 'done' || q.status === 'error').length === 0"
+          :disabled="store.queue.filter((q) => q.status === 'done' || q.status === 'error' || q.status === 'cancelled').length === 0"
         >
           <template #icon><n-icon><Trash2 /></n-icon></template>清除已完成
         </n-button>
@@ -120,20 +123,21 @@ function updateItemTemplate(itemId: string, val: number) {
         v-for="item in store.queue"
         :key="item.id"
         class="queue-item"
-        :class="{ running: item.status === 'running', done: item.status === 'done', error: item.status === 'error' }"
+        :class="{ running: item.status === 'running', done: item.status === 'done', error: item.status === 'error', cancelled: item.status === 'cancelled' }"
       >
         <div class="q-row1">
           <span class="q-status">
             <n-icon v-if="item.status === 'done'" color="var(--color-success)" :size="17"><CircleCheckBig /></n-icon>
             <n-icon v-else-if="item.status === 'error'" color="var(--color-error)" :size="17"><CircleX /></n-icon>
             <n-icon v-else-if="item.status === 'running'" color="var(--color-brand)" :size="17" class="spinning"><RefreshCw /></n-icon>
+            <n-icon v-else-if="item.status === 'cancelled'" color="var(--color-warning)" :size="17"><CircleStop /></n-icon>
             <span v-else class="q-pending-dot">&#9679;</span>
           </span>
           <span class="q-title" :title="item.pageInfo.part">{{ item.pageInfo.part }}</span>
           <div class="q-meta">
             <span class="q-dur tnum">{{ fmtDur(item.pageInfo.duration) }}</span>
             <span v-if="item.status !== 'done'" class="q-tag" :class="item.status">
-              {{ item.status === "error" ? "失败" : item.status === "running" ? item.stageLabel : "等待" }}
+              {{ item.status === "error" ? "失败" : item.status === "running" ? item.stageLabel : item.status === "cancelled" ? "已停止" : "等待" }}
             </span>
             <span class="q-elapsed tnum">{{ item.elapsedMs ? fmtElapsed(item.elapsedMs) : "" }}</span>
           </div>
@@ -147,6 +151,14 @@ function updateItemTemplate(itemId: string, val: number) {
               class="q-tpl-select"
               @update:value="(v: number) => updateItemTemplate(item.id, v)"
             />
+            <n-button v-if="item.status === 'running'" size="tiny" type="warning" secondary @click="store.cancelQueueItem(item.id)">
+              <template #icon><n-icon :size="15"><CircleStop /></n-icon></template>
+              取消
+            </n-button>
+            <n-button v-if="item.status === 'cancelled' || item.status === 'error'" size="tiny" type="primary" secondary @click="store.restartQueueItem(item.id)">
+              <template #icon><n-icon :size="15"><RotateCw /></n-icon></template>
+              重新开始
+            </n-button>
             <n-button v-if="item.status === 'done'" size="tiny" type="primary" secondary @click="viewResult(item.id)">
               <template #icon><n-icon :size="15"><Eye /></n-icon></template>
               查看
@@ -189,6 +201,8 @@ function updateItemTemplate(itemId: string, val: number) {
 .queue-item.done::before { background: var(--color-success); }
 .queue-item.error { border-color: var(--color-error-border); }
 .queue-item.error::before { background: var(--color-error); }
+.queue-item.cancelled { border-color: var(--color-warning-border); }
+.queue-item.cancelled::before { background: var(--color-warning); }
 .q-row1 { display: flex; align-items: center; gap: 12px; min-height: 26px; min-width: 0; width: 100%; }
 .q-row2 { padding-left: 29px; }
 .q-status { flex-shrink: 0; width: 20px; display: flex; align-items: center; justify-content: center; }
@@ -199,6 +213,7 @@ function updateItemTemplate(itemId: string, val: number) {
 .q-tag { font-size: 11px; color: var(--color-text-secondary); padding: 2px 8px; border-radius: var(--radius-full); background: var(--color-ink-soft); font-family: var(--font-mono); font-weight: 600; }
 .q-tag.running { color: var(--color-brand); background: var(--color-brand-soft); }
 .q-tag.error { color: var(--color-error); background: var(--color-error-soft); }
+.q-tag.cancelled { color: var(--color-warning); background: var(--color-warning-soft); }
 .q-elapsed { font-size: 11px; color: var(--color-text-tertiary); font-family: var(--font-mono); }
 .q-action { flex-shrink: 0; }
 .q-progress { width: 100%; height: 4px; background: var(--color-brand-soft); border-radius: var(--radius-full); overflow: hidden; }

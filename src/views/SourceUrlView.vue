@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed, onUnmounted } from "vue";
-import { NInput, NButton, NText, NIcon, NCheckbox, NSpin, createDiscreteApi } from "naive-ui";
+import { NInput, NButton, NIcon, NCheckbox, NSpin, createDiscreteApi } from "naive-ui";
 import { CirclePlus, X, RotateCw, LinkIcon, User, Clock } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/app";
@@ -114,7 +114,6 @@ async function refreshPreview() {
       <n-input
         v-model:value="url"
         placeholder="https://www.bilibili.com/video/BVxxxx"
-        :disabled="store.isProcessing"
         clearable
         size="large"
         round
@@ -170,7 +169,7 @@ async function refreshPreview() {
           </div>
         </div>
 
-        <n-button type="primary" block size="large" round @click="addToQueue" :disabled="!store.preview || store.isProcessing">
+        <n-button type="primary" block size="large" round @click="addToQueue" :disabled="!store.preview">
           <template #icon><n-icon><CirclePlus /></n-icon></template>
           加入队列
         </n-button>

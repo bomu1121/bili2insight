@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from "vue";
 import { NButton, NText, NIcon, NCheckbox, NSpin, NPagination, NInput, createDiscreteApi } from "naive-ui";
-import { ArrowLeft, CirclePlus, FolderOpen, RotateCw, Bookmark, LogIn, Inbox, SearchX, Film, ListVideo, History } from "lucide-vue-next";
-import { useRouter } from "vue-router";
+import { ArrowLeft, CirclePlus, FolderOpen, Bookmark, LogIn, Inbox, SearchX, Film, ListVideo, History } from "lucide-vue-next";
 import { useAuthStore } from "../stores/auth";
 import { useAppStore } from "../stores/app";
 
 const store = useAppStore();
 const authStore = useAuthStore();
-const router = useRouter();
 const { message } = createDiscreteApi(["message"]);
 
 // === Tabs (ref: Linear segmented + Steins;Gate @channel style) ===

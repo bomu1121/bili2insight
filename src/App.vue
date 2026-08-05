@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch, computed } from "vue";
-import { NInput, NButton, NSpace, NText, NIcon, NTabs, NTabPane, NPopover, createDiscreteApi, NDrawer, NDrawerContent, NSelect, NConfigProvider, type GlobalThemeOverrides } from "naive-ui";
+import { NInput, NButton, NSpace, NText, NIcon, NTabs, NTabPane, NPopover, NSwitch, createDiscreteApi, NDrawer, NDrawerContent, NSelect, NConfigProvider, type GlobalThemeOverrides } from "naive-ui";
 import { zhCN, dateZhCN } from "naive-ui";
-import { Settings, List, Play, Trash2, Eye, CircleCheckBig, CircleX, RefreshCw, CircleUserRound, LogOut, RotateCw, Smartphone, QrCode, ArrowRight, Copy, LinkIcon, FolderOpen, CloudUpload, Clock, Moon, Sun, BookOpen } from "lucide-vue-next";
+import { Settings, List, Play, Trash2, Eye, CircleCheckBig, CircleX, CircleStop, RefreshCw, CircleUserRound, LogOut, RotateCw, Smartphone, QrCode, ArrowRight, Copy, LinkIcon, FolderOpen, CloudUpload, Clock, BookOpen } from "lucide-vue-next";
 import { useRoute, useRouter } from "vue-router";
 import { useAppStore } from "./stores/app";
 import { useAuthStore } from "./stores/auth";
@@ -75,8 +75,11 @@ const isQueueRoute = computed(() => route.path === "/queue" || route.path.starts
 function viewResult(id: string) { showQueue.value = false; router.push(`/result/${id}`); }
 function openQueuePage() { showQueue.value = false; router.push("/queue"); }
 function startProcessing() { store.processQueue(); }
-function clearDone() { store.queue = store.queue.filter(q => q.status !== "done" && q.status !== "error"); }
-function stopProcessing() { store.cancelQueue(); }
+function clearDone() { store.queue = store.queue.filter(q => q.status !== "done" && q.status !== "error" && q.status !== "cancelled"); }
+function stopProcessing() {
+  const stopped = store.cancelQueue();
+  message[stopped ? "success" : "info"](stopped ? "已停止 " + stopped + " 项处理" : "已停止处理");
+}
 async function copyAllTitles() {
   const text = store.queue.map(q => q.pageInfo.part).join('\n');
   try { await navigator.clipboard.writeText(text); } catch (_) {}
@@ -156,32 +159,32 @@ const tplPrompt = computed({
       <nav class="side-nav">
         <div class="nav-group">
           <div class="nav-caption">> 信号源</div>
-          <button type="button" class="nav-item" :class="{ on: route.path === '/source/url' }" @click="router.push('/source/url'); createRipple()">
+          <button type="button" class="nav-item" :class="{ on: route.path === '/source/url' }" @click="router.push('/source/url'); createRipple($event)">
             <n-icon :size="17"><LinkIcon /></n-icon>
             <span class="nav-label">B站链接</span>
           </button>
-          <button type="button" class="nav-item" :class="{ on: route.path === '/source/fav' }" @click="router.push('/source/fav'); createRipple()">
+          <button type="button" class="nav-item" :class="{ on: route.path === '/source/fav' }" @click="router.push('/source/fav'); createRipple($event)">
             <n-icon :size="17"><FolderOpen /></n-icon>
             <span class="nav-label">B站收藏</span>
           </button>
-          <button type="button" class="nav-item" :class="{ on: route.path === '/source/local' }" @click="router.push('/source/local'); createRipple()">
+          <button type="button" class="nav-item" :class="{ on: route.path === '/source/local' }" @click="router.push('/source/local'); createRipple($event)">
             <n-icon :size="17"><CloudUpload /></n-icon>
             <span class="nav-label">本地文件</span>
           </button>
         </div>
         <div class="nav-group">
           <div class="nav-caption">> 观测台</div>
-          <button type="button" class="nav-item" :class="{ on: isQueueRoute }" @click="showQueue = true; createRipple()">
+          <button type="button" class="nav-item" :class="{ on: isQueueRoute }" @click="showQueue = true; createRipple($event)">
             <n-icon :size="17"><List /></n-icon>
             <span class="nav-label">处理队列</span>
             <span v-if="store.isProcessing" class="nav-pulse signal-dot" title="正在处理" />
             <span v-if="store.queueCount > 0" class="nav-badge tnum">{{ store.queueCount }}</span>
           </button>
-          <button type="button" class="nav-item" :class="{ on: route.path === '/notes' }" @click="router.push('/notes'); createRipple()">
+          <button type="button" class="nav-item" :class="{ on: route.path === '/notes' }" @click="router.push('/notes'); createRipple($event)">
             <n-icon :size="17"><BookOpen /></n-icon>
             <span class="nav-label">笔记</span>
           </button>
-          <button type="button" class="nav-item" :class="{ on: route.path === '/history' }" @click="router.push('/history'); createRipple()">
+          <button type="button" class="nav-item" :class="{ on: route.path === '/history' }" @click="router.push('/history'); createRipple($event)">
             <n-icon :size="17"><Clock /></n-icon>
             <span class="nav-label">历史记录</span>
           </button>
@@ -262,7 +265,7 @@ const tplPrompt = computed({
             <n-button v-if="store.isProcessing" size="small" type="warning" @click="stopProcessing">
               <template #icon><n-icon><CircleX /></n-icon></template>停止
             </n-button>
-            <n-button size="small" @click="clearDone" :disabled="store.queue.filter(q=>q.status==='done'||q.status==='error').length===0">
+            <n-button size="small" @click="clearDone" :disabled="store.queue.filter(q=>q.status==='done'||q.status==='error'||q.status==='cancelled').length===0">
               <template #icon><n-icon><Trash2 /></n-icon></template>清除已完成
             </n-button>
             <n-button size="small" @click="copyAllTitles" :disabled="store.queue.length===0">
@@ -270,19 +273,20 @@ const tplPrompt = computed({
             </n-button>
           </div>
           <div class="queue-list">
-            <div v-for="item in store.queue" :key="item.id" class="q-item" :class="{ running: item.status === 'running', done: item.status === 'done', error: item.status === 'error' }">
+            <div v-for="item in store.queue" :key="item.id" class="q-item" :class="{ running: item.status === 'running', done: item.status === 'done', error: item.status === 'error', cancelled: item.status === 'cancelled' }">
               <div class="q-row1">
                 <span class="q-s">
                   <n-icon v-if="item.status === 'done'" color="var(--color-success)" size="16"><CircleCheckBig /></n-icon>
                   <n-icon v-else-if="item.status === 'error'" color="var(--color-error)" size="16"><CircleX /></n-icon>
                   <n-icon v-else-if="item.status === 'running'" color="var(--color-brand)" size="16" class="spinning"><RefreshCw /></n-icon>
+                  <n-icon v-else-if="item.status === 'cancelled'" color="var(--color-warning)" size="16"><CircleStop /></n-icon>
                   <span v-else class="q-pending-dot">&#9679;</span>
                 </span>
                 <span class="q-title" :title="item.pageInfo.part">{{ item.pageInfo.part }}</span>
                 <div class="q-meta">
                   <span class="q-dur tnum">{{ (item.pageInfo.duration ? String(Math.floor(item.pageInfo.duration/60)).padStart(2,'0') + ':' + String(item.pageInfo.duration%60).padStart(2,'0') : '') }}</span>
                   <span v-if="item.status !== 'done'" class="q-tag" :class="item.status">
-                    {{ item.status === 'error' ? '失败' : item.status === 'running' ? item.stageLabel : '等待' }}
+                    {{ item.status === 'error' ? '失败' : item.status === 'running' ? item.stageLabel : item.status === 'cancelled' ? '已停止' : '等待' }}
                   </span>
                   <span class="q-elapsed tnum">{{ item.elapsedMs ? fmtElapsed(item.elapsedMs) : '' }}</span>
                 </div>
@@ -296,6 +300,12 @@ const tplPrompt = computed({
                     class="q-tpl-select"
                     @update:value="(v: number) => updateItemTemplate(item.id, v)"
                   />
+                  <n-button v-if="item.status === 'running'" size="tiny" text @click="store.cancelQueueItem(item.id)" style="padding:0 4px;" title="取消该任务">
+                    <template #icon><n-icon size="16" color="var(--color-warning)"><CircleStop /></n-icon></template>
+                  </n-button>
+                  <n-button v-if="item.status === 'cancelled' || item.status === 'error'" size="tiny" text @click="store.restartQueueItem(item.id)" style="padding:0 4px;" title="重新开始">
+                    <template #icon><n-icon size="16" color="var(--color-brand)"><RotateCw /></n-icon></template>
+                  </n-button>
                   <n-button v-if="item.status === 'done'" size="tiny" text @click="viewResult(item.id)" style="padding:0 4px;">
                     <template #icon><n-icon size="16"><Eye /></n-icon></template>
                   </n-button>
@@ -409,6 +419,17 @@ const tplPrompt = computed({
           </section>
 
           <section class="settings-section">
+            <div class="settings-section-title">队列</div>
+            <div class="settings-row">
+              <div class="settings-row-text">
+                <span class="field-label">添加后自动开始处理</span>
+                <span class="settings-hint">加入队列后立即开始处理，无需手动点击</span>
+              </div>
+              <n-switch v-model:value="settingsStore.autoProcessQueue" size="small" />
+            </div>
+          </section>
+
+          <section class="settings-section">
             <div class="settings-section-title">AI 模型</div>
             <label class="field">
               <span class="field-label">AI 提供商</span>
@@ -507,7 +528,8 @@ const tplPrompt = computed({
 .side-nav { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 0 10px; display: flex; flex-direction: column; gap: 20px; }
 .nav-group { display: flex; flex-direction: column; gap: 3px; }
 .nav-caption { font-size: 10.5px; font-weight: 600; color: var(--color-text-tertiary); padding: 0 20px 7px; font-family: var(--font-mono); letter-spacing: 0.04em; }
-.nav-item { display: flex; align-items: center; gap: 10px; height: 38px; margin: 0 8px; padding: 0 14px; border: none; border-radius: var(--radius-md); background: linear-gradient(90deg, rgba(139,62,62,0.12), rgba(139,62,62,0.04)); background-size: 0% 100%; background-repeat: no-repeat; font-family: inherit; font-size: 13px; font-weight: 500; color: var(--color-text-secondary); cursor: pointer; text-align: left; transition: background-size 0.45s cubic-bezier(0.22,0.61,0.36,1), color 0.25s cubic-bezier(0.22,0.61,0.36,1); position: relative; }
+/* ref: mdc-ripple -- bounded ripple needs an overflow:hidden host */
+.nav-item { display: flex; align-items: center; gap: 10px; height: 38px; margin: 0 8px; padding: 0 14px; border: none; border-radius: var(--radius-md); background: linear-gradient(90deg, rgba(139,62,62,0.12), rgba(139,62,62,0.04)); background-size: 0% 100%; background-repeat: no-repeat; font-family: inherit; font-size: 13px; font-weight: 500; color: var(--color-text-secondary); cursor: pointer; text-align: left; transition: background-size 0.45s cubic-bezier(0.22,0.61,0.36,1), color 0.25s cubic-bezier(0.22,0.61,0.36,1); position: relative; overflow: hidden; }
 .nav-item .n-icon { color: var(--color-text-tertiary); flex-shrink: 0; transition: color 0.25s cubic-bezier(0.22,0.61,0.36,1), filter 0.3s ease; }
 .nav-item::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 2.5px; border-radius: 0 1.5px 1.5px 0; background: transparent; transition: background 0.3s cubic-bezier(0.22,0.61,0.36,1), box-shadow 0.3s; }
 .nav-item:hover { background-size: 100% 100%; }
@@ -627,6 +649,8 @@ const tplPrompt = computed({
 .q-item.done::before { background: var(--color-success); }
 .q-item.error { border-color: var(--color-error-border); }
 .q-item.error::before { background: var(--color-error); }
+.q-item.cancelled { border-color: var(--color-warning-border); }
+.q-item.cancelled::before { background: var(--color-warning); }
 .q-row1 { display: flex; align-items: center; gap: 10px; min-height: 24px; min-width: 0; width: 100%; }
 .q-row2 { padding-left: 28px; }
 .q-s { flex-shrink: 0; width: 20px; display: flex; align-items: center; justify-content: center; }
@@ -637,6 +661,7 @@ const tplPrompt = computed({
 .q-tag { font-size: 10.5px; font-weight: 600; color: var(--color-text-secondary); padding: 1px 7px; border-radius: var(--radius-full); background: var(--color-ink-soft); font-family: var(--font-mono); }
 .q-tag.running { color: var(--color-brand); background: var(--color-brand-soft); }
 .q-tag.error { color: var(--color-error); background: var(--color-error-soft); }
+.q-tag.cancelled { color: var(--color-warning); background: var(--color-warning-soft); }
 .q-elapsed { font-size: 10px; color: var(--color-text-tertiary); font-family: var(--font-mono); }
 .q-action { flex-shrink: 0; display: flex; align-items: center; }
 .q-bar { width: 100%; height: 4px; background: var(--color-brand-soft); border-radius: var(--radius-full); overflow: hidden; }
@@ -889,6 +914,9 @@ const tplPrompt = computed({
 .field-label { font-size: 12px; color: var(--color-text-secondary); }
 .field-row { display: flex; gap: 8px; align-items: center; }
 .field-grow { flex: 1; min-width: 0; }
+.settings-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.settings-row-text { display: flex; flex-direction: column; gap: 2px; }
+.settings-hint { font-size: 11px; color: var(--color-text-tertiary); }
 .tpl-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 /* === View Transition — theme switch crossfade === */
 ::view-transition-old(root),

@@ -97,7 +97,7 @@ export interface FavVideosResult {
 export interface TaskState {
   pageKey: number;
   pageInfo: PageInfo;
-  status: "pending" | "running" | "done" | "error";
+  status: "pending" | "running" | "done" | "error" | "cancelled";
   progress: number;
   stageLabel: string;
   message: string;
@@ -110,7 +110,7 @@ export interface QueueItem {
   source: "url" | "fav" | "local";
   url?: string;
   pageInfo: PageInfo;
-  status: "pending" | "running" | "done" | "error";
+  status: "pending" | "running" | "done" | "error" | "cancelled";
   progress: number;
   stageLabel: string;
   message: string;

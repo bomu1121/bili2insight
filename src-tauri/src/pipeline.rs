@@ -4,11 +4,76 @@ use std::path::Path;
 use tauri::{AppHandle, Manager};
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri_plugin_shell::ShellExt;
+use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 
 use serde_json::Value;
 
+/// Returns true when the given queue item has been requested to cancel.
+pub fn is_pipeline_cancelled(app: &AppHandle, queue_item_id: Option<&str>) -> bool {
+    let qid = match queue_item_id {
+        Some(q) if !q.is_empty() => q,
+        _ => return false,
+    };
+    if let Some(state) = app.try_state::<crate::AppState>() {
+        if let Ok(set) = state.cancelled.lock() {
+            return set.contains(qid);
+        }
+    }
+    false
+}
+
+/// Runs a spawned sidecar while polling for cancellation; kills the child on cancel.
+async fn sidecar_output(
+    mut rx: tauri::async_runtime::Receiver<CommandEvent>,
+    child: CommandChild,
+    cancel: impl Fn() -> bool + Send + 'static,
+    timeout: std::time::Duration,
+) -> Result<(bool, Vec<String>, String), anyhow::Error> {
+    let mut stdout_lines: Vec<String> = Vec::new();
+    let mut stderr = String::new();
+    let mut success = false;
+    let deadline = std::time::Instant::now() + timeout;
+    loop {
+        if cancel() {
+            let _ = child.kill();
+            return Err(anyhow::anyhow!("已取消"));
+        }
+        if std::time::Instant::now() >= deadline {
+            let _ = child.kill();
+            return Err(anyhow::anyhow!("sidecar timed out after {}s", timeout.as_secs()));
+        }
+        let event = match tokio::time::timeout(std::time::Duration::from_millis(250), rx.recv()).await {
+            Ok(Some(ev)) => ev,
+            Ok(None) => break,
+            Err(_) => continue,
+        };
+        match event {
+            CommandEvent::Stdout(line) => {
+                let text = String::from_utf8_lossy(&line);
+                for ln in text.lines() {
+                    let trimmed = ln.trim_end().to_string();
+                    if !trimmed.is_empty() { stdout_lines.push(trimmed); }
+                }
+            }
+            CommandEvent::Stderr(line) => {
+                stderr.push_str(&String::from_utf8_lossy(&line));
+            }
+            CommandEvent::Terminated(payload) => {
+                success = payload.code == Some(0);
+                break;
+            }
+            CommandEvent::Error(e) => {
+                let _ = child.kill();
+                return Err(anyhow::anyhow!("sidecar error: {}", e));
+            }
+            _ => {}
+        }
+    }
+    Ok((success, stdout_lines, stderr))
+}
+
 pub async fn download_bili_audio(
-    app: &AppHandle, url: &str, output_dir: &Path, preview_only: bool, proxy: Option<&str>, page_cid: Option<i64>,
+    app: &AppHandle, url: &str, output_dir: &Path, preview_only: bool, proxy: Option<&str>, page_cid: Option<i64>, queue_item_id: Option<&str>,
     progress: impl Fn(&str, f64, &str) + Send + 'static,
 ) -> Result<VideoInfo, anyhow::Error> {
     let mut cmd = app.shell().sidecar("bili_worker")
@@ -18,24 +83,21 @@ pub async fn download_bili_audio(
     if let Some(cid) = page_cid { cmd = cmd.args(["--cid", &cid.to_string()]); }
     if let Some(p) = proxy { cmd = cmd.args(["--proxy", p]); }
     println!("  [sidecar] spawning bili_worker, url={} cid={:?}", url, page_cid);
-    let out = match tokio::time::timeout(std::time::Duration::from_secs(120), cmd.output()).await {
-        Ok(Ok(out)) => {
-            println!("  [sidecar] process exited, status={:?} stdout_len={} stderr_len={}", out.status, out.stdout.len(), out.stderr.len());
-            out
-        }
-        Ok(Err(e)) => return Err(anyhow::anyhow!("bili_worker failed: {}", e)),
-        Err(_) => return Err(anyhow::anyhow!("bili_worker timed out after 60s")),
-    };
-    if !out.status.success() {
-        let stdout = String::from_utf8_lossy(&out.stdout);
-        println!("  [sidecar] FAILED stdout={}", stdout);
-        let stderr = String::from_utf8_lossy(&out.stderr);
-        return Err(anyhow::anyhow!("bili_worker failed: stdout={}, stderr={}", stdout, stderr));
+    let app_cancel = app.clone();
+    let qid_cancel = queue_item_id.map(|s| s.to_string());
+    let (rx, child) = cmd.spawn().map_err(|e| anyhow::anyhow!("bili_worker spawn failed: {}", e))?;
+    let (ok, stdout_lines, stderr) = sidecar_output(
+        rx, child,
+        move || is_pipeline_cancelled(&app_cancel, qid_cancel.as_deref()),
+        std::time::Duration::from_secs(120),
+    ).await?;
+    if !ok {
+        println!("  [sidecar] FAILED stderr={}", stderr);
+        return Err(anyhow::anyhow!("bili_worker failed: stderr={}", stderr));
     }
-    let stdout = String::from_utf8(out.stdout)?;
     let mut video_info: Option<VideoInfo> = None;
-    for line in stdout.lines() {
-        if let Ok(val) = serde_json::from_str::<Value>(line) {
+    for line in stdout_lines {
+        if let Ok(val) = serde_json::from_str::<Value>(&line) {
             match val["type"].as_str() {
                 Some("progress") => { let s = val["stage"].as_str().unwrap_or(""); let m = val["message"].as_str().unwrap_or(""); progress(s, 0.1, m); }
                 Some("result") => {
@@ -63,23 +125,20 @@ pub async fn download_bili_audio_batch(
     cmd = cmd.args(["--cids", &cids_str]);
     if let Some(p) = proxy { cmd = cmd.args(["--proxy", p]); }
     println!("  [sidecar] spawning bili_worker BATCH, url={} cids={}", url, cids_str);
-    let out = match tokio::time::timeout(std::time::Duration::from_secs(180), cmd.output()).await {
-        Ok(Ok(out)) => {
-            println!("  [sidecar] batch process exited, status={:?} stdout_len={} stderr_len={}", out.status, out.stdout.len(), out.stderr.len());
-            out
-        }
-        Ok(Err(e)) => return Err(anyhow::anyhow!("bili_worker batch failed: {}", e)),
-        Err(_) => return Err(anyhow::anyhow!("bili_worker batch timed out after 180s")),
-    };
-    if !out.status.success() {
-        let stdout = String::from_utf8_lossy(&out.stdout);
-        let stderr = String::from_utf8_lossy(&out.stderr);
-        return Err(anyhow::anyhow!("bili_worker batch failed: stdout={}, stderr={}", stdout, stderr));
+    let app_cancel = app.clone();
+    let (rx, child) = cmd.spawn().map_err(|e| anyhow::anyhow!("bili_worker spawn failed: {}", e))?;
+    let (ok, stdout_lines, stderr) = sidecar_output(
+        rx, child,
+        move || is_pipeline_cancelled(&app_cancel, None),
+        std::time::Duration::from_secs(180),
+    ).await?;
+    if !ok {
+        println!("  [sidecar] batch FAILED stderr={}", stderr);
+        return Err(anyhow::anyhow!("bili_worker batch failed: stderr={}", stderr));
     }
-    let stdout = String::from_utf8(out.stdout)?;
     let mut video_info: Option<crate::VideoInfo> = None;
-    for line in stdout.lines() {
-        if let Ok(val) = serde_json::from_str::<serde_json::Value>(line) {
+    for line in stdout_lines {
+        if let Ok(val) = serde_json::from_str::<serde_json::Value>(&line) {
             match val["type"].as_str() {
                 Some("progress") => { let s = val["stage"].as_str().unwrap_or(""); let m = val["message"].as_str().unwrap_or(""); progress(s, 0.1, m); }
                 Some("result") => {
@@ -97,16 +156,22 @@ pub async fn download_bili_audio_batch(
 }
 
 pub async fn extract_audio_wav(
-    app: &AppHandle, audio_path: &str, output_dir: &Path
+    app: &AppHandle, audio_path: &str, output_dir: &Path, queue_item_id: Option<&str>,
 ) -> Result<String, anyhow::Error> {
     let stem = Path::new(audio_path).file_stem().unwrap_or_default().to_string_lossy();
     let wav_path = output_dir.join(format!("{}.wav", stem));
     let cmd = app.shell().sidecar("ffmpeg")
         .map_err(|e| anyhow::anyhow!("ffmpeg sidecar not found: {}", e))?;
-    let out = cmd.args(["-y", "-i", audio_path, "-ar", "16000", "-ac", "1", "-sample_fmt", "s16", wav_path.to_str().unwrap_or("")])
-        .output().await.map_err(|e| anyhow::anyhow!("FFmpeg failed: {}", e))?;
-    if !out.status.success() {
-        let stderr = String::from_utf8_lossy(&out.stderr);
+    let app_cancel = app.clone();
+    let qid_cancel = queue_item_id.map(|s| s.to_string());
+    let (rx, child) = cmd.args(["-y", "-i", audio_path, "-ar", "16000", "-ac", "1", "-sample_fmt", "s16", wav_path.to_str().unwrap_or("")])
+        .spawn().map_err(|e| anyhow::anyhow!("ffmpeg spawn failed: {}", e))?;
+    let (ok, _stdout, stderr) = sidecar_output(
+        rx, child,
+        move || is_pipeline_cancelled(&app_cancel, qid_cancel.as_deref()),
+        std::time::Duration::from_secs(300),
+    ).await?;
+    if !ok {
         return Err(anyhow::anyhow!("FFmpeg failed: {}", stderr));
     }
     Ok(wav_path.to_string_lossy().to_string())
@@ -143,7 +208,7 @@ async fn run_asr_sherpa(
 
 async fn run_asr_api(
     app: &AppHandle, wav_path: &str,
-    api_url: &str, api_key: Option<&str>,
+    api_url: &str, api_key: Option<&str>, queue_item_id: Option<&str>,
     progress: impl Fn(&str, f64, &str) + Send + 'static,
 ) -> Result<String, anyhow::Error> {
     let mut cmd = app.shell().sidecar("asr_worker")
@@ -156,15 +221,21 @@ async fn run_asr_api(
     if let Some(key) = api_key {
         cmd = cmd.args(["--api-key", key]);
     }
-    let out = cmd.output().await.map_err(|e| anyhow::anyhow!("ASR API failed: {}", e))?;
-    if !out.status.success() {
-        let stderr = String::from_utf8_lossy(&out.stderr);
-        let stdout = String::from_utf8_lossy(&out.stdout);
+    let app_cancel = app.clone();
+    let qid_cancel = queue_item_id.map(|s| s.to_string());
+    let (rx, child) = cmd.spawn().map_err(|e| anyhow::anyhow!("asr_worker spawn failed: {}", e))?;
+    let (ok, stdout_lines, stderr) = sidecar_output(
+        rx, child,
+        move || is_pipeline_cancelled(&app_cancel, qid_cancel.as_deref()),
+        std::time::Duration::from_secs(1800),
+    ).await?;
+    if !ok {
+        let stdout = stdout_lines.join("\n");
         return Err(anyhow::anyhow!("ASR API failed: stdout={}, stderr={}", stdout, stderr));
     }
-    let stdout = String::from_utf8(out.stdout)?;
-    for line in stdout.lines() {
-        if let Ok(val) = serde_json::from_str::<Value>(line) {
+    let stdout = stdout_lines.join("\n");
+    for line in stdout_lines {
+        if let Ok(val) = serde_json::from_str::<Value>(&line) {
             match val["type"].as_str() {
                 Some("progress") => { let m = val["message"].as_str().unwrap_or(""); progress("asr", 0.5, m); }
                 Some("error") => return Err(anyhow::anyhow!("{}", val["message"].as_str().unwrap_or("unknown"))),
@@ -177,15 +248,15 @@ async fn run_asr_api(
 
 pub async fn run_asr(
     app: &AppHandle, wav_path: &str,
-    asr_model: &str, asr_api_url: Option<&str>, asr_api_key: Option<&str>,
+    asr_model: &str, asr_api_url: Option<&str>, asr_api_key: Option<&str>, queue_item_id: Option<&str>,
     progress: impl Fn(&str, f64, &str) + Send + 'static,
 ) -> Result<String, anyhow::Error> {
     match asr_model {
         "mimo" | "mimo-api" => {
             let url = asr_api_url.ok_or_else(|| anyhow::anyhow!("ASR API URL required for MiMo backend"))?;
-            run_asr_api(app, wav_path, url, asr_api_key, progress).await
+            run_asr_api(app, wav_path, url, asr_api_key, queue_item_id, progress).await
         }
-        _ => run_asr_sherpa_daemon(app, wav_path, progress).await,
+        _ => run_asr_sherpa_daemon(app, wav_path, queue_item_id, progress).await,
     }
 }
 
@@ -262,9 +333,12 @@ pub async fn shutdown_asr_daemon(app: &AppHandle) {
 }
 
 async fn run_asr_sherpa_daemon(
-    app: &AppHandle, wav_path: &str,
+    app: &AppHandle, wav_path: &str, queue_item_id: Option<&str>,
     progress: impl Fn(&str, f64, &str) + Send + 'static,
 ) -> Result<String, anyhow::Error> {
+    if is_pipeline_cancelled(app, queue_item_id) {
+        return Err(anyhow::anyhow!("已取消"));
+    }
     ensure_asr_daemon(app).await?;
     let client = app.state::<crate::AppState>().http_client.clone();
 
@@ -274,6 +348,10 @@ async fn run_asr_sherpa_daemon(
         .send()
         .await
         .map_err(|e| anyhow::anyhow!("ASR daemon request failed: {}", e))?;
+
+    if is_pipeline_cancelled(app, queue_item_id) {
+        return Err(anyhow::anyhow!("已取消"));
+    }
 
     if !resp.status().is_success() {
         let status = resp.status();
@@ -291,7 +369,6 @@ async fn run_asr_sherpa_daemon(
     progress("asr", 0.75, "Speech recognition complete");
     Ok(text)
 }
-
 
 fn get_models_root(app: &AppHandle) -> Result<std::path::PathBuf, anyhow::Error> {
     let resource_dir = app.path().resource_dir()

@@ -51,18 +51,19 @@ export function useRipple() {
   function createRipple(e: MouseEvent) {
     const el = e.currentTarget as HTMLElement
     const rect = el.getBoundingClientRect()
-    const size = Math.max(rect.width, rect.height)
-    const x = e.clientX - rect.left - size / 2
-    const y = e.clientY - rect.top - size / 2
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    // ref: Material ripple -- radius = distance from the click point to the farthest corner of the host
+    const maxX = Math.max(x, rect.width - x)
+    const maxY = Math.max(y, rect.height - y)
+    const radius = Math.hypot(maxX, maxY)
     const ripple = document.createElement('span')
     ripple.className = 'ripple-effect'
-    ripple.style.left = x + 'px'
-    ripple.style.top = y + 'px'
-    ripple.style.width = size + 'px'
-    ripple.style.height = size + 'px'
-    if (!el.classList.contains('ripple-container')) {
-      el.classList.add('ripple-container')
-    }
+    ripple.style.width = radius * 2 + 'px'
+    ripple.style.height = radius * 2 + 'px'
+    ripple.style.left = x - radius + 'px'
+    ripple.style.top = y - radius + 'px'
+    // ref: mdc-ripple -- bounded ripple is clipped by the host's overflow:hidden (.nav-item)
     el.appendChild(ripple)
     ripple.addEventListener('animationend', () => ripple.remove())
   }

@@ -2,10 +2,11 @@ import { defineStore } from "pinia";
 import { ref, watch, computed } from "vue";
 import type { PipelineResult, PipelineProgress, VideoInfo, PageInfo, TaskState, QueueItem } from "../utils/types";
 import { useTemplateStore } from "./templates";
+import { useSettingsStore } from "./settingsStore";
 import { useAuthStore } from "./auth";
 import { SETTINGS_VERSION, loadSaved, saveToDisk, type Provider } from "./settings";
 import { runPipelineWithPage, saveResultToFile, previewVideo, fetchModels } from "../utils/invoke";
-import { runPipelineLocal } from "../utils/invoke";
+import { runPipelineLocal, cancelPipeline } from "../utils/invoke";
 import { listen } from "@tauri-apps/api/event";
 
 const PROVIDERS: Provider[] = [
@@ -268,7 +269,7 @@ export const useAppStore = defineStore("app", () => {
       // Update running queue item
       const qId = ev.payload.queue_item_id;
       const qIdx = qId ? queue.value.findIndex(q => q.id === qId) : queue.value.findIndex(q => q.status === 'running');
-      if (qIdx >= 0) {
+      if (qIdx >= 0 && queue.value[qIdx]?.status === 'running') {
         console.log('progress listener: updating queue[', qIdx, '] stage=', ev.payload.stage, 'progress=', ev.payload.progress, 'msg=', ev.payload.message?.slice(0,50));
         const q = [...queue.value];
         q[qIdx] = { ...q[qIdx], progress: ev.payload.progress, stageLabel: stageMap[ev.payload.stage] || ev.payload.stage, message: msgMap[ev.payload.message] || ev.payload.message };
@@ -357,20 +358,41 @@ export const useAppStore = defineStore("app", () => {
       error: '',
       createdAt: Date.now(),
     }];
+    if (useSettingsStore().autoProcessQueue) processQueue();
   }
 
   function cancelQueue() {
-    if (abortController) { abortController.abort(); isProcessing.value = false; abortController = null; }
+    if (!isProcessing.value && !abortController) return;
+    const qids: string[] = [];
+    const u = [...queue.value].map(q => {
+      if (q.status === 'running') { qids.push(q.id); return { ...q, status: 'cancelled' as const, stageLabel: '已停止', message: '', error: '已停止' }; }
+      return q;
+    });
+    queue.value = u;
+    if (abortController) { abortController.abort(); abortController = null; }
+    isProcessing.value = false;
+    qids.forEach(id => { cancelPipeline(id).catch(() => {}); });
+    return qids.length;
   }
 
   function cancelQueueItem(id: string) {
     const q = queue.value;
-    const idx = q.findIndex(qi => qi.id === id && qi.status === 'pending');
-    if (idx >= 0) {
-      const u = [...q];
-      u[idx] = { ...u[idx], status: 'error' as const, error: '已取消', stageLabel: '取消' };
-      queue.value = u;
-    }
+    const idx = q.findIndex(qi => qi.id === id && (qi.status === 'pending' || qi.status === 'running'));
+    if (idx < 0) return;
+    const wasRunning = q[idx].status === 'running';
+    const u = [...q];
+    u[idx] = { ...u[idx], status: 'cancelled' as const, error: '已取消', stageLabel: '已取消', message: '' };
+    queue.value = u;
+    if (wasRunning) cancelPipeline(id).catch(() => {});
+  }
+
+  function restartQueueItem(id: string) {
+    const q = [...queue.value];
+    const idx = q.findIndex(qi => qi.id === id && (qi.status === 'cancelled' || qi.status === 'error'));
+    if (idx < 0) return;
+    q[idx] = { ...q[idx], status: 'pending' as const, progress: 0, stageLabel: '等待中', message: '', error: '', result: null, elapsedMs: undefined };
+    queue.value = q;
+    processQueue();
   }
 
   async function processQueue() {
@@ -443,7 +465,7 @@ export const useAppStore = defineStore("app", () => {
       console.log('processQueue: item', idx, 'DONE, bvid=', result.video_info.bvid, 'title=', result.video_info.title?.slice(0,40));
       const done = [...queue.value];
       const doneIdx = done.findIndex(q => q.id === item.id);
-      if (doneIdx >= 0) {
+      if (doneIdx >= 0 && done[doneIdx].status !== 'cancelled') {
         done[doneIdx] = { ...done[doneIdx], status: 'done' as const, progress: 1, stageLabel: '完成', result, elapsedMs: Math.round(performance.now() - startTime) };
         queue.value = done;
       }
@@ -451,7 +473,7 @@ export const useAppStore = defineStore("app", () => {
       if (signal?.aborted) return;
       const err = [...queue.value];
       const errIdx = err.findIndex(q => q.id === item.id);
-      if (errIdx >= 0) {
+      if (errIdx >= 0 && err[errIdx].status !== 'cancelled') {
         err[errIdx] = { ...err[errIdx], status: 'error' as const, error: String(e), elapsedMs: Math.round(performance.now() - startTime) };
         queue.value = err;
       }
@@ -553,7 +575,7 @@ export const useAppStore = defineStore("app", () => {
     persistSettings, togglePage, selectAllPages,
     queue, isProcessing, queueCount, previewVideoFn, addQueueItem, processQueue,
     refreshPreview, clearPreviewCache,
-    cancelQueue, cancelQueueItem,
+    cancelQueue, cancelQueueItem, restartQueueItem,
     // Favorites
     favFolders, favLoading, favCurrentFolderId, favCurrentFolderTitle, favIsCollected, favCurrentFolderMid, favVideos, favPage, favTotalPages, favTotal, favLoadingVideos, favSelectedVideos,
     loadFavFolders, loadFavVideos, loadCollectedVideos, openFavFolder, toggleFavVideo, selectAllFavVideos, addFavVideosToQueue, followItems, followLoading, followType, followPage, followTotalPages, followTotal, loadFollowList, watchLaterItems, watchLaterLoading, watchLaterPage, watchLaterTotalPages, loadWatchLater, historyItems, historyLoading, historyPage, historyTotalPages, loadHistory,

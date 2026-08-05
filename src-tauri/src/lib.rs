@@ -116,6 +116,7 @@ pub struct PipelineResult {
 
 pub struct AppState {
     pub http_client: reqwest::Client,
+    pub cancelled: std::sync::Mutex<std::collections::HashSet<String>>,
 }
 
 use tauri::Manager;
@@ -133,6 +134,7 @@ pub fn run() {
             commands::fetch_ai_models,
            commands::download_batch, commands::run_pipeline,
             commands::run_pipeline_local,
+            commands::cancel_pipeline,
            commands::save_result,
             commands::save_result_to_file,
             commands::qr_generate,
@@ -175,7 +177,7 @@ pub fn run() {
                .pool_max_idle_per_host(4)
                .build()
                .expect("Failed to create HTTP client");
-           app.manage(AppState { http_client });
+           app.manage(AppState { http_client, cancelled: std::sync::Mutex::new(std::collections::HashSet::new()) });
             let history_data_dir = app.path().app_data_dir()
                 .map_err(|e| format!("app_data_dir: {}", e))
                 .unwrap_or_default()

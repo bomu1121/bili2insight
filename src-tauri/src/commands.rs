@@ -11,6 +11,21 @@ fn emit_progress(app: &AppHandle, stage: &str, progress: f64, message: &str, que
     let _ = app.emit("pipeline-progress", PipelineProgress { stage: stage.to_string(), progress, message: message.to_string(), queue_item_id: queue_item_id.map(|s| s.to_string()) });
 }
 
+fn check_cancelled(app: &AppHandle, queue_item_id: Option<&str>) -> Result<(), String> {
+    if crate::pipeline::is_pipeline_cancelled(app, queue_item_id) {
+        return Err("已取消".to_string());
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn cancel_pipeline(app: AppHandle, queue_item_id: String) -> Result<(), String> {
+    let state = app.state::<crate::AppState>();
+    let mut set = state.cancelled.lock().map_err(|e| format!("cancel lock error: {}", e))?;
+    set.insert(queue_item_id);
+    Ok(())
+}
+
 /// Helper to save a history entry. Returns an error message on failure.
 fn save_history_entry(
     store: &mut crate::history::HistoryStore,
@@ -67,7 +82,7 @@ fn save_history_for_failure(
 pub async fn preview_video(app: AppHandle, url: String, proxy: Option<String>, page_cid: Option<i64>) -> Result<VideoInfo, String> {
     emit_progress(&app, "preview", 0.0, "Detecting video...", None);
     let app_pv = app.clone();
-    let result = pipeline::download_bili_audio(&app, &url, &PathBuf::from("."), true, proxy.as_deref(), page_cid,
+    let result = pipeline::download_bili_audio(&app, &url, &PathBuf::from("."), true, proxy.as_deref(), page_cid, None,
         move |s, p, m| { let _ = app_pv.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string(), queue_item_id: None }); },
     ).await.map_err(|e| format!("Preview failed: {}", e))?;
     Ok(result)
@@ -100,13 +115,16 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
     emit_progress(&app, "download", 0.05, "Getting video info and downloading audio...", queue_item_id.as_deref());
     let qid = queue_item_id.clone();
     let app_dl = app.clone();
-    let download_result = pipeline::download_bili_audio(&app, &url, &output_dir, false, proxy.as_deref(), page_cid,
+    let download_result = pipeline::download_bili_audio(&app, &url, &output_dir, false, proxy.as_deref(), page_cid, queue_item_id.as_deref(),
         move |s, p, m| { let _ = app_dl.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string(), queue_item_id: qid.clone() }); },
     ).await;
 
     let mut video_info = match download_result {
         Ok(vi) => vi,
         Err(e) => {
+            if e.to_string().contains("已取消") {
+                return Err("已取消".to_string());
+            }
             let err_msg = format!("Download failed: {}", e);
             let empty_vi = crate::VideoInfo { cid: page_cid.unwrap_or(0), bvid: String::new(), title: String::new(), description: String::new(), duration: 0, cover: String::new(), uploader: String::new(), uploader_uid: 0, pubdate: 0, pages: vec![] };
             let _ = save_history_for_failure(&app, &empty_vi, &url, "url", start, &err_msg, template_name.clone());
@@ -125,12 +143,14 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
     }
     println!("  [STAGE:download] DONE, bvid={} title={}", video_info.bvid, video_info.title);
     emit_progress(&app, "download", 0.25, "Download complete", queue_item_id.as_deref());
+    check_cancelled(&app, queue_item_id.as_deref())?;
 
     // Clone for potential error history entry
     let vi_for_history = video_info.clone();
 
     // Run remaining processing stages; errors are caught below for history
     let process_result: Result<crate::PipelineResult, String> = async {
+        check_cancelled(&app, queue_item_id.as_deref())?;
         let audio_tag = match page_cid {
             Some(cid) if cid > 0 => format!("{}_p{}", video_info.bvid, cid),
             _ => video_info.bvid.clone(),
@@ -138,9 +158,10 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
         let audio_path = output_dir.join(format!("{}.m4a", audio_tag));
         println!("  [STAGE:ffmpeg] audio_tag={} audio_path={}", audio_tag, audio_path.display());
         emit_progress(&app, "ffmpeg", 0.30, "Converting audio format...", queue_item_id.as_deref());
-        let wav_path = pipeline::extract_audio_wav(&app, &audio_path.to_string_lossy(), &output_dir).await.map_err(|e| format!("FFmpeg error: {}", e))?;
+        let wav_path = pipeline::extract_audio_wav(&app, &audio_path.to_string_lossy(), &output_dir, queue_item_id.as_deref()).await.map_err(|e| format!("FFmpeg error: {}", e))?;
         println!("  [STAGE:ffmpeg] DONE, wav_path={}", wav_path);
         emit_progress(&app, "ffmpeg", 0.40, "Audio conversion complete", queue_item_id.as_deref());
+        check_cancelled(&app, queue_item_id.as_deref())?;
 
         let asr_model_val = asr_model.unwrap_or_else(|| "paraformer".to_string());
         println!("  [STAGE:asr] starting speech recognition, model={}...", asr_model_val);
@@ -148,11 +169,12 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
         let qid2 = queue_item_id.clone();
         let app_asr = app.clone();
         let transcript = pipeline::run_asr(&app, &wav_path,
-            &asr_model_val, asr_api_url.as_deref(), asr_api_key.as_deref(),
+            &asr_model_val, asr_api_url.as_deref(), asr_api_key.as_deref(), queue_item_id.as_deref(),
             move |s, p, m| { let _ = app_asr.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string(), queue_item_id: qid2.clone() }); },
         ).await.map_err(|e| format!("ASR failed: {}", e))?;
         println!("  [STAGE:asr] DONE, transcript_len={}", transcript.len());
         emit_progress(&app, "asr", 0.75, "Speech recognition complete", queue_item_id.as_deref());
+        check_cancelled(&app, queue_item_id.as_deref())?;
 
         let ai_url = ai_api_url.unwrap_or_else(|| "https://api.deepseek.com".to_string());
         let ai_key = ai_api_key.unwrap_or_default();
@@ -161,6 +183,7 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
         let raw = transcript.clone();
         println!("  [STAGE:refine] calling AI proofread, model={}", model);
         emit_progress(&app, "refine", 0.76, "AI proofreading transcript...", queue_item_id.as_deref());
+        check_cancelled(&app, queue_item_id.as_deref())?;
         let client = app.state::<crate::AppState>().http_client.clone();
         let transcript = pipeline::refine_transcript(&client, &ai_url, &ai_key, &model, &transcript).await.map_err(|e| format!("Refine failed: {}", e))?;
         println!("  [STAGE:refine] DONE, refined_len={}", transcript.len());
@@ -169,6 +192,7 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
         let prompt = ai_prompt.unwrap_or_else(|| "Please analyze the following video transcript...".to_string());
         println!("  [STAGE:ai] calling AI insights, prompt_len={}", prompt.len());
         emit_progress(&app, "ai", 0.81, "Extracting insights with AI...", queue_item_id.as_deref());
+        check_cancelled(&app, queue_item_id.as_deref())?;
         let (insights, ai_raw) = pipeline::extract_insights(&client, &ai_url, &ai_key, &model, &prompt, &transcript, &video_info.title).await.map_err(|e| format!("AI analysis failed: {}", e))?;
         println!("  [STAGE:ai] DONE, ai_raw_len={}", ai_raw.len());
         emit_progress(&app, "ai", 0.95, "AI insights ready", queue_item_id.as_deref());
@@ -183,6 +207,13 @@ pub async fn run_pipeline(app: AppHandle, url: String, proxy: Option<String>, ai
 
         Ok(crate::PipelineResult { raw_transcript: raw, video_info, transcript, insights, markdown, ai_request: ai_req, ai_raw_response: ai_raw })
     }.await;
+
+    // Cancelled pipelines do not create a history entry
+    if let Err(e) = &process_result {
+        if e.contains("已取消") {
+            return Err("已取消".to_string());
+        }
+    }
 
     // Always save a history entry, whether pipeline succeeded or failed
     let hs = app.state::<HistoryState>();
@@ -256,10 +287,12 @@ pub async fn run_pipeline_local(app: AppHandle, file_path: String, file_name: St
 
     // Run remaining processing stages; errors are caught below for history
     let process_result: Result<crate::PipelineResult, String> = async {
+    check_cancelled(&app, queue_item_id.as_deref())?;
     emit_progress(&app, "ffmpeg", 0.10, "Converting audio format...", queue_item_id.as_deref());
-    let wav_path = pipeline::extract_audio_wav(&app, &file_path, &output_dir).await.map_err(|e| format!("FFmpeg error: {}", e))?;
+    let wav_path = pipeline::extract_audio_wav(&app, &file_path, &output_dir, queue_item_id.as_deref()).await.map_err(|e| format!("FFmpeg error: {}", e))?;
     println!("  [STAGE:ffmpeg] DONE, wav_path={}", wav_path);
     emit_progress(&app, "ffmpeg", 0.25, "Audio conversion complete", queue_item_id.as_deref());
+    check_cancelled(&app, queue_item_id.as_deref())?;
 
     let asr_model_val = asr_model.unwrap_or_else(|| "paraformer".to_string());
     println!("  [STAGE:asr] starting speech recognition, model={}...", asr_model_val);
@@ -267,11 +300,12 @@ pub async fn run_pipeline_local(app: AppHandle, file_path: String, file_name: St
     let qid2 = queue_item_id.clone();
     let app_asr = app.clone();
     let transcript = pipeline::run_asr(&app, &wav_path,
-        &asr_model_val, asr_api_url.as_deref(), asr_api_key.as_deref(),
+        &asr_model_val, asr_api_url.as_deref(), asr_api_key.as_deref(), queue_item_id.as_deref(),
         move |s, p, m| { let _ = app_asr.emit("pipeline-progress", PipelineProgress { stage: s.to_string(), progress: p, message: m.to_string(), queue_item_id: qid2.clone() }); },
     ).await.map_err(|e| format!("ASR failed: {}", e))?;
     println!("  [STAGE:asr] DONE, transcript_len={}", transcript.len());
     emit_progress(&app, "asr", 0.65, "Speech recognition complete", queue_item_id.as_deref());
+    check_cancelled(&app, queue_item_id.as_deref())?;
 
     let ai_url = ai_api_url.unwrap_or_else(|| "https://api.deepseek.com".to_string());
     let ai_key = ai_api_key.unwrap_or_default();
@@ -280,6 +314,7 @@ pub async fn run_pipeline_local(app: AppHandle, file_path: String, file_name: St
     let raw = transcript.clone();
     println!("  [STAGE:refine] calling AI proofread, model={}", model);
     emit_progress(&app, "refine", 0.66, "AI proofreading transcript...", queue_item_id.as_deref());
+    check_cancelled(&app, queue_item_id.as_deref())?;
     let client = app.state::<crate::AppState>().http_client.clone();
     let transcript = pipeline::refine_transcript(&client, &ai_url, &ai_key, &model, &transcript).await.map_err(|e| format!("Refine failed: {}", e))?;
     println!("  [STAGE:refine] DONE, refined_len={}", transcript.len());
@@ -288,6 +323,7 @@ pub async fn run_pipeline_local(app: AppHandle, file_path: String, file_name: St
     let prompt = ai_prompt.unwrap_or_else(|| "Please analyze the following video transcript...".to_string());
     println!("  [STAGE:ai] calling AI insights, prompt_len={}", prompt.len());
     emit_progress(&app, "ai", 0.76, "Extracting insights with AI...", queue_item_id.as_deref());
+    check_cancelled(&app, queue_item_id.as_deref())?;
     let (insights, ai_raw) = pipeline::extract_insights(&client, &ai_url, &ai_key, &model, &prompt, &transcript, &video_info.title).await.map_err(|e| format!("AI analysis failed: {}", e))?;
     println!("  [STAGE:ai] DONE, ai_raw_len={}", ai_raw.len());
     emit_progress(&app, "ai", 0.95, "AI insights ready", queue_item_id.as_deref());
@@ -301,6 +337,13 @@ pub async fn run_pipeline_local(app: AppHandle, file_path: String, file_name: St
 
    Ok(crate::PipelineResult { raw_transcript: raw, video_info, transcript, insights, markdown, ai_request: ai_req, ai_raw_response: ai_raw })
     }.await;
+
+    // Cancelled pipelines do not create a history entry
+    if let Err(e) = &process_result {
+        if e.contains("已取消") {
+            return Err("已取消".to_string());
+        }
+    }
 
     // Always save a history entry, whether pipeline succeeded or failed
     let hs = app.state::<HistoryState>();

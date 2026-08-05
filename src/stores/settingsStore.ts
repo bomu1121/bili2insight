@@ -26,16 +26,17 @@ export const useSettingsStore = defineStore("settingsStore", () => {
   const asrModel = ref<AsrModelOption>(ver?.asrModel ?? "paraformer");
   const asrApiUrl = ref(ver?.asrApiUrl ?? "");
   const asrApiKey = ref(ver?.asrApiKey ?? "");
+  const autoProcessQueue = ref(ver?.autoProcessQueue ?? false);
 
   function persistSettings() {
     saveToDisk({
       version: SETTINGS_VERSION, proxy: proxy.value, aiApiUrl: aiApiUrl.value, aiApiKey: aiApiKey.value,
       aiModel: aiModel.value, selectedProvider: selectedProvider.value, customModels: customModels.value,
-      asrModel: asrModel.value, asrApiUrl: asrApiUrl.value, asrApiKey: asrApiKey.value,
+      asrModel: asrModel.value, asrApiUrl: asrApiUrl.value, asrApiKey: asrApiKey.value, autoProcessQueue: autoProcessQueue.value,
     });
   }
 
-  watch([proxy, aiApiUrl, aiApiKey, aiModel, selectedProvider, asrModel, asrApiUrl, asrApiKey], () => {
+  watch([proxy, aiApiUrl, aiApiKey, aiModel, selectedProvider, asrModel, asrApiUrl, asrApiKey, autoProcessQueue], () => {
     persistSettings();
   }, { deep: false });
 
@@ -56,7 +57,7 @@ export const useSettingsStore = defineStore("settingsStore", () => {
 
   return {
     PROVIDERS, proxy, aiApiUrl, aiApiKey, aiModel, selectedProvider, customModels,
-    asrModel, asrApiUrl, asrApiKey,
+    asrModel, asrApiUrl, asrApiKey, autoProcessQueue,
     switchProvider, fetchModelList, persistSettings,
   };
 });

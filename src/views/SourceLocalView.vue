@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { NButton, NIcon, createDiscreteApi } from "naive-ui";
-import { ArrowLeft, File, X, Send } from "lucide-vue-next";
+import { ArrowLeft, X, Send } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/app";
 import { invoke } from "@tauri-apps/api/core";
@@ -37,7 +37,7 @@ async function pickFile() {
       filePath.value = path;
       fileName.value = path.split(/[\\/]/).pop() || path;
       try {
-        const info = await invoke("plugin:fs|stat", { path });
+        const info = await invoke<{ size: number }>("plugin:fs|stat", { path });
         fileSize.value = fmtsize(info.size);
       } catch (_) {
         fileSize.value = "未知大小";
@@ -112,7 +112,7 @@ function addToQueue() {
           </div>
 
           <div class="term-send">
-            <n-button type="primary" size="large" round @click="addToQueue" :disabled="!hasFile || store.isProcessing">
+            <n-button type="primary" size="large" round @click="addToQueue" :disabled="!hasFile">
               <template #icon><n-icon><Send /></n-icon></template>
               SEND
             </n-button>

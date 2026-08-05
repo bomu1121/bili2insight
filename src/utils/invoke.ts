@@ -42,6 +42,10 @@ export async function runPipelineLocal(
   return invoke<PipelineResult>("run_pipeline_local", { filePath, fileName, aiApiUrl: aiApiUrl || null, aiApiKey: aiApiKey || null, aiModel: aiModel || null, aiPrompt: aiPrompt || null, asrModel: asrModel || null, asrApiUrl: asrApiUrl || null, asrApiKey: asrApiKey || null, queueItemId: queueItemId || null, templateName: templateName || null });
 }
 
+export async function cancelPipeline(queueItemId: string): Promise<void> {
+  return invoke("cancel_pipeline", { queueItemId });
+}
+
 export async function saveResultToFile(result: PipelineResult, outputPath: string): Promise<void> {
   return invoke("save_result_to_file", { result, outputPath });
 }
