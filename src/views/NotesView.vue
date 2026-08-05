@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick, computed } from "vue";
+import { ref, onMounted, nextTick, computed, watch } from "vue";
 import { NButton, NIcon, NInput, NSpace, createDiscreteApi } from "naive-ui";
 import { FolderOpen, FileText, Plus, Trash2, Edit3, Search, StickyNote, ArrowLeft, PenLine } from "lucide-vue-next";
 import { useNotesStore } from "../stores/notes";
 import DmailConfirm from "../components/DmailConfirm.vue";
 import type { NoteFolder } from "../utils/types";
+import { renderMarkdown as renderMd } from "../utils/markdown";
 
 const store = useNotesStore();
 const { message } = createDiscreteApi(["message"]);
@@ -82,9 +83,16 @@ function onTitleChange(e: Event) {
   const t = e.target as HTMLInputElement;
   if (store.currentNote) handleNoteTitleChange(store.currentNote.id, t.value);
 }
+function autoResizeTextarea() {
+  const ta = contentTextarea.value;
+  if (!ta) return;
+  ta.style.height = "auto";
+  ta.style.height = ta.scrollHeight + "px";
+}
 function onContentInput(e: Event) {
   const t = e.target as HTMLTextAreaElement;
   if (store.currentNote) handleContentChange(store.currentNote.id, t.value);
+  autoResizeTextarea();
 }
 async function removeNote(id: string) {
   try { await store.removeNote(id); } catch (e: any) { message.error("\u5220\u9664\u5931\u8d25: " + String(e)); }
@@ -106,6 +114,12 @@ function goBackToNotes() {
   store.selectNote(null);
 }
 
+// Keep the edit area growing with content: when entering edit mode or switching
+// notes, sync textarea height to its content so the page scrolls as one region.
+watch([showPreview, () => store.currentNoteId], () => {
+  if (!showPreview.value) nextTick(() => autoResizeTextarea());
+});
+
 function fmtDate(ts: number) {
   const d = new Date(ts);
   const p = (n: number) => String(n).padStart(2, "0");
@@ -116,23 +130,6 @@ function fmtDateFull(ts: number) {
   const d = new Date(ts);
   const p = (n: number) => String(n).padStart(2, "0");
   return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes());
-}
-
-function renderMd(text: string) {
-  if (!text) return "";
-  let h = text
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/^### (.+)$/gm, (_, s) => "<h3>" + s + "</h3>")
-    .replace(/^## (.+)$/gm, (_, s) => "<h2>" + s + "</h2>")
-    .replace(/^# (.+)$/gm, (_, s) => "<h1>" + s + "</h1>")
-    .replace(/\*\*(.+?)\*\*/g, (_, s) => "<strong>" + s + "</strong>")
-    .replace(/`([^`]+)`/g, (_, s) => "<code>" + s + "</code>")
-    .replace(/^- (.+)$/gm, (_, s) => "<li>" + s + "</li>")
-    .replace(/^(\d+)\. (.+)$/gm, (_2, _3, s) => "<li>" + s + "</li>")
-    .replace(/^---$/gm, "<hr>")
-    .replace(/\n\n/g, "</p><p>")
-    .replace(/\n/g, "<br>");
-  return "<p>" + h + "</p>";
 }
 
 function truncateText(text: string, maxLen = 80) {
