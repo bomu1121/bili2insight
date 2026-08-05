@@ -384,8 +384,16 @@ async function wrapPreviewSelection() {
   start = expanded.start;
   end = expanded.end;
   const inner = source.slice(start, end);
-  // 已处于 ==..== 内则不重复包裹
-  if (inner.startsWith("==") && inner.endsWith("==")) return;
+  // 滑过已高亮区域 → 取消该区域高亮（移除 == 标记）
+  if (inner.startsWith("==") && inner.endsWith("==")) {
+    const unhl = inner.replace(/==/g, "");
+    if (!unhl) return;
+    const newContent = source.slice(0, start) + unhl + source.slice(end);
+    if (newContent === source) return;
+    try { await store.updateNote(store.currentNote.id, undefined, newContent); }
+    catch (e: any) { message.error("高亮保存失败: " + String(e)); }
+    return;
+  }
   // 移除选区内已有的 == 标记，避免嵌套高亮导致渲染错乱
   const clean = inner.replace(/==/g, "");
   if (!clean) return;
@@ -408,8 +416,16 @@ function wrapHighlightSelection() {
   end = expanded.end;
   const sel = text.slice(start, end);
   if (!sel) return;
-  // 已处于 ==..== 内则不重复包裹
-  if (sel.startsWith("==") && sel.endsWith("==")) return;
+  // 滑过已高亮区域 → 取消该区域高亮（移除 == 标记）
+  if (sel.startsWith("==") && sel.endsWith("==")) {
+    const unhl = sel.replace(/==/g, "");
+    if (!unhl) return;
+    ta.setRangeText(unhl, start, end, "end");
+    ta.dispatchEvent(new Event("input", { bubbles: true }));
+    ta.focus();
+    ta.setSelectionRange(start, start + unhl.length);
+    return;
+  }
   // 移除选区内已有的 == 标记，避免嵌套高亮导致渲染错乱
   const clean = sel.replace(/==/g, "");
   if (!clean) return;
